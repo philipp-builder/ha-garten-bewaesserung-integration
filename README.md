@@ -9,7 +9,7 @@
 **Score-basierte Gartenbewässerung: Setup per Wizard, beliebig viele Kreise,
 erklärbare Entscheidungen, mehrschichtiges Sicherheitsnetz gegen hängende Ventile.**
 
-> 🌐 [Landing Page (English)](https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/) ·
+> 🌐 Landing Page: [Deutsch](https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/de/) · [English](https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/) ·
 > 🧩 Dieselbe Logik als Blueprints + Package: [Blueprint-Edition](https://github.com/philipp-builder/ha-garten-bewaesserung-blueprint)
 
 Die Integration berechnet für jeden Bewässerungskreis alle 30 Minuten einen
