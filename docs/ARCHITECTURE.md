@@ -2,7 +2,7 @@
 
 Verbindliche Spec für die Portierung der Blueprint-Edition nach Python.
 **Referenz-Verhalten = die 12 Blueprints der
-[Blueprint-Edition](https://github.com/philipp-builder/ha-garten-bewaesserung)**
+[Blueprint-Edition](https://github.com/philipp-builder/ha-garten-bewaesserung-blueprint)**
 (adversarial verifiziert, 2026-07). Jede bewusste Abweichung steht in diesem
 Dokument — alles andere ist Parität. Leitentscheidungen, die sich in der
 Umsetzung als falsch herausstellten, sind unter „Umsetzungs-Entscheidungen“

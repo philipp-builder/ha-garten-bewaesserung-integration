@@ -9,8 +9,8 @@
 **Score-basierte Gartenbewässerung: Setup per Wizard, beliebig viele Kreise,
 erklärbare Entscheidungen, mehrschichtiges Sicherheitsnetz gegen hängende Ventile.**
 
-> 🌐 [Landing Page (English)](https://philipp-builder.github.io/ha-garten-bewaesserung/) ·
-> 🧩 Dieselbe Logik als Blueprints + Package: [Blueprint-Edition](https://github.com/philipp-builder/ha-garten-bewaesserung)
+> 🌐 [Landing Page (English)](https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/) ·
+> 🧩 Dieselbe Logik als Blueprints + Package: [Blueprint-Edition](https://github.com/philipp-builder/ha-garten-bewaesserung-blueprint)
 
 Die Integration berechnet für jeden Bewässerungskreis alle 30 Minuten einen
 **Score (0–100)** aus Bodenfeuchte, Temperatur-Vorhersage und „Tagen seit letzter
@@ -76,7 +76,7 @@ Startzeit, Dauer-Grenzen, Schwellen und Modi sind zusätzlich als Entities
 [docs/INSTALLATION.md](docs/INSTALLATION.md) ·
 Architektur: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 Rezepte & Troubleshooting (Regen-24h-Sensor, Template-Switch für
-`valve.`-Entities u. v. m.): [FAQ](https://github.com/philipp-builder/ha-garten-bewaesserung/blob/main/docs/FAQ.md)
+`valve.`-Entities u. v. m.): [FAQ](https://github.com/philipp-builder/ha-garten-bewaesserung-blueprint/blob/main/docs/FAQ.md)
 — die Sensor-Rezepte gelten für beide Editionen.
 
 ## Services & Events

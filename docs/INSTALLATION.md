@@ -85,7 +85,7 @@ Zähler (Dosen, Liter) und der Mindestabstand überleben Neustarts (eigener Stor
 
 Die Sensor- und Hardware-Rezepte der Blueprint-Edition gelten unverändert —
 Regen-24h-Sensor bauen, `valve.`-/`light.`-Entities als Switch wrappen,
-Wetter-Sonderfälle: [FAQ im Kit-Repo](https://github.com/philipp-builder/ha-garten-bewaesserung/blob/main/docs/FAQ.md).
+Wetter-Sonderfälle: [FAQ im Kit-Repo](https://github.com/philipp-builder/ha-garten-bewaesserung-blueprint/blob/main/docs/FAQ.md).
 
 ## Migration vom Blueprint-Kit
 
@@ -98,7 +98,7 @@ Wetter-Sonderfälle: [FAQ im Kit-Repo](https://github.com/philipp-builder/ha-gar
    Tuning-Regler im Options-Dialog.
 4. Eine Nacht parallel beobachten (Blueprints aus, Integration an) — der
    Status-Sensor je Kreis zeigt, was die Engine entscheidet.
-5. Danach optional das Package (`packages/bewaesserung.yaml` aus dem [Kit-Repo](https://github.com/philipp-builder/ha-garten-bewaesserung)) entfernen und die
+5. Danach optional das Package (`packages/bewaesserung.yaml` aus dem [Kit-Repo](https://github.com/philipp-builder/ha-garten-bewaesserung-blueprint)) entfernen und die
    Dashboard-Karten auf die neuen Entity-IDs umstellen.
 
 **Nicht migriert wird automatisch:** Historie der alten Helfer (andere Entity-IDs)
