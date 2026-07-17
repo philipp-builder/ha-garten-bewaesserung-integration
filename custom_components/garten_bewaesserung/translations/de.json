@@ -1,0 +1,156 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Garten-Bewässerung einrichten",
+        "description": "Wähle die Wetter-Entity für Vorhersagen (Temperatur-Faktor und Regen-Veto). Alles Weitere — Kreise, Benachrichtigungen, Tuning — konfigurierst du danach über den Konfigurieren-Dialog der Integration.",
+        "data": {
+          "wetter": "Wetter-Entity"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Bereits eingerichtet — es wird nur ein Hub unterstützt."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Garten-Bewässerung",
+        "menu_options": {
+          "globale_einstellungen": "Globale Einstellungen (Wetter, Zeitplan, Sicherheit)",
+          "benachrichtigungen": "Benachrichtigungen",
+          "tuning": "Tuning (Score, Regen, Töpfe, Kosten)",
+          "kreis_hinzufuegen": "Kreis hinzufügen",
+          "kreis_bearbeiten": "Kreis bearbeiten",
+          "kreis_entfernen": "Kreis entfernen"
+        }
+      },
+      "globale_einstellungen": {
+        "title": "Globale Einstellungen",
+        "data": {
+          "wetter": "Wetter-Entity",
+          "regen_sensor": "Regensensor, mm der letzten 24 h (optional)",
+          "strahlung_sensor": "Globalstrahlungs-/Helligkeits-Sensor (optional)",
+          "bewaesserungszeit": "Bewässerungs-Startzeit",
+          "vorlauf_min": "Vorlauf der Plan-Benachrichtigung",
+          "standard_dauer": "Auto-Aus-Dauer für manuelles Gießen",
+          "notaus_minuten": "Notaus-Schwelle (muss über jeder Max-Dauer liegen)"
+        }
+      },
+      "benachrichtigungen": {
+        "title": "Benachrichtigungen",
+        "description": "Komma-getrennte notify-Dienste, z. B. `notify.mobile_app_handy1, notify.mobile_app_handy2`. Leer = keine Pushes.",
+        "data": {
+          "notify_text": "Notify-Dienste (Komma-getrennt)",
+          "push_kritisch_alarme": "Sicherheits-Alarme als zeitkritisch senden (iOS)",
+          "dashboard_pfad": "Dashboard-Pfad für Push-Deep-Links (optional)"
+        }
+      },
+      "tuning": {
+        "title": "Tuning",
+        "description": "Alle Vorgaben stammen aus dem erprobten 4-Kreis-Referenzsystem. Score-Gewichte werden auf ihre Summe normiert.",
+        "data": {
+          "score_gewicht_boden": "Score-Gewicht: Bodenfeuchte",
+          "score_gewicht_temp": "Score-Gewicht: Vorhersage-Temperatur",
+          "score_gewicht_tage": "Score-Gewicht: Tage seit Bewässerung",
+          "score_skip_schwelle": "Skip-Schwelle (Score darunter = keine Bewässerung)",
+          "score_temp_anker": "Temperatur-Anker",
+          "score_temp_spanne": "Temperatur-Spanne",
+          "score_tage_saettigung": "Sättigung des Tage-Faktors",
+          "score_forecast_typ": "Vorhersage-Typ",
+          "regen_beobachtet_mm": "Regen-Veto: gefallener 24-h-Regen",
+          "regen_forecast_mm": "Regen-Veto: vorhergesagter Regen",
+          "strahlung_schwelle": "Peak-Sonnen-Sperre der Topf-Dosen (Einheit deines Sensors)",
+          "topf_max_dosen": "Töpfe: max. Dosen pro Tag",
+          "topf_dosis_max_min": "Töpfe: max. Minuten pro Dosis",
+          "topf_min_intervall_min": "Töpfe: Mindestabstand zwischen Dosen",
+          "topf_glitch_grenze": "Töpfe: Sensor-Glitch-Untergrenze",
+          "wasser_tarif": "Wassertarif pro m³",
+          "waehrung": "Währungs-Label"
+        }
+      },
+      "kreis_hinzufuegen": {
+        "title": "Kreis hinzufügen — Basis",
+        "data": {
+          "name": "Kreis-Name",
+          "typ": "Kreis-Typ",
+          "ventile": "Ventil-Schalter (mehrere = nacheinander bewässert)",
+          "bodensensoren": "Bodenfeuchte-Sensoren (optional, mehrere = Minimum zählt)",
+          "parallel": "Parallel zu anderen Kreisen laufen",
+          "gruppe_reihenfolge": "Reihenfolge im Lauf"
+        }
+      },
+      "kreis_details": {
+        "title": "Kreis — Schwellen & optionale Sensorik",
+        "data": {
+          "veto_schwelle": "Boden-Veto-Schwelle (darüber feucht genug)",
+          "min_dauer": "Unterer Anker der Dauer-Formel",
+          "max_dauer": "Max-Dauer bei Score 100",
+          "ziel_unten": "Topf-Sollband: untere Grenze",
+          "ziel_oben": "Topf-Sollband: obere Grenze",
+          "k_faktor": "Dosis-Antwort k (%-Punkte pro Minute bei 50 % Boden)",
+          "flow_sensor": "Durchfluss-Sensor m³/h (optional, aktiviert Liter/Kosten)",
+          "leck_sensoren": "Leck-Sensoren (optional)",
+          "versorgung_sensor": "Wasserversorgung-ok-Sensor (optional)",
+          "batterie_sensoren": "Batterie-Sensoren (optional)"
+        }
+      },
+      "kreis_bearbeiten": {
+        "title": "Kreis bearbeiten",
+        "data": {
+          "kreis": "Kreis"
+        }
+      },
+      "kreis_basis_bearbeiten": {
+        "title": "Kreis bearbeiten — Basis",
+        "data": {
+          "name": "Kreis-Name",
+          "typ": "Kreis-Typ",
+          "ventile": "Ventil-Schalter (mehrere = nacheinander bewässert)",
+          "bodensensoren": "Bodenfeuchte-Sensoren (optional, mehrere = Minimum zählt)",
+          "parallel": "Parallel zu anderen Kreisen laufen",
+          "gruppe_reihenfolge": "Reihenfolge im Lauf"
+        }
+      },
+      "kreis_entfernen": {
+        "title": "Kreis entfernen",
+        "data": {
+          "kreis": "Kreis"
+        }
+      }
+    }
+  },
+  "selector": {
+    "kreis_typ": {
+      "options": {
+        "rasen": "Rasen / Beet (nur Abendplan)",
+        "topf": "Topf / Tropf (Plan + Tages-Dosen)"
+      }
+    }
+  },
+  "services": {
+    "jetzt_bewaessern": {
+      "name": "Jetzt bewässern",
+      "description": "Startet den geplanten Bewässerungslauf sofort (Skip/Urlaub gelten weiter)."
+    },
+    "not_aus": {
+      "name": "Not-Aus",
+      "description": "Bricht den Lauf ab und schließt alle Ventile mit Wiederholversuchen."
+    },
+    "plan_neu_berechnen": {
+      "name": "Plan neu berechnen",
+      "description": "Berechnet Score und Tagesdauer aller Kreise sofort neu (inkl. Topf-Nach-Check)."
+    },
+    "dosis_geben": {
+      "name": "Dosis geben",
+      "description": "Löst sofort eine Topf-Dose aus (umgeht Score-Gates, respektiert Sicherheits-Basics).",
+      "fields": {
+        "kreis": {
+          "name": "Kreis",
+          "description": "Kreis-ID des Topf-Kreises (z. B. tomaten)."
+        }
+      }
+    }
+  }
+}

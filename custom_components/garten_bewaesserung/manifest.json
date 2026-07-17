@@ -1,0 +1,14 @@
+{
+  "domain": "garten_bewaesserung",
+  "name": "Garten-Bewässerung",
+  "codeowners": [
+    "@philipp-builder"
+  ],
+  "config_flow": true,
+  "documentation": "https://github.com/philipp-builder/ha-garten-bewaesserung",
+  "integration_type": "hub",
+  "iot_class": "calculated",
+  "issue_tracker": "https://github.com/philipp-builder/ha-garten-bewaesserung/issues",
+  "requirements": [],
+  "version": "1.0.0"
+}

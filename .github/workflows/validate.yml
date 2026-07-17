@@ -1,0 +1,32 @@
+name: Validate
+on:
+  push:
+  pull_request:
+  schedule:
+    - cron: "17 4 * * 1"
+jobs:
+  hassfest:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: home-assistant/actions/hassfest@master
+  hacs:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: hacs/action@main
+        with:
+          category: integration
+          # brands erst bei Default-Store-Aufnahme noetig (dann PR in
+          # home-assistant/brands); als Custom-Repo bewusst ignoriert.
+          ignore: brands
+  tests:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.13"
+      # score.py ist bewusst HA-frei — die Paritätstests laufen ohne
+      # jegliche Abhängigkeiten (kein pip install nötig).
+      - run: python3 tests/test_score.py

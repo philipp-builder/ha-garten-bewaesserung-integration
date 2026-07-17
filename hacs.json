@@ -1,0 +1,6 @@
+{
+  "name": "Garten-Bewässerung (Smart Irrigation)",
+  "content_in_root": false,
+  "homeassistant": "2025.8.0",
+  "render_readme": true
+}

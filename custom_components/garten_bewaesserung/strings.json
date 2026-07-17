@@ -1,0 +1,155 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up Garden Irrigation",
+        "description": "Select the weather entity used for forecasts (temperature factor and rain veto). Everything else — circuits, notifications, tuning — is configured afterwards via the integration's Configure dialog.",
+        "data": {
+          "wetter": "Weather entity"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Already configured — only one hub is supported."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Garden Irrigation",
+        "menu_options": {
+          "globale_einstellungen": "Global settings (weather, schedule, safety)",
+          "benachrichtigungen": "Notifications",
+          "tuning": "Tuning (score, rain, pots, costs)",
+          "kreis_hinzufuegen": "Add circuit",
+          "kreis_bearbeiten": "Edit circuit",
+          "kreis_entfernen": "Remove circuit"
+        }
+      },
+      "globale_einstellungen": {
+        "title": "Global settings",
+        "data": {
+          "wetter": "Weather entity",
+          "regen_sensor": "Rain sensor, mm over the last 24 h (optional)",
+          "strahlung_sensor": "Solar radiation / illuminance sensor (optional)",
+          "bewaesserungszeit": "Watering start time",
+          "vorlauf_min": "Plan notification lead time",
+          "standard_dauer": "Auto-off duration for manual watering",
+          "notaus_minuten": "Emergency-stop threshold (must exceed every max duration)"
+        }
+      },
+      "benachrichtigungen": {
+        "title": "Notifications",
+        "description": "Comma-separated notify services, e.g. `notify.mobile_app_phone1, notify.mobile_app_phone2`. Leave empty for no push messages.",
+        "data": {
+          "notify_text": "Notify services (comma-separated)",
+          "push_kritisch_alarme": "Send safety alerts as time-sensitive (iOS)",
+          "dashboard_pfad": "Dashboard path for push deep-links (optional)"
+        }
+      },
+      "tuning": {
+        "title": "Tuning",
+        "description": "All defaults come from the proven 4-circuit reference system. Score weights are normalized to their sum.",
+        "data": {
+          "score_gewicht_boden": "Score weight: soil moisture",
+          "score_gewicht_temp": "Score weight: forecast temperature",
+          "score_gewicht_tage": "Score weight: days since watering",
+          "score_skip_schwelle": "Skip threshold (score below = no watering)",
+          "score_temp_anker": "Temperature anchor",
+          "score_temp_spanne": "Temperature span",
+          "score_tage_saettigung": "Days factor saturation",
+          "score_forecast_typ": "Forecast type",
+          "regen_beobachtet_mm": "Rain veto: observed 24 h rain",
+          "regen_forecast_mm": "Rain veto: forecast rain",
+          "strahlung_schwelle": "Pot dosing peak-sun lockout (unit of your sensor)",
+          "topf_max_dosen": "Pots: max doses per day",
+          "topf_dosis_max_min": "Pots: max minutes per dose",
+          "topf_min_intervall_min": "Pots: min interval between doses",
+          "topf_glitch_grenze": "Pots: sensor glitch floor",
+          "wasser_tarif": "Water tariff per m³",
+          "waehrung": "Currency label"
+        }
+      },
+      "kreis_hinzufuegen": {
+        "title": "Add circuit — basics",
+        "data": {
+          "name": "Circuit name",
+          "typ": "Circuit type",
+          "ventile": "Valve switches (several = watered in sequence)",
+          "bodensensoren": "Soil moisture sensors (optional, several = minimum wins)",
+          "parallel": "Run in parallel with other circuits",
+          "gruppe_reihenfolge": "Order within the run"
+        }
+      },
+      "kreis_details": {
+        "title": "Circuit — thresholds & optional sensors",
+        "data": {
+          "veto_schwelle": "Soil veto threshold (moist enough above this)",
+          "min_dauer": "Duration formula lower anchor",
+          "max_dauer": "Max duration at score 100",
+          "ziel_unten": "Pot target band: lower bound",
+          "ziel_oben": "Pot target band: upper bound",
+          "k_faktor": "Dose response k (%-points per minute at 50 % soil)",
+          "flow_sensor": "Flow sensor m³/h (optional, enables litres/costs)",
+          "leck_sensoren": "Leak sensors (optional)",
+          "versorgung_sensor": "Water-supply-ok sensor (optional)",
+          "batterie_sensoren": "Battery sensors (optional)"
+        }
+      },
+      "kreis_bearbeiten": {
+        "title": "Edit circuit",
+        "data": {
+          "kreis": "Circuit"
+        }
+      },
+      "kreis_basis_bearbeiten": {
+        "title": "Edit circuit — basics",
+        "data": {
+          "name": "Circuit name",
+          "ventile": "Valve switches",
+          "bodensensoren": "Soil moisture sensors",
+          "parallel": "Run in parallel with other circuits",
+          "gruppe_reihenfolge": "Order within the run"
+        }
+      },
+      "kreis_entfernen": {
+        "title": "Remove circuit",
+        "data": {
+          "kreis": "Circuit"
+        }
+      }
+    }
+  },
+  "selector": {
+    "kreis_typ": {
+      "options": {
+        "rasen": "Lawn / bed (evening plan only)",
+        "topf": "Pot / drip (plan + daytime dosing)"
+      }
+    }
+  },
+  "services": {
+    "jetzt_bewaessern": {
+      "name": "Jetzt bewässern",
+      "description": "Startet den geplanten Bewässerungslauf sofort (Skip/Urlaub gelten weiter)."
+    },
+    "not_aus": {
+      "name": "Not-Aus",
+      "description": "Bricht den Lauf ab und schließt alle Ventile mit Wiederholversuchen."
+    },
+    "plan_neu_berechnen": {
+      "name": "Plan neu berechnen",
+      "description": "Berechnet Score und Tagesdauer aller Kreise sofort neu (inkl. Topf-Nach-Check)."
+    },
+    "dosis_geben": {
+      "name": "Dosis geben",
+      "description": "Löst sofort eine Topf-Dose aus (umgeht Score-Gates, respektiert Sicherheits-Basics).",
+      "fields": {
+        "kreis": {
+          "name": "Kreis",
+          "description": "Kreis-ID des Topf-Kreises (z. B. tomaten)."
+        }
+      }
+    }
+  }
+}

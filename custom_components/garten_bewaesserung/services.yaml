@@ -1,0 +1,10 @@
+jetzt_bewaessern:
+not_aus:
+plan_neu_berechnen:
+dosis_geben:
+  fields:
+    kreis:
+      required: true
+      example: tomaten
+      selector:
+        text:
