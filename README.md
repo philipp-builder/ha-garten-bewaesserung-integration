@@ -1,53 +1,101 @@
 <!--
   README.md — HACS-Integration `garten_bewaesserung`
-  Die Ein-Klick-Edition des Garten-Bewässerungs-Kits.
+  Score-basierte Gartenbewässerung für Home Assistant.
   Lizenz: MIT · Stand: 2026-07
 -->
 
-# Garten-Bewässerung — Home-Assistant-Integration (HACS)
+# Garten-Bewässerung — Home-Assistant-Integration
 
-**Score-basierte Gartenbewässerung als Custom Integration: Setup-Wizard statt YAML,
-beliebig viele Kreise, erklärbare Entscheidungen, fünfschichtiges Sicherheitsnetz.**
+**Score-basierte Gartenbewässerung: Setup per Wizard, beliebig viele Kreise,
+erklärbare Entscheidungen, mehrschichtiges Sicherheitsnetz gegen hängende Ventile.**
 
-> 🌐 **[Landing Page (English) →](https://philipp-builder.github.io/ha-garten-bewaesserung/)** · 🧩 **Blueprint-Edition** (gleiche Logik als 12 Blueprints + Package, „gläserne Werkstatt"): [ha-garten-bewaesserung](https://github.com/philipp-builder/ha-garten-bewaesserung)
+> 🌐 [Landing Page (English)](https://philipp-builder.github.io/ha-garten-bewaesserung/) ·
+> 🧩 Dieselbe Logik als Blueprints + Package: [Blueprint-Edition](https://github.com/philipp-builder/ha-garten-bewaesserung)
 
 Die Integration berechnet für jeden Bewässerungskreis alle 30 Minuten einen
 **Score (0–100)** aus Bodenfeuchte, Temperatur-Vorhersage und „Tagen seit letzter
-Bewässerung", leitet daraus die heutige Dauer ab und führt sie abends aus —
-sequenziell oder parallel, mit Dauer-Snapshot, Retry-Schließen, Safety-Sweep,
-Auto-Aus-Backstop, Ventil-Watchdog und Neustart-Recovery. Töpfe werden tagsüber
-mit kleinen Dosen im Soll-Feuchteband gehalten. Jede Entscheidung steht als
-Klartext-Satz im Status-Sensor.
+Bewässerung", leitet daraus die heutige Bewässerungsdauer ab und führt sie zur
+eingestellten Zeit automatisch aus. Regen — gemessen oder vorhergesagt — setzt aus.
 
 - **Home Assistant:** ≥ 2025.8
 - **Sprache:** Deutsch (Entities + Dialoge; Setup-Dialoge auch Englisch)
-- **Abhängigkeiten:** keine (`requirements: []`, keine Cloud)
+- **Abhängigkeiten:** keine (keine Cloud, `requirements: []`)
 - **Lizenz:** [MIT](LICENSE)
+
+## Funktionen
+
+- **Score statt Zeitplan** — gewichtete Formel aus Boden-Trockenheit,
+  Vorhersage-Tmax und Durst-Tagen; Vetos für gemessenen und vorhergesagten Regen.
+  Jeder Kreis hat einen **Status-Sensor mit Klartext-Begründung**
+  („Score 72 → 16 min (Boden 42 %, Tmax 29 °C, nie bewässert)") und allen
+  Score-Faktoren als Attributen.
+- **Beliebig viele Kreise, komplett per UI** — anlegen, bearbeiten, löschen im
+  Options-Dialog. Je Kreis 1–n Ventile, 0–n Bodenfeuchte-Sensoren, sequenzielle
+  oder parallele Ausführung, eigene Dauer-Grenzen und Veto-Schwelle.
+- **Topf-Frequenzbewässerung** — Topf-Kreise erhalten tagsüber kleine Dosen, die
+  die Bodenfeuchte in einem Soll-Band halten; Dosisgröße aus einer einstellbaren
+  Dosis-Antwort-Konstante, abgesichert durch neun Gates (u. a. Peak-Sonnen-Sperre,
+  Tageslimit, Mindestabstand, Regen-Veto).
+- **Sicherheitsnetz** — jeder Schließbefehl mit Wiederhol-Versuchen; Safety-Sweep
+  nach jedem Lauf; Auto-Aus-Backstop für von Hand geöffnete Ventile; Watchdog
+  schließt jedes Ventil, das länger als die Notaus-Zeit offen ist; nach einem
+  HA-Neustart werden verwaiste offene Ventile sofort zwangsgeschlossen;
+  Not-Aus-Button für „alles sofort zu".
+- **Benachrichtigungen** — Tagesplan-Push vor dem Lauf; Alarme für Wasserleck,
+  fehlende Wasserversorgung und schwache Batterien; täglicher Report, wenn ein
+  Kreis trotz Automatik kritisch trocken bleibt.
+- **Wasser-Bilanz** — mit einem Flow-Sensor je Kreis: Liter pro Sitzung, Tag und
+  Monat plus Monatskosten aus dem hinterlegten Wassertarif.
+- **Modi** — Heute überspringen (Auto-Reset um Mitternacht), Urlaubsmodus,
+  Boost-Modus (Score 100), Kreise einzeln pausierbar.
 
 ## Installation
 
 1. HACS → ⋮ → **Benutzerdefinierte Repositories** →
-   `https://github.com/philipp-builder/ha-garten-bewaesserung-integration`, Typ **Integration**.
-2. „Garten-Bewässerung" installieren, Home Assistant neu starten.
-3. Einstellungen → Geräte & Dienste → **Integration hinzufügen** → „Garten-Bewässerung"
-   → Wetter-Entität wählen — fertig. Kreise, Sensoren und Tuning: Zahnrad → Options-Dialog.
+   `https://github.com/philipp-builder/ha-garten-bewaesserung-integration`,
+   Typ **Integration** → hinzufügen und installieren.
+2. Home Assistant neu starten.
+3. Einstellungen → Geräte & Dienste → **Integration hinzufügen** →
+   „Garten-Bewässerung" → Wetter-Entität wählen (beliebige `weather.*` mit Vorhersage).
 
-**Ausführliche Anleitung, Entity-Referenz und Migration von der Blueprint-Edition:**
-[docs/INSTALLATION.md](docs/INSTALLATION.md) · Architektur/Design-Entscheidungen:
-[docs/ARCHITECTURE.md](docs/ARCHITECTURE.md)
+## Konfiguration
 
-## Qualität
+Alles Weitere über das Zahnrad am Integrations-Eintrag:
 
-Portiert aus einem produktiven 4-Kreis-System (mehrere Saisons Dauereinsatz), dann:
+| Menüpunkt | Inhalt |
+|---|---|
+| Globale Einstellungen | Wetter-Entität · optional eigener Regen-24h-Sensor (mm) · optional Globalstrahlungs-Sensor (Peak-Sonnen-Sperre) |
+| Benachrichtigungen | notify-Dienste · kritische Pushes · Dashboard-Deep-Link |
+| Tuning | Score-Gewichte und -Parameter, Regen-Schwellen, Topf-Parameter, Wassertarif |
+| Kreis hinzufügen/bearbeiten/entfernen | Name, Typ (Rasen/Beet oder Topf/Tropf), Ventile, Sensoren, Reihenfolge, Dauer-Grenzen, Sollband + k, optionale Flow-/Leck-/Versorgungs-/Batterie-Sensoren |
 
-- **13 Formel-Paritätstests** gegen die Original-Zahlen (`tests/test_score.py`, laufen in der CI ohne Abhängigkeiten)
-- **E2E-Harness** (`tests/e2e/`): ephemere HA im Docker — Onboarding → Config-Flow →
-  Kreis-CRUD → Score-Parität → Executor → Not-Aus → Container-Restart-Recovery →
-  Topf-Dosen → Volumen/Kosten → Services, alles mit exakten Erwartungswerten
-- **Adversariale Review-Runde:** 8 Findings (Schwerpunkt Reload-Lebenszyklus), alle gefixt und regressionsgetestet
+Startzeit, Dauer-Grenzen, Schwellen und Modi sind zusätzlich als Entities
+(`time`, `number`, `switch`) direkt im Dashboard verstellbar.
 
-## Automations-API
+**Vollständige Entity-Referenz und Migration von der Blueprint-Edition:**
+[docs/INSTALLATION.md](docs/INSTALLATION.md) ·
+Architektur: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
+Rezepte & Troubleshooting (Regen-24h-Sensor, Template-Switch für
+`valve.`-Entities u. v. m.): [FAQ](https://github.com/philipp-builder/ha-garten-bewaesserung/blob/main/docs/FAQ.md)
+— die Sensor-Rezepte gelten für beide Editionen.
 
-Services: `garten_bewaesserung.jetzt_bewaessern` · `.not_aus` · `.plan_neu_berechnen` ·
-`.dosis_geben` (Feld `kreis`). Events: `garten_bewaesserung_lauf_gestartet` /
-`_lauf_beendet` / `_notaus`.
+## Services & Events
+
+| Service | Wirkung |
+|---|---|
+| `garten_bewaesserung.jetzt_bewaessern` | geplanten Lauf sofort starten (Skip/Urlaub gelten weiter) |
+| `garten_bewaesserung.not_aus` | Lauf abbrechen, alle Ventile schließen |
+| `garten_bewaesserung.plan_neu_berechnen` | Score/Dauer aller Kreise sofort neu berechnen |
+| `garten_bewaesserung.dosis_geben` | sofortige Topf-Dose (Feld `kreis`) |
+
+Events für eigene Automationen: `garten_bewaesserung_lauf_gestartet`,
+`…_lauf_beendet`, `…_notaus`.
+
+## Entwicklung & Tests
+
+Die Score-Formel liegt HA-frei in `custom_components/garten_bewaesserung/score.py`;
+`python3 tests/test_score.py` prüft sie ohne weitere Abhängigkeiten (läuft auch in
+der CI, zusammen mit hassfest- und HACS-Validierung). `tests/e2e/` enthält einen
+End-to-End-Test, der die Integration in einer ephemeren Home-Assistant-Instanz im
+Docker durchspielt — vom Config-Flow über Läufe und Not-Aus bis zur
+Neustart-Recovery.

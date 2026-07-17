@@ -1,14 +1,18 @@
 # Architektur: HACS-Integration `garten_bewaesserung` (v1.0)
 
 Verbindliche Spec für die Portierung der Blueprint-Edition nach Python.
-**Referenz-Verhalten = die 12 Blueprints** (adversarial verifiziert, 2026-07).
-Jede bewusste Abweichung steht in diesem Dokument — alles andere ist Parität.
+**Referenz-Verhalten = die 12 Blueprints der
+[Blueprint-Edition](https://github.com/philipp-builder/ha-garten-bewaesserung)**
+(adversarial verifiziert, 2026-07). Jede bewusste Abweichung steht in diesem
+Dokument — alles andere ist Parität. Leitentscheidungen, die sich in der
+Umsetzung als falsch herausstellten, sind unter „Umsetzungs-Entscheidungen“
+korrigiert — die Korrektur gilt.
 
 ## Leitentscheidungen (opinionated, entschieden 2026-07-17)
 
 1. **Ein Config-Entry („Hub"), Kreise in `entry.options`.** Kein Entry-pro-Kreis,
-   keine Subentry-API (hält min_version bei 2024.10). Options-Flow verwaltet
-   die Kreisliste (add/edit/remove) über ein Menü.
+   keine Subentry-API. Options-Flow verwaltet die Kreisliste (add/edit/remove)
+   über ein Menü. (HA-Minimum wurde in der Umsetzung 2025.8 — siehe unten.)
 2. **Controller statt DataUpdateCoordinator.** Wir pollen keine externe API —
    wir orchestrieren. Ein zentrales `GartenController`-Objekt pro Entry besitzt
    Scheduler, Executor-Task, Watchdog und Zustand. Coordinator-Pattern wäre
@@ -23,10 +27,12 @@ Jede bewusste Abweichung steht in diesem Dokument — alles andere ist Parität.
    Options-Änderung und HA-Start.
 5. **stdlib-only.** `manifest.json` → `requirements: []`. Wetter via
    `weather.get_forecasts`-Service-Call, alles andere HA-Bordmittel.
-6. **Ein Device pro Kreis + ein Hub-Device.** Saubere Geräteseiten; Entities
-   bekommen `suggested_object_id` nach Kreis-Slug (`garten_<slug>_score`).
-7. **Namen/UI zweisprachig:** `strings.json` (en) + `translations/de.json`.
-   Entity-Namen über translation_key (has_entity_name = True).
+6. **Ein Device pro Kreis + ein Hub-Device.** Saubere Geräteseiten; die
+   object_ids (`garten_<slug>_score`) entstehen über kurze Device-Namen
+   („Garten“/„Garten <Name>“) — siehe Umsetzungs-Entscheidungen.
+7. **Namen/UI:** Setup-Dialoge zweisprachig (`strings.json` + `translations/`),
+   Entity-Namen deutsch via `_attr_name` (has_entity_name = True; KEINE
+   translation_keys — Begründung unten).
 8. **Events + Services als Erweiterungspunkte**, damit Nutzer weiterhin eigene
    YAML-Automationen andocken können (Philosophie der Blueprint-Edition bleibt
    zugänglich): Events `garten_bewaesserung_lauf_gestartet/_beendet/_notaus`,
@@ -43,7 +49,7 @@ entry.options: {
   "notify_dienste": ["notify.mobile_app_a", ...],
   "push_kritisch_alarme": true,
   "dashboard_pfad": "",
-  "bewaesserungszeit": "21:00",           # Startwert; live via time-Entity
+  "bewaesserungszeit": "21:00:00",        # einzige Wahrheit; time-Entity = Write-Through-Sicht
   "vorlauf_min": 30,
   "standard_dauer": 10,
   "regen_beobachtet_mm": 3.0, "regen_forecast_mm": 1.5,
@@ -108,9 +114,13 @@ Pro Kreis-Device „Garten <Name>":
 5. Trocken-Report-Schwelle = halbe Veto-Schwelle des Kreises (das Kit hat
    Pro-Pflanze-Inputs; die Integration leitet ab statt zu fragen).
 
-Tuning-Werte leben doppelt: `entry.options` = Defaults/Persistenz,
-number-Entities = Live-Override (RestoreEntity, options-Wert als Fallback).
-**Regel:** Engine liest IMMER die Entity, nie options direkt (außer beim Seed).
+Tuning-Werte: `entry.options` ist die EINZIGE Wahrheit — Konfig-Numbers und
+die Zeit-Entity lesen daraus und schreiben Änderungen zurück (Write-Through,
+kein RestoreEntity; das hätte Options-Dialog-Edits nach dem Reload mit dem
+Alt-Zustand überschrieben — Review-Finding F3). Nur die Engine-geschriebene
+Tagesdauer je Kreis ist eine RestoreNumber.
+**Regel:** Engine liest zur Laufzeit die Entities; statische Konfiguration
+(Kreise, Sensoren, Notify) kommt aus den options.
 
 ## Controller (Engine)
 
@@ -124,8 +134,9 @@ GartenController
 │              retry_close(). Dauer-SNAPSHOT bei Lauf-Start (B3-Parität).
 │              cancel() bei Not-Aus/Skip → Safety-Sweep in finally-Block.
 ├─ watchdog:   pro Ventil-on einen Timer (notaus_minuten) — kein for:-Trigger-
-│              Re-Arm-Problem; Startup-Sweep nach Verfügbarkeits-Wartefenster
-│              (bis 180 s) schließt verwaiste Ventile (B5-Parität).
+│              Re-Arm-Problem; dazu B4-Auto-Aus (Standard-Dauer) für Öffnungen
+│              außerhalb eines Laufs; Startup-Sweep nach Verfügbarkeits-
+│              Wartefenster (bis 120 s, B5) schließt verwaiste Ventile.
 ├─ sitzung:    state-Listener auf alle Ventile: on→off stempelt
 │              zuletzt_bewaessert + Volumen-Delta (30 s Settle) — B9.
 ├─ topf:       pro Topf-Kreis Soll-Band-Loop (alle 30 min + Unterschreitungs-
@@ -134,9 +145,9 @@ GartenController
 │              Batterie (< Schwelle 30 min, 1 Push/Tag), Trocken-Report (Zeit,
 │              Dämpfer via zuletzt_bewaessert) — B7/B8/B10/B12.
 └─ store:      Store('garten_bewaesserung/<entry>.json'):
-               {lauf_aktiv, offene_ventile, dosen_zaehler, tages-snapshot}
-               → Restart-Recovery in async_setup_entry: lauf_aktiv==true ⇒
-               Ventile retry-schließen + Push „nach Neustart geschlossen".
+               {lauf_aktiv, dosen, liter_heute, liter_monat, letzte_dose,
+               datum, monat} → Restart-Recovery beim Start: lauf_aktiv==true
+               (oder echter HA-Boot) ⇒ offene Ventile retry-schließen + Push.
 ```
 
 **Score-Formel: 1:1 aus B1** inkl. aller Fallbacks (Sensor unavailable ⇒ 50 %,
@@ -157,12 +168,11 @@ custom_components/garten_bewaesserung/
 ├─ entity.py            # Basisklassen, Device-Zuordnung
 ├─ sensor.py / number.py / switch.py / button.py / time.py
 ├─ services.yaml
-├─ strings.json + translations/de.json
-tests/                  # pytest-homeassistant-custom-component (nur CI/Docker)
-├─ test_score.py        # Formel-Parität (Kit-Zahlenbeispiele)
-├─ test_executor.py     # Sequenz, Snapshot, Not-Aus-Cancel, Sweep
-├─ test_safety.py       # Watchdog, Restart-Recovery (die 2 Criticals!)
-├─ test_config_flow.py
+├─ strings.json + translations/de.json + translations/en.json
+tests/
+├─ test_score.py        # Formel-Parität (Kit-Zahlenbeispiele), läuft ohne HA
+├─ e2e/                 # ephemere HA im Docker: Flows, Engine, Executor,
+│                       # Not-Aus, Restart-Recovery, Töpfe, Volumen, Services
 ```
 
 ## Nicht-Ziele v1.0

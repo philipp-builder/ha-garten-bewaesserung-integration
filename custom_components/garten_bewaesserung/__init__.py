@@ -1,7 +1,7 @@
 """Garten-Bewässerung — score-basierte Bewässerungssteuerung.
 
 Portierung der adversarial verifizierten Blueprint-Edition nach Python.
-Referenz-Verhalten + Architektur: docs/integration/ARCHITECTURE.md.
+Referenz-Verhalten + Architektur: docs/ARCHITECTURE.md.
 """
 from __future__ import annotations
 

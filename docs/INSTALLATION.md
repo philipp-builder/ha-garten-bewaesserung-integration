@@ -81,6 +81,12 @@ Pro Kreis-Gerät **„Garten \<Name\>"** (Beispiel `rasen`):
 
 Zähler (Dosen, Liter) und der Mindestabstand überleben Neustarts (eigener Store).
 
+## FAQ / Rezepte
+
+Die Sensor- und Hardware-Rezepte der Blueprint-Edition gelten unverändert —
+Regen-24h-Sensor bauen, `valve.`-/`light.`-Entities als Switch wrappen,
+Wetter-Sonderfälle: [FAQ im Kit-Repo](https://github.com/philipp-builder/ha-garten-bewaesserung/blob/main/docs/FAQ.md).
+
 ## Migration vom Blueprint-Kit
 
 1. **Blueprint-Automationen deaktivieren** (nicht löschen — Rollback bleibt möglich):

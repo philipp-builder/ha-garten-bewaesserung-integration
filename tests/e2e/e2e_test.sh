@@ -1,10 +1,16 @@
 #!/bin/bash
 # E2E-Test der Integration in ephemerer HA (Port 8124, komplett getrennt).
-# Erwartet: Kit unter /tmp/kit-upload, Treiber unter /tmp/int_test_driver.py
+# Nutzung (beliebiger Host mit Docker):
+#   1) dieses Repo nach /tmp/integration-upload kopieren
+#   2) tests/e2e/e2e_driver.py nach /tmp/int_test_driver.py kopieren
+#   3) ./e2e_test.sh — faehrt eine ephemere HA auf 127.0.0.1:8124 hoch und
+#      spielt Onboarding, Config-Flow, Kreis-CRUD, Score-Engine, Executor,
+#      Not-Aus, Neustart-Recovery, Topf-Dosen und Volumen-Tracking mit
+#      exakten Erwartungswerten durch.
 set -euo pipefail
 TD=/tmp/int-test-config
 rm -rf "$TD"; mkdir -p "$TD/custom_components"
-cp -r /tmp/kit-upload/custom_components/garten_bewaesserung "$TD/custom_components/"
+cp -r /tmp/integration-upload/custom_components/garten_bewaesserung "$TD/custom_components/"
 
 cat > "$TD/configuration.yaml" <<'EOF'
 default_config:

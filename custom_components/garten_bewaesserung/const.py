@@ -1,7 +1,7 @@
 """Konstanten und Defaults der Garten-Bewässerung.
 
 Alle Default-Werte sind die erprobten Seed-Werte der Blueprint-Edition
-(produktives 4-Kreis-Referenzsystem) — siehe docs/integration/ARCHITECTURE.md.
+(produktives 4-Kreis-Referenzsystem) — siehe docs/ARCHITECTURE.md.
 """
 from __future__ import annotations
 

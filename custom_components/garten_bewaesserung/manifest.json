@@ -5,10 +5,10 @@
     "@philipp-builder"
   ],
   "config_flow": true,
-  "documentation": "https://github.com/philipp-builder/ha-garten-bewaesserung",
+  "documentation": "https://github.com/philipp-builder/ha-garten-bewaesserung-integration",
   "integration_type": "hub",
   "iot_class": "calculated",
-  "issue_tracker": "https://github.com/philipp-builder/ha-garten-bewaesserung/issues",
+  "issue_tracker": "https://github.com/philipp-builder/ha-garten-bewaesserung-integration/issues",
   "requirements": [],
   "version": "1.0.0"
 }
