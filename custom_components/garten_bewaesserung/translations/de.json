@@ -49,7 +49,7 @@
       },
       "tuning": {
         "title": "Tuning",
-        "description": "Alle Vorgaben stammen aus dem erprobten 4-Kreis-Referenzsystem — sie funktionieren ohne Anpassung. Jedes Feld erklärt sich darunter; zum Ausprobieren der Score-Formel gibt es den [interaktiven Rechner](https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/de/#playground) auf der Projektseite.",
+        "description": "Alle Vorgaben stammen aus dem erprobten 4-Kreis-Referenzsystem — sie funktionieren ohne Anpassung. Jedes Feld erklärt sich darunter; zum Ausprobieren der Score-Formel gibt es den [interaktiven Rechner]({rechner_url_de}) auf der Projektseite.",
         "sections": {
           "gewichte": {
             "name": "Score-Gewichte & Schwellen",

@@ -49,7 +49,7 @@
       },
       "tuning": {
         "title": "Tuning",
-        "description": "All defaults come from the proven 4-zone reference system — they work without any changes. Each field is explained below it; to play with the score formula, try the [interactive calculator](https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/#playground) on the project page.",
+        "description": "All defaults come from the proven 4-zone reference system — they work without any changes. Each field is explained below it; to play with the score formula, try the [interactive calculator]({rechner_url}) on the project page.",
         "sections": {
           "gewichte": {
             "name": "Score weights & thresholds",

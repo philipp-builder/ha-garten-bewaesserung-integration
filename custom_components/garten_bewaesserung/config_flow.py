@@ -377,7 +377,14 @@ class GartenOptionsFlow(OptionsFlowWithReload):
                 ),
             }
         )
-        return self.async_show_form(step_id="tuning", data_schema=schema)
+        return self.async_show_form(
+            step_id="tuning",
+            data_schema=schema,
+            description_placeholders={
+                "rechner_url": "https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/#playground",
+                "rechner_url_de": "https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/de/#playground",
+            },
+        )
 
     # ---------- Kreis anlegen ----------
 
