@@ -142,6 +142,10 @@
           "bodensensoren": "Bodenfeuchte-Sensoren (optional, mehrere = Minimum zählt)",
           "parallel": "Parallel zu anderen Kreisen laufen",
           "gruppe_reihenfolge": "Reihenfolge im Lauf"
+        },
+        "data_description": {
+          "gruppe_reihenfolge": "Sortiergewicht, kein exklusiver Platz: gleiche Nummern sind erlaubt (dann alphabetisch). Gilt nur für sequenzielle Kreise — parallele starten alle gleichzeitig. Lücken (10/20/30) lassen später Platz zum Einschieben.",
+          "parallel": "Ein: startet gleichzeitig mit dem Lauf. Aus: wartet, bis die sequenziellen Kreise davor fertig sind."
         }
       },
       "kreis_details": {
@@ -174,6 +178,10 @@
           "bodensensoren": "Bodenfeuchte-Sensoren (optional, mehrere = Minimum zählt)",
           "parallel": "Parallel zu anderen Kreisen laufen",
           "gruppe_reihenfolge": "Reihenfolge im Lauf"
+        },
+        "data_description": {
+          "gruppe_reihenfolge": "Sortiergewicht, kein exklusiver Platz: gleiche Nummern sind erlaubt (dann alphabetisch). Gilt nur für sequenzielle Kreise — parallele starten alle gleichzeitig. Lücken (10/20/30) lassen später Platz zum Einschieben.",
+          "parallel": "Ein: startet gleichzeitig mit dem Lauf. Aus: wartet, bis die sequenziellen Kreise davor fertig sind."
         }
       },
       "kreis_entfernen": {

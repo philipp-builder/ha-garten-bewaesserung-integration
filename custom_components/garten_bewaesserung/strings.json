@@ -142,6 +142,10 @@
           "bodensensoren": "Soil moisture sensors (optional, several = minimum wins)",
           "parallel": "Run in parallel with other circuits",
           "gruppe_reihenfolge": "Order within the run"
+        },
+        "data_description": {
+          "gruppe_reihenfolge": "Sort weight, not an exclusive slot: duplicate numbers are fine (ties break alphabetically). Only affects sequential circuits — parallel ones all start together. Gaps (10/20/30) leave room to insert later.",
+          "parallel": "On: starts together with the run. Off: waits until the sequential circuits before it have finished."
         }
       },
       "kreis_details": {
@@ -174,6 +178,10 @@
           "bodensensoren": "Soil moisture sensors",
           "parallel": "Run in parallel with other circuits",
           "gruppe_reihenfolge": "Order within the run"
+        },
+        "data_description": {
+          "gruppe_reihenfolge": "Sort weight, not an exclusive slot: duplicate numbers are fine (ties break alphabetically). Only affects sequential circuits — parallel ones all start together. Gaps (10/20/30) leave room to insert later.",
+          "parallel": "On: starts together with the run. Off: waits until the sequential circuits before it have finished."
         }
       },
       "kreis_entfernen": {
