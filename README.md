@@ -53,6 +53,12 @@ eingestellten Zeit automatisch aus. Regen — gemessen oder vorhergesagt — set
 - **Plan-Übersicht** — `sensor.garten_plan_heute` fasst den Tagesplan in einer
   Zeile zusammen (Tmax 3 Tage, Regen gemessen + Vorhersage, Bodenfeuchte aller
   Kreise, Berechnungszeitpunkt); die Rohwerte liegen als Attribute bei.
+- **Verdunstung statt nur Temperatur (optional)** — der Temperatur-Faktor kann
+  auf **ET₀ nach Hargreaves** umgestellt werden: Referenz-Verdunstung aus
+  Sonnenstand (Breitengrad + Kalendertag) und Tmax/Tmin der Vorhersage, ohne
+  zusätzliche Sensoren. Fällt bei fehlenden Daten automatisch auf Tmax zurück —
+  besonders für Rasenkreise ohne Bodensensor interessant. Der Tuning-Dialog ist
+  dafür in Sektionen mit Erklärtext unter jedem Feld gegliedert.
 
 ## Installation
 

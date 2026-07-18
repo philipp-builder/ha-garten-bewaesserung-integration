@@ -77,6 +77,9 @@ SCORE_DEFAULTS = {
     "temp_spanne": 15.0,
     "tage_saettigung": 7,
     "forecast_typ": "daily",
+    "temp_quelle": "tmax",  # "tmax" | "et0" (Hargreaves-Verdunstung)
+    "et0_anker": 2.0,
+    "et0_spanne": 5.0,
 }
 TOPF_DEFAULTS = {
     "max_dosen": 4,

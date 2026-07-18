@@ -516,6 +516,33 @@ def main():
     assert not leichen, f"Registry-Leichen nach Typwechsel: {leichen}"
     print("Typwechsel Topf->Rasen: typ-spezifische Entities + Registry-Einträge entfernt")
 
+    # ============ ET₀-Modus (v1.1.0): Tuning-Sektionen + Umschaltung ==========
+    f = options_flow2(
+        [
+            {"next_step_id": "tuning"},
+            {
+                "gewichte": {},
+                "temperatur": {"score_temp_quelle": "et0"},
+                "regen_sonne": {},
+                "toepfe": {},
+                "kosten": {},
+            },
+        ]
+    )
+    assert f.get("type") == "create_entry", f
+    time.sleep(8)
+    req("/api/services/button/press", {"entity_id": "button.garten_plan_neu_berechnen"})
+    time.sleep(4)
+    st3 = {s["entity_id"]: s for s in req("/api/states")}
+    fak = st3["sensor.garten_rasen_score"]["attributes"]
+    assert fak.get("temp_quelle") == "et0", fak
+    assert (fak.get("et0") or 0) > 0, fak
+    assert "ET₀" in st3["sensor.garten_rasen_status"]["state"], st3["sensor.garten_rasen_status"]["state"]
+    plan3 = st3["sensor.garten_plan_heute"]
+    assert "ET₀" in plan3["state"], plan3["state"]
+    assert plan3["attributes"]["temp_quelle"] == "et0" and plan3["attributes"]["et0_mm"] > 0
+    print("ET₀-Modus (Tuning-Sektionen):", plan3["state"])
+
     print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten und Typwechsel (v1.0.1) OK")
 
 

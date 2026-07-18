@@ -88,7 +88,9 @@ from .score import (
     baue_plan_push,
     baue_plan_uebersicht,
     berechne_score,
+    extrahiere_tagestemperaturen,
     extrahiere_wetter,
+    mittlere_et0,
     sicher_float,
 )
 
@@ -294,6 +296,13 @@ class GartenController:
         except Exception as exc:  # Wetter-Robustheit: Fehler ⇒ Fallbacks (B1)
             _LOGGER.debug("Wettervorhersage nicht abrufbar: %s", exc)
         tmax, regen_forecast, wetter_ok = extrahiere_wetter(forecast, forecast_typ)
+        # ET₀ (Hargreaves) immer mitberechnen — sichtbar in den Attributen,
+        # score-wirksam nur bei temp_quelle == "et0".
+        et0 = mittlere_et0(
+            self.hass.config.latitude,
+            dt_util.now().timetuple().tm_yday,
+            extrahiere_tagestemperaturen(forecast, forecast_typ),
+        )
 
         regen_sensor = self.entry.options.get(CONF_REGEN_SENSOR) or None
         regen_beobachtet = (
@@ -357,6 +366,7 @@ class GartenController:
                     regen_beobachtet_schwelle=regen_beob_schwelle,
                     regen_forecast=regen_forecast,
                     regen_forecast_schwelle=regen_fc_schwelle,
+                    et0=et0,
                 ),
                 params,
             )
@@ -371,13 +381,16 @@ class GartenController:
 
         zeit_str = dt_util.now().strftime("%H:%M")
         self.daten.hub.plan_heute = baue_plan_uebersicht(
-            tmax, wetter_ok, regen_beobachtet, regen_forecast, uebersicht, zeit_str
+            tmax, wetter_ok, regen_beobachtet, regen_forecast, uebersicht, zeit_str,
+            et0=et0 if params.temp_quelle == "et0" else None,
         )
         self.daten.hub.plan_details = {
             "tmax_3d": tmax,
             "wetter_ok": wetter_ok,
             "regen_24h_mm": regen_beobachtet,
             "regen_forecast_mm": regen_forecast,
+            "et0_mm": round(et0, 2) if et0 is not None else None,
+            "temp_quelle": params.temp_quelle,
             "berechnet_um": dt_util.now().isoformat(),
             "kreise": details_kreise,
         }

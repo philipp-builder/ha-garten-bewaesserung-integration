@@ -49,25 +49,88 @@
       },
       "tuning": {
         "title": "Tuning",
-        "description": "All defaults come from the proven 4-circuit reference system. Score weights are normalized to their sum.",
-        "data": {
-          "score_gewicht_boden": "Score weight: soil moisture",
-          "score_gewicht_temp": "Score weight: forecast temperature",
-          "score_gewicht_tage": "Score weight: days since watering",
-          "score_skip_schwelle": "Skip threshold (score below = no watering)",
-          "score_temp_anker": "Temperature anchor",
-          "score_temp_spanne": "Temperature span",
-          "score_tage_saettigung": "Days factor saturation",
-          "score_forecast_typ": "Forecast type",
-          "regen_beobachtet_mm": "Rain veto: observed 24 h rain",
-          "regen_forecast_mm": "Rain veto: forecast rain",
-          "strahlung_schwelle": "Pot dosing peak-sun lockout (unit of your sensor)",
-          "topf_max_dosen": "Pots: max doses per day",
-          "topf_dosis_max_min": "Pots: max minutes per dose",
-          "topf_min_intervall_min": "Pots: min interval between doses",
-          "topf_glitch_grenze": "Pots: sensor glitch floor",
-          "wasser_tarif": "Water tariff per m³",
-          "waehrung": "Currency label"
+        "description": "All defaults come from the proven 4-zone reference system — they work without any changes. Each field is explained below it; to play with the score formula, try the [interactive calculator](https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/#playground) on the project page.",
+        "sections": {
+          "gewichte": {
+            "name": "Score weights & thresholds",
+            "description": "The score (0–100) blends three factors — soil moisture, temperature/evapotranspiration, days waited — weighted and normalised to the weight sum. The score maps linearly onto each circuit's min–max watering duration.",
+            "data": {
+              "score_gewicht_boden": "Weight: soil moisture",
+              "score_gewicht_temp": "Weight: temperature / evapotranspiration",
+              "score_gewicht_tage": "Weight: days since watering",
+              "score_skip_schwelle": "Skip threshold",
+              "score_tage_saettigung": "Days-factor saturation"
+            },
+            "data_description": {
+              "score_gewicht_boden": "How much dry soil counts. The factor rises 2 points per percentage point below the circuit's veto threshold — circuits without a soil sensor skip it (the other weights take over).",
+              "score_gewicht_temp": "How much warm or high-evaporation days count. Choose the source (Tmax or ET₀) in the \"Temperature & evapotranspiration\" section.",
+              "score_gewicht_tage": "How much the wait since the last watering counts — prevents a zone from being starved for weeks in mild weather.",
+              "score_skip_schwelle": "If a circuit's daily score is below this, it is skipped today (0 min).",
+              "score_tage_saettigung": "After this many days without watering the days factor reaches 100%."
+            }
+          },
+          "temperatur": {
+            "name": "Temperature & evapotranspiration (ET₀)",
+            "description": "The temperature factor can use the classic maximum temperature (Tmax over the next 3 days) or the estimated reference evapotranspiration ET₀ (Hargreaves) — sun position from latitude + day of year, Tmax/Tmin from the forecast, no extra sensors needed. ET₀ shines for lawns: sunny, dry days evaporate far more than Tmax alone suggests. The current value is in the attributes of `sensor.garten_plan_heute` (et0_mm) — check it before switching.",
+            "data": {
+              "score_temp_quelle": "Temperature factor source",
+              "score_temp_anker": "Tmax: anchor",
+              "score_temp_spanne": "Tmax: span",
+              "score_et0_anker": "ET₀: anchor",
+              "score_et0_spanne": "ET₀: span",
+              "score_forecast_typ": "Forecast type"
+            },
+            "data_description": {
+              "score_temp_quelle": "Tmax = kit default. ET₀ = evapotranspiration estimate; falls back to Tmax automatically when templow values are missing.",
+              "score_temp_anker": "Tmax mode only: at this maximum temperature the factor is 0.",
+              "score_temp_spanne": "Tmax mode only: this many degrees above the anchor give factor 100 (default: 100 at 30 °C).",
+              "score_et0_anker": "ET₀ mode only: at this evapotranspiration (mm/day) the factor is 0. 2 mm ≈ cool, overcast day.",
+              "score_et0_spanne": "ET₀ mode only: this many mm/day above the anchor give factor 100. Default: 100 at 7 mm/day (hot midsummer day).",
+              "score_forecast_typ": "daily = your weather integration's daily forecast (default). Use hourly only if it offers no daily forecast."
+            }
+          },
+          "regen_sonne": {
+            "name": "Rain & sun",
+            "description": "Two rain vetoes force the watering duration to 0; the peak-sun lockout defers pot doses during harsh midday sun.",
+            "data": {
+              "regen_beobachtet_mm": "Rain veto: measured 24 h rain",
+              "regen_forecast_mm": "Rain veto: forecast rain",
+              "strahlung_schwelle": "Peak-sun lockout"
+            },
+            "data_description": {
+              "regen_beobachtet_mm": "This much measured rain within 24 h cancels the run. Only active with a configured rain-24h sensor (Global settings).",
+              "regen_forecast_mm": "This much rain forecast for today cancels the run.",
+              "strahlung_schwelle": "Above this reading of your solar-radiation sensor, pot doses are deferred. Unit = your sensor's; without a sensor it has no effect."
+            }
+          },
+          "toepfe": {
+            "name": "Pot frequency watering",
+            "description": "Pot/drip circuits get small top-up doses during the day to keep the soil inside its target band. These limits cap frequency and volume — no matter what the sensors report.",
+            "data": {
+              "topf_max_dosen": "Max doses per day",
+              "topf_dosis_max_min": "Max minutes per dose",
+              "topf_min_intervall_min": "Minimum gap between doses",
+              "topf_glitch_grenze": "Sensor glitch floor"
+            },
+            "data_description": {
+              "topf_max_dosen": "Upper limit per pot circuit and day — also caps the daily water volume.",
+              "topf_dosis_max_min": "A single dose never runs longer, however dry the sensor reads.",
+              "topf_min_intervall_min": "Wait until the soil has absorbed the previous dose and the sensor has caught up.",
+              "topf_glitch_grenze": "Readings below this count as sensor glitches (e.g. 0% on a radio dropout) and never trigger a dose."
+            }
+          },
+          "kosten": {
+            "name": "Water costs",
+            "description": "Only used by the cost sensors of circuits with a flow sensor.",
+            "data": {
+              "wasser_tarif": "Water tariff per m³",
+              "waehrung": "Currency label"
+            },
+            "data_description": {
+              "wasser_tarif": "Price per cubic metre of water per your utility.",
+              "waehrung": "Display unit of the cost sensors (e.g. EUR, CHF)."
+            }
+          }
         }
       },
       "kreis_hinzufuegen": {
@@ -126,6 +189,12 @@
       "options": {
         "rasen": "Lawn / bed (evening plan only)",
         "topf": "Pot / drip (plan + daytime dosing)"
+      }
+    },
+    "temp_quelle": {
+      "options": {
+        "tmax": "Tmax (maximum temperature, default)",
+        "et0": "ET₀ — Hargreaves evapotranspiration"
       }
     }
   },

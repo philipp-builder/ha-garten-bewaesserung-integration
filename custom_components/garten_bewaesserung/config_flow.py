@@ -22,6 +22,7 @@ from homeassistant.config_entries import (
     OptionsFlowWithReload,
 )
 from homeassistant.core import callback
+from homeassistant.data_entry_flow import section
 from homeassistant.helpers import selector
 
 from .const import (
@@ -280,21 +281,26 @@ class GartenOptionsFlow(OptionsFlowWithReload):
         score = {**SCORE_DEFAULTS, **o.get("score", {})}
         topf = {**TOPF_DEFAULTS, **o.get("topf", {})}
         if user_input is not None:
+            # section()-Gruppen liefern verschachtelte Dicts -> flach klopfen
+            flach: dict[str, Any] = {}
+            for wert in user_input.values():
+                if isinstance(wert, dict):
+                    flach.update(wert)
             neu_score = {
-                k: user_input[f"score_{k}"]
+                k: flach[f"score_{k}"]
                 for k in SCORE_DEFAULTS
-                if f"score_{k}" in user_input
+                if f"score_{k}" in flach
             }
-            neu_topf = {k: user_input[f"topf_{k}"] for k in TOPF_DEFAULTS}
+            neu_topf = {k: flach[f"topf_{k}"] for k in TOPF_DEFAULTS}
             return self._speichern(
                 {
                     "score": {**score, **neu_score},
                     "topf": {**topf, **neu_topf},
-                    CONF_REGEN_BEOBACHTET: user_input[CONF_REGEN_BEOBACHTET],
-                    CONF_REGEN_FORECAST: user_input[CONF_REGEN_FORECAST],
-                    CONF_STRAHLUNG_SCHWELLE: user_input[CONF_STRAHLUNG_SCHWELLE],
-                    CONF_TARIF: user_input[CONF_TARIF],
-                    CONF_WAEHRUNG: user_input[CONF_WAEHRUNG],
+                    CONF_REGEN_BEOBACHTET: flach[CONF_REGEN_BEOBACHTET],
+                    CONF_REGEN_FORECAST: flach[CONF_REGEN_FORECAST],
+                    CONF_STRAHLUNG_SCHWELLE: flach[CONF_STRAHLUNG_SCHWELLE],
+                    CONF_TARIF: flach[CONF_TARIF],
+                    CONF_WAEHRUNG: flach[CONF_WAEHRUNG],
                 }
             )
 
@@ -308,25 +314,67 @@ class GartenOptionsFlow(OptionsFlowWithReload):
 
         schema = vol.Schema(
             {
-                vol.Required("score_gewicht_boden", default=score["gewicht_boden"]): _num(0, 100, 1),
-                vol.Required("score_gewicht_temp", default=score["gewicht_temp"]): _num(0, 100, 1),
-                vol.Required("score_gewicht_tage", default=score["gewicht_tage"]): _num(0, 100, 1),
-                vol.Required("score_skip_schwelle", default=score["skip_schwelle"]): _num(1, 100, 1),
-                vol.Required("score_temp_anker", default=score["temp_anker"]): _num(-10, 30, 0.5, "°C"),
-                vol.Required("score_temp_spanne", default=score["temp_spanne"]): _num(1, 30, 0.5, "°C"),
-                vol.Required("score_tage_saettigung", default=score["tage_saettigung"]): _num(1, 30, 1, "d"),
-                vol.Required("score_forecast_typ", default=score["forecast_typ"]): selector.SelectSelector(
-                    selector.SelectSelectorConfig(options=["daily", "hourly"])
+                vol.Required("gewichte"): section(
+                    vol.Schema(
+                        {
+                            vol.Required("score_gewicht_boden", default=score["gewicht_boden"]): _num(0, 100, 1),
+                            vol.Required("score_gewicht_temp", default=score["gewicht_temp"]): _num(0, 100, 1),
+                            vol.Required("score_gewicht_tage", default=score["gewicht_tage"]): _num(0, 100, 1),
+                            vol.Required("score_skip_schwelle", default=score["skip_schwelle"]): _num(1, 100, 1),
+                            vol.Required("score_tage_saettigung", default=score["tage_saettigung"]): _num(1, 30, 1, "d"),
+                        }
+                    ),
+                    {"collapsed": False},
                 ),
-                vol.Required(CONF_REGEN_BEOBACHTET, default=o.get(CONF_REGEN_BEOBACHTET)): _num(0, 20, 0.5, "mm"),
-                vol.Required(CONF_REGEN_FORECAST, default=o.get(CONF_REGEN_FORECAST)): _num(0, 20, 0.5, "mm"),
-                vol.Required(CONF_STRAHLUNG_SCHWELLE, default=o.get(CONF_STRAHLUNG_SCHWELLE)): _num(0, 200000, 1),
-                vol.Required("topf_max_dosen", default=topf["max_dosen"]): _num(1, 20, 1),
-                vol.Required("topf_dosis_max_min", default=topf["dosis_max_min"]): _num(1, 30, 1, "min"),
-                vol.Required("topf_min_intervall_min", default=topf["min_intervall_min"]): _num(10, 360, 5, "min"),
-                vol.Required("topf_glitch_grenze", default=topf["glitch_grenze"]): _num(0, 30, 1, "%"),
-                vol.Required(CONF_TARIF, default=o.get(CONF_TARIF)): _num(0, 20, 0.1),
-                vol.Required(CONF_WAEHRUNG, default=o.get(CONF_WAEHRUNG, DEFAULT_WAEHRUNG)): selector.TextSelector(),
+                vol.Required("temperatur"): section(
+                    vol.Schema(
+                        {
+                            vol.Required("score_temp_quelle", default=score["temp_quelle"]): selector.SelectSelector(
+                                selector.SelectSelectorConfig(
+                                    options=["tmax", "et0"], translation_key="temp_quelle"
+                                )
+                            ),
+                            vol.Required("score_temp_anker", default=score["temp_anker"]): _num(-10, 30, 0.5, "°C"),
+                            vol.Required("score_temp_spanne", default=score["temp_spanne"]): _num(1, 30, 0.5, "°C"),
+                            vol.Required("score_et0_anker", default=score["et0_anker"]): _num(0, 5, 0.1, "mm"),
+                            vol.Required("score_et0_spanne", default=score["et0_spanne"]): _num(0.5, 10, 0.1, "mm"),
+                            vol.Required("score_forecast_typ", default=score["forecast_typ"]): selector.SelectSelector(
+                                selector.SelectSelectorConfig(options=["daily", "hourly"])
+                            ),
+                        }
+                    ),
+                    {"collapsed": True},
+                ),
+                vol.Required("regen_sonne"): section(
+                    vol.Schema(
+                        {
+                            vol.Required(CONF_REGEN_BEOBACHTET, default=o.get(CONF_REGEN_BEOBACHTET)): _num(0, 20, 0.5, "mm"),
+                            vol.Required(CONF_REGEN_FORECAST, default=o.get(CONF_REGEN_FORECAST)): _num(0, 20, 0.5, "mm"),
+                            vol.Required(CONF_STRAHLUNG_SCHWELLE, default=o.get(CONF_STRAHLUNG_SCHWELLE)): _num(0, 200000, 1),
+                        }
+                    ),
+                    {"collapsed": True},
+                ),
+                vol.Required("toepfe"): section(
+                    vol.Schema(
+                        {
+                            vol.Required("topf_max_dosen", default=topf["max_dosen"]): _num(1, 20, 1),
+                            vol.Required("topf_dosis_max_min", default=topf["dosis_max_min"]): _num(1, 30, 1, "min"),
+                            vol.Required("topf_min_intervall_min", default=topf["min_intervall_min"]): _num(10, 360, 5, "min"),
+                            vol.Required("topf_glitch_grenze", default=topf["glitch_grenze"]): _num(0, 30, 1, "%"),
+                        }
+                    ),
+                    {"collapsed": True},
+                ),
+                vol.Required("kosten"): section(
+                    vol.Schema(
+                        {
+                            vol.Required(CONF_TARIF, default=o.get(CONF_TARIF)): _num(0, 20, 0.1),
+                            vol.Required(CONF_WAEHRUNG, default=o.get(CONF_WAEHRUNG, DEFAULT_WAEHRUNG)): selector.TextSelector(),
+                        }
+                    ),
+                    {"collapsed": True},
+                ),
             }
         )
         return self.async_show_form(step_id="tuning", data_schema=schema)

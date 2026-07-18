@@ -185,6 +185,40 @@ def test_plan_uebersicht_zeile():
     assert len(z3) == 255 and z3.endswith("…"), len(z3)
 
 
+def test_hargreaves_et0():
+    # Extern vorgerechnete Pins (Ra-Zwischenschritt gegen FAO-56-Beispiel
+    # J=246/φ=-20° = 32.2 MJ/m²/Tag validiert): Zürich-Sommer + Winter.
+    assert abs(score.berechne_et0_hargreaves(47.4, 199, 29.0, 16.0) - 5.4645) < 0.001
+    assert abs(score.berechne_et0_hargreaves(47.4, 15, 5.0, -2.0) - 0.5013) < 0.001
+    # ΔT ≤ 0 (Inversionslage/Datenfehler) → 0 statt sqrt-Domain-Fehler
+    assert score.berechne_et0_hargreaves(47.4, 100, 10.0, 12.0) == 0.0
+
+
+def test_tagestemperaturen_daily_und_hourly():
+    daily = [
+        {"temperature": 27, "templow": 15},
+        {"temperature": 29, "templow": 16},
+        {"temperature": 24},  # ohne templow → übersprungen
+    ]
+    assert score.extrahiere_tagestemperaturen(daily, "daily") == [(27.0, 15.0), (29.0, 16.0)]
+    hourly = [{"temperature": 10 + (i % 24) / 2} for i in range(48)]
+    assert score.extrahiere_tagestemperaturen(hourly, "hourly") == [(21.5, 10.0), (21.5, 10.0)]
+    assert score.extrahiere_tagestemperaturen(None, "daily") == []
+    assert score.mittlere_et0(47.4, 199, []) is None
+
+
+def test_score_mit_et0_quelle():
+    p_et = score.ScoreParameter(temp_quelle="et0")  # Anker 2, Spanne 5
+    erg = score.berechne_score(_e(et0=4.5), p_et)
+    assert erg.faktoren["temp_faktor"] == 50.0  # (4.5−2)/5 → 50 statt Tmax-100
+    assert erg.faktoren["temp_quelle"] == "et0" and erg.faktoren["et0"] == 4.5
+    assert "ET₀ 4.5 mm" in erg.status
+    assert erg.score == 66  # (60·60 + 50·20 + 100·20)/100
+    # Kein ET₀-Wert (z. B. templow fehlt) → stiller Rückfall auf Tmax
+    erg2 = score.berechne_score(_e(), p_et)
+    assert erg2.faktoren["temp_quelle"] == "tmax" and erg2.score == 76
+
+
 if __name__ == "__main__":
     fehler = 0
     for name, fn in sorted(globals().items()):

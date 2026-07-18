@@ -57,7 +57,8 @@ entry.options: {
   "topf": {"max_dosen": 4, "dosis_max_min": 4, "min_intervall_min": 90, "glitch_grenze": 5},
   "score": {"gewicht_boden": 60, "gewicht_temp": 20, "gewicht_tage": 20,
              "skip_schwelle": 25, "temp_anker": 15, "temp_spanne": 15,
-             "tage_saettigung": 7, "forecast_typ": "daily"},
+             "tage_saettigung": 7, "forecast_typ": "daily",
+             "temp_quelle": "tmax", "et0_anker": 2.0, "et0_spanne": 5.0},
   "notaus_minuten": 40,
   "retry": {"anzahl": 5, "abstand_s": 3},
   "wasser_tarif": 3.0, "waehrung": "EUR",
@@ -154,6 +155,16 @@ GartenController
 Wetterfehler ⇒ Tmax 20 °C + Statushinweis, keine Sensoren ⇒ Renormalisierung,
 Aggressiv ⇒ 100 nach Skip/Urlaub, Vetos erzwingen Dauer 0 unabhängig von der
 Skip-Schwelle). Die Zahlenbeispiele aus der Kit-Verifikation sind die Unit-Tests.
+
+**ET₀-Erweiterung (v1.1.0, über B1 hinaus):** Der Temperatur-Faktor kann per
+Tuning-Option `temp_quelle: et0` statt aus Tmax aus der Referenz-Verdunstung
+nach **Hargreaves-Samani** gespeist werden — Ra aus Breitengrad + Kalendertag
+(FAO-56 Gl. 21–25, gegen das FAO-Ra-Beispiel validiert), Tmax/Tmin je
+Vorhersagetag (daily: `templow`; hourly: 24-h-Blöcke), gemittelt über bis zu
+3 Tage. Anker/Spanne (Default 2/5 mm ⇒ Faktor 100 bei 7 mm/Tag) analog zum
+Tmax-Paar. Ohne `templow`/Wetter fällt der Faktor still auf den Tmax-Pfad
+zurück (`faktoren.temp_quelle` zeigt den aktiven Pfad); der berechnete
+ET₀-Wert ist immer in `sensor.garten_plan_heute` (`et0_mm`) sichtbar.
 
 ## Dateien
 

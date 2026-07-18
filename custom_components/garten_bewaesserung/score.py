@@ -50,6 +50,11 @@ class ScoreParameter:
     temp_anker: float = 15.0
     temp_spanne: float = 15.0
     tage_saettigung: float = 7
+    # Temperatur-Faktor-Quelle: "tmax" (Kit-Verhalten) oder "et0" —
+    # Referenz-Verdunstung nach Hargreaves statt bloßer Maximaltemperatur.
+    temp_quelle: str = "tmax"
+    et0_anker: float = 2.0  # mm/Tag ⇒ Faktor 0
+    et0_spanne: float = 5.0  # mm/Tag über Anker ⇒ Faktor 100 (also bei 7 mm/Tag)
 
 
 @dataclass(frozen=True)
@@ -70,6 +75,7 @@ class ScoreEingabe:
     regen_beobachtet_schwelle: float = 3.0
     regen_forecast: float = 0.0
     regen_forecast_schwelle: float = 1.5
+    et0: float | None = None  # mm/Tag (Hargreaves); None = nicht ermittelbar
 
 
 @dataclass(frozen=True)
@@ -99,12 +105,89 @@ def extrahiere_wetter(
     return (tmax, regen, True)
 
 
+def extrahiere_tagestemperaturen(
+    forecast: list[dict[str, Any]] | None, typ: str
+) -> list[tuple[float, float]]:
+    """(Tmax, Tmin) je Tag für bis zu 3 Tage — Grundlage der ET₀-Berechnung.
+
+    daily: temperature/templow je Eintrag (Einträge ohne templow werden
+    übersprungen — manche Wetter-Integrationen liefern keins). hourly:
+    24-h-Blöcke über 72 h; ein Block zählt ab 12 vorhandenen Stundenwerten.
+    """
+    if not forecast:
+        return []
+    tage: list[tuple[float, float]] = []
+    if typ == "hourly":
+        temps: list[float] = []
+        for f in forecast[:72]:
+            try:
+                temps.append(float(f.get("temperature")))
+            except (TypeError, ValueError):
+                continue
+        for i in range(0, len(temps), 24):
+            block = temps[i:i + 24]
+            if len(block) >= 12:
+                tage.append((max(block), min(block)))
+    else:
+        for f in forecast[:3]:
+            try:
+                tage.append((float(f.get("temperature")), float(f.get("templow"))))
+            except (TypeError, ValueError):
+                continue
+    return tage
+
+
+def berechne_et0_hargreaves(
+    breite_grad: float, tag_des_jahres: int, tmax: float, tmin: float
+) -> float:
+    """Referenz-Verdunstung ET₀ in mm/Tag nach Hargreaves-Samani.
+
+    Extraterrestrische Strahlung Ra aus Breitengrad + Kalendertag
+    (FAO-56 Gl. 21-25; validiert gegen das FAO-Beispiel J=246/φ=-20°
+    ⇒ Ra = 32.2 MJ/m²/Tag), dann ET₀ = 0.0023 · Ra · (Tmean+17.8) · √ΔT.
+    Braucht weder Feuchte- noch Wind-Daten — nur Tmax/Tmin der Vorhersage.
+    """
+    phi = math.radians(breite_grad)
+    j = 2 * math.pi * tag_des_jahres / 365
+    dr = 1 + 0.033 * math.cos(j)
+    delta = 0.409 * math.sin(j - 1.39)
+    # Polarnacht/-tag: cos-Argument einklemmen statt Domain-Fehler
+    omega = math.acos(min(1.0, max(-1.0, -math.tan(phi) * math.tan(delta))))
+    ra_mj = (24 * 60 / math.pi) * 0.0820 * dr * (
+        omega * math.sin(phi) * math.sin(delta)
+        + math.cos(phi) * math.cos(delta) * math.sin(omega)
+    )
+    tmean = (tmax + tmin) / 2
+    return max(
+        0.0, 0.0023 * 0.408 * ra_mj * (tmean + 17.8) * math.sqrt(max(0.0, tmax - tmin))
+    )
+
+
+def mittlere_et0(
+    breite_grad: float, tag_des_jahres: int, tage: list[tuple[float, float]]
+) -> float | None:
+    """Mittleres ET₀ über die Vorhersage-Tage (Kalendertag läuft mit)."""
+    if not tage:
+        return None
+    werte = [
+        berechne_et0_hargreaves(breite_grad, tag_des_jahres + i, tmax, tmin)
+        for i, (tmax, tmin) in enumerate(tage)
+    ]
+    return sum(werte) / len(werte)
+
+
 def berechne_score(e: ScoreEingabe, p: ScoreParameter) -> ScoreErgebnis:
     """Score, Dauer und Status-Text — exakt die B1-Schritte 4/5."""
     boden_konfiguriert = e.boden is not None
     boden = e.boden if boden_konfiguriert else FALLBACK_BODEN
 
-    temp_faktor = min(max((e.tmax - p.temp_anker) / p.temp_spanne * 100, 0), 100)
+    # ET₀-Modus nur mit gültigem Wetter + berechenbarem Wert — sonst
+    # fällt der Faktor auf den bewährten Tmax-Pfad zurück.
+    et_aktiv = p.temp_quelle == "et0" and e.et0 is not None and e.wetter_ok
+    if et_aktiv:
+        temp_faktor = min(max((e.et0 - p.et0_anker) / p.et0_spanne * 100, 0), 100)
+    else:
+        temp_faktor = min(max((e.tmax - p.temp_anker) / p.temp_spanne * 100, 0), 100)
     tage_faktor = min(e.tage_seit / p.tage_saettigung * 100, 100)
     boden_faktor = max((e.veto_schwelle - boden) * 2, 0)
 
@@ -157,6 +240,9 @@ def berechne_score(e: ScoreEingabe, p: ScoreParameter) -> ScoreErgebnis:
 
     wetter_hinweis = "" if e.wetter_ok else " (Wetter n/v)"
     boden_anzeige = f"{_runde(boden)} %" if boden_konfiguriert else "—"
+    temp_anzeige = (
+        f"ET₀ {_runde1(e.et0 or 0.0)} mm" if et_aktiv else f"Tmax {_runde(e.tmax)} °C"
+    )
     tage_anzeige = (
         "nie bewässert"
         if e.tage_seit >= NIE_BEWAESSERT_TAGE
@@ -170,7 +256,7 @@ def berechne_score(e: ScoreEingabe, p: ScoreParameter) -> ScoreErgebnis:
     elif e.aggressiv:
         status = (
             f"⚡ Aggressiv-Modus: Score 100 → {dauer} min "
-            f"(Boden {boden_anzeige}, Tmax {_runde(e.tmax)} °C){wetter_hinweis}"
+            f"(Boden {boden_anzeige}, {temp_anzeige}){wetter_hinweis}"
         )
     elif veto_regen_beobachtet:
         status = (
@@ -190,13 +276,13 @@ def berechne_score(e: ScoreEingabe, p: ScoreParameter) -> ScoreErgebnis:
     elif score < p.skip_schwelle:
         status = (
             f"Score {score} unter Schwelle {_runde(p.skip_schwelle)} → 0 min "
-            f"(Boden {boden_anzeige}, Tmax {_runde(e.tmax)} °C, {tage_anzeige})"
+            f"(Boden {boden_anzeige}, {temp_anzeige}, {tage_anzeige})"
             f"{wetter_hinweis}"
         )
     else:
         status = (
             f"Score {score} → {dauer} min "
-            f"(Boden {boden_anzeige}, Tmax {_runde(e.tmax)} °C, {tage_anzeige})"
+            f"(Boden {boden_anzeige}, {temp_anzeige}, {tage_anzeige})"
             f"{wetter_hinweis}"
         )
 
@@ -210,6 +296,8 @@ def berechne_score(e: ScoreEingabe, p: ScoreParameter) -> ScoreErgebnis:
             "temp_faktor": round(temp_faktor, 2),
             "tage_faktor": round(tage_faktor, 2),
             "tmax": e.tmax,
+            "et0": _runde1(e.et0) if e.et0 is not None else None,
+            "temp_quelle": "et0" if et_aktiv else "tmax",
             "tage_seit": e.tage_seit,
             "wetter_ok": e.wetter_ok,
             "veto_boden": veto_boden,
@@ -229,6 +317,7 @@ def baue_plan_uebersicht(
     regen_forecast: float,
     kreise: list[tuple[str, float | None]],
     zeit_str: str,
+    et0: float | None = None,
 ) -> str:
     """Kompakte Tages-Übersichtszeile für sensor.garten_plan_heute.
 
@@ -237,6 +326,8 @@ def baue_plan_uebersicht(
     stehen ungekürzt in den Sensor-Attributen.
     """
     teile = [f"Tmax3d {_runde(tmax)} °C"]
+    if et0 is not None:
+        teile.append(f"ET₀ {_runde1(et0)} mm")
     if regen_beobachtet is not None:
         teile.append(
             f"Regen 24h {_runde1(regen_beobachtet)} mm + FC {_runde1(regen_forecast)} mm"

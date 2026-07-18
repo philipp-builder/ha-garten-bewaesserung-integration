@@ -49,25 +49,88 @@
       },
       "tuning": {
         "title": "Tuning",
-        "description": "Alle Vorgaben stammen aus dem erprobten 4-Kreis-Referenzsystem. Score-Gewichte werden auf ihre Summe normiert.",
-        "data": {
-          "score_gewicht_boden": "Score-Gewicht: Bodenfeuchte",
-          "score_gewicht_temp": "Score-Gewicht: Vorhersage-Temperatur",
-          "score_gewicht_tage": "Score-Gewicht: Tage seit Bewässerung",
-          "score_skip_schwelle": "Skip-Schwelle (Score darunter = keine Bewässerung)",
-          "score_temp_anker": "Temperatur-Anker",
-          "score_temp_spanne": "Temperatur-Spanne",
-          "score_tage_saettigung": "Sättigung des Tage-Faktors",
-          "score_forecast_typ": "Vorhersage-Typ",
-          "regen_beobachtet_mm": "Regen-Veto: gefallener 24-h-Regen",
-          "regen_forecast_mm": "Regen-Veto: vorhergesagter Regen",
-          "strahlung_schwelle": "Peak-Sonnen-Sperre der Topf-Dosen (Einheit deines Sensors)",
-          "topf_max_dosen": "Töpfe: max. Dosen pro Tag",
-          "topf_dosis_max_min": "Töpfe: max. Minuten pro Dosis",
-          "topf_min_intervall_min": "Töpfe: Mindestabstand zwischen Dosen",
-          "topf_glitch_grenze": "Töpfe: Sensor-Glitch-Untergrenze",
-          "wasser_tarif": "Wassertarif pro m³",
-          "waehrung": "Währungs-Label"
+        "description": "Alle Vorgaben stammen aus dem erprobten 4-Kreis-Referenzsystem — sie funktionieren ohne Anpassung. Jedes Feld erklärt sich darunter; zum Ausprobieren der Score-Formel gibt es den [interaktiven Rechner](https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/de/#playground) auf der Projektseite.",
+        "sections": {
+          "gewichte": {
+            "name": "Score-Gewichte & Schwellen",
+            "description": "Der Score (0–100) mischt drei Faktoren — Bodenfeuchte, Temperatur/Verdunstung, Wartezeit — gewichtet und auf die Gewichtssumme normiert. Aus dem Score wird die Gießdauer linear zwischen Min- und Max-Dauer des Kreises gespannt.",
+            "data": {
+              "score_gewicht_boden": "Gewicht: Bodenfeuchte",
+              "score_gewicht_temp": "Gewicht: Temperatur / Verdunstung",
+              "score_gewicht_tage": "Gewicht: Tage seit Bewässerung",
+              "score_skip_schwelle": "Skip-Schwelle",
+              "score_tage_saettigung": "Sättigung des Tage-Faktors"
+            },
+            "data_description": {
+              "score_gewicht_boden": "Wie stark trockener Boden zählt. Der Faktor steigt um 2 Punkte je %-Punkt unter der Veto-Schwelle des Kreises — bei Kreisen ohne Bodensensor entfällt er (die anderen Gewichte übernehmen).",
+              "score_gewicht_temp": "Wie stark warme bzw. verdunstungsreiche Tage zählen. Die Quelle (Tmax oder ET₀) wählst du in der Sektion „Temperatur & Verdunstung\".",
+              "score_gewicht_tage": "Wie stark die Wartezeit seit der letzten Bewässerung zählt — verhindert, dass ein Kreis bei mildem Wetter wochenlang leer ausgeht.",
+              "score_skip_schwelle": "Liegt der Tages-Score eines Kreises darunter, wird er heute übersprungen (0 min).",
+              "score_tage_saettigung": "Nach so vielen Tagen ohne Bewässerung erreicht der Tage-Faktor 100 %."
+            }
+          },
+          "temperatur": {
+            "name": "Temperatur & Verdunstung (ET₀)",
+            "description": "Der Temperatur-Faktor kann klassisch aus der Maximaltemperatur (Tmax der nächsten 3 Tage) oder aus der geschätzten Verdunstung ET₀ nach Hargreaves berechnet werden — Sonnenstand aus Breitengrad + Kalendertag, Tmax/Tmin aus der Vorhersage, keine weiteren Sensoren nötig. ET₀ ist vor allem für Rasen interessant: sonnige, trockene Tage verdunsten deutlich mehr, als Tmax allein vermuten lässt. Der aktuelle Wert steht in den Attributen von `sensor.garten_plan_heute` (et0_mm) — erst anschauen, dann umschalten.",
+            "data": {
+              "score_temp_quelle": "Quelle des Temperatur-Faktors",
+              "score_temp_anker": "Tmax: Anker",
+              "score_temp_spanne": "Tmax: Spanne",
+              "score_et0_anker": "ET₀: Anker",
+              "score_et0_spanne": "ET₀: Spanne",
+              "score_forecast_typ": "Vorhersage-Typ"
+            },
+            "data_description": {
+              "score_temp_quelle": "Tmax = Kit-Standard. ET₀ = Verdunstungsschätzung; fällt bei fehlenden templow-Werten automatisch auf Tmax zurück.",
+              "score_temp_anker": "Nur im Tmax-Modus: Bei dieser Maximaltemperatur ist der Faktor 0.",
+              "score_temp_spanne": "Nur im Tmax-Modus: So viele Grad über dem Anker ergeben Faktor 100 (Standard: 100 bei 30 °C).",
+              "score_et0_anker": "Nur im ET₀-Modus: Bei dieser Verdunstung (mm/Tag) ist der Faktor 0. 2 mm ≈ kühler, bedeckter Tag.",
+              "score_et0_spanne": "Nur im ET₀-Modus: So viele mm/Tag über dem Anker ergeben Faktor 100. Standard: 100 bei 7 mm/Tag (heißer Hochsommertag).",
+              "score_forecast_typ": "daily = Tageswerte der Wetter-Integration (Standard). hourly nur, wenn deine Integration keine Tages-Vorhersage liefert."
+            }
+          },
+          "regen_sonne": {
+            "name": "Regen & Sonne",
+            "description": "Zwei Regen-Vetos setzen die Gießdauer auf 0; die Peak-Sonnen-Sperre verschiebt Topf-Dosen bei praller Mittagssonne auf später.",
+            "data": {
+              "regen_beobachtet_mm": "Regen-Veto: gemessener 24-h-Regen",
+              "regen_forecast_mm": "Regen-Veto: vorhergesagter Regen",
+              "strahlung_schwelle": "Peak-Sonnen-Sperre"
+            },
+            "data_description": {
+              "regen_beobachtet_mm": "Ab so viel gemessenem Regen in 24 h fällt der Lauf aus. Greift nur mit konfiguriertem Regen-24h-Sensor (Globale Einstellungen).",
+              "regen_forecast_mm": "Ab so viel für heute vorhergesagtem Regen fällt der Lauf aus.",
+              "strahlung_schwelle": "Über diesem Wert deines Globalstrahlungs-Sensors werden Topf-Dosen aufgeschoben. Einheit = die deines Sensors; ohne Sensor wirkungslos."
+            }
+          },
+          "toepfe": {
+            "name": "Topf-Frequenzbewässerung",
+            "description": "Topf/Tropf-Kreise bekommen tagsüber kleine Zwischendosen, die den Boden im Sollband halten. Diese Grenzen deckeln Häufigkeit und Menge — egal was die Sensoren melden.",
+            "data": {
+              "topf_max_dosen": "Max. Dosen pro Tag",
+              "topf_dosis_max_min": "Max. Minuten pro Dosis",
+              "topf_min_intervall_min": "Mindestabstand zwischen Dosen",
+              "topf_glitch_grenze": "Sensor-Glitch-Untergrenze"
+            },
+            "data_description": {
+              "topf_max_dosen": "Obergrenze je Topf-Kreis und Tag — begrenzt zugleich die maximale Tages-Wassermenge.",
+              "topf_dosis_max_min": "Länger läuft eine einzelne Dose nie, egal wie trocken der Sensor misst.",
+              "topf_min_intervall_min": "Wartezeit, bis der Boden die vorige Dose aufgenommen hat und der Sensor nachgezogen ist.",
+              "topf_glitch_grenze": "Messwerte darunter gelten als Sensor-Aussetzer (z. B. 0 % bei Funkabriss) und lösen keine Dose aus."
+            }
+          },
+          "kosten": {
+            "name": "Wasserkosten",
+            "description": "Nur für die Kosten-Sensoren von Kreisen mit Flow-Sensor.",
+            "data": {
+              "wasser_tarif": "Wassertarif pro m³",
+              "waehrung": "Währungs-Label"
+            },
+            "data_description": {
+              "wasser_tarif": "Preis pro Kubikmeter Wasser laut deinem Versorger.",
+              "waehrung": "Anzeige-Einheit der Kosten-Sensoren (z. B. EUR, CHF)."
+            }
+          }
         }
       },
       "kreis_hinzufuegen": {
@@ -126,6 +189,12 @@
       "options": {
         "rasen": "Rasen / Beet (nur Abendplan)",
         "topf": "Topf / Tropf (Plan + Tages-Dosen)"
+      }
+    },
+    "temp_quelle": {
+      "options": {
+        "tmax": "Tmax (Maximaltemperatur, Standard)",
+        "et0": "ET₀ — Verdunstung nach Hargreaves"
       }
     }
   },
