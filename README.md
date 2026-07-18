@@ -53,9 +53,11 @@ eingestellten Zeit automatisch aus. Regen — gemessen oder vorhergesagt — set
 
 1. HACS → ⋮ → **Benutzerdefinierte Repositories** →
    `https://github.com/philipp-builder/ha-garten-bewaesserung-integration`,
-   Typ **Integration** → hinzufügen und installieren.
-2. Home Assistant neu starten.
-3. Einstellungen → Geräte & Dienste → **Integration hinzufügen** →
+   Typ **Integration** → hinzufügen.
+2. In HACS nach **„Garten-Bewässerung"** suchen → öffnen → **„Herunterladen"**
+   klicken (das Hinzufügen des Repositories allein installiert noch nichts).
+3. Sobald HACS „Neustart erforderlich" anzeigt: Home Assistant neu starten.
+4. Einstellungen → Geräte & Dienste → **Integration hinzufügen** →
    „Garten-Bewässerung" → Wetter-Entität wählen (beliebige `weather.*` mit Vorhersage).
 
 ## Konfiguration

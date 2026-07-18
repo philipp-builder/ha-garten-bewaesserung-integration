@@ -18,9 +18,13 @@ statt Blueprints, mit **beliebig vielen Kreisen** und punktgenauen Timern.
 
 1. HACS → ⋮ → **Benutzerdefinierte Repositories** → URL
    `https://github.com/philipp-builder/ha-garten-bewaesserung-integration`, Typ **Integration** → hinzufügen.
-2. Die Integration **Garten-Bewässerung** installieren, Home Assistant neu starten.
-3. Einstellungen → Geräte & Dienste → **Integration hinzufügen** → „Garten-Bewässerung".
-4. Im Wizard die **Wetter-Entität** wählen (beliebige `weather.*` mit Vorhersage) — fertig.
+2. In HACS nach **„Garten-Bewässerung"** suchen → öffnen → **„Herunterladen"** klicken.
+   Das Hinzufügen des Repositories allein installiert noch nichts — und wer vor dem
+   Download neu startet, findet das Custom-Repository danach nicht mehr in HACS
+   (HACS entfernt beim Start alle nicht heruntergeladenen Custom-Repositories).
+3. Sobald HACS „Neustart erforderlich" meldet: Home Assistant neu starten.
+4. Einstellungen → Geräte & Dienste → **Integration hinzufügen** → „Garten-Bewässerung".
+5. Im Wizard die **Wetter-Entität** wählen (beliebige `weather.*` mit Vorhersage) — fertig.
 
 Alles Weitere passiert im **Options-Dialog** der Integration (Zahnrad am Hub-Eintrag):
 
