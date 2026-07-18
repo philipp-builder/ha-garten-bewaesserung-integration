@@ -333,6 +333,7 @@ def main():
             {"kreis": "tomaten"},
             {
                 "name": "Tomaten",
+                "typ": "topf",
                 "ventile": ["switch.testventil_3"],
                 "bodensensoren": ["sensor.testboden_2"],
                 "parallel": True,
@@ -433,7 +434,77 @@ def main():
     )
     print("Auto-Aus (B4/F2) + Re-Arm nach Reload (F1): Ventil wurde geschlossen")
 
-    print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates und Volumen/Kosten OK")
+    # ========== Typwechsel im Edit (v1.0.1): Rasen -> Topf -> Rasen ==========
+    # Master aus, damit der Boden-42-Rasen als Topf keine echte Dose zündet.
+    req("/api/services/switch/turn_off", {"entity_id": "switch.garten_topf_frequenzbewasserung"})
+    rasen_basis = {
+        "name": "Rasen",
+        "ventile": ["switch.testventil_1", "switch.testventil_2"],
+        "bodensensoren": ["sensor.testboden_1"],
+        "parallel": False,
+        "gruppe_reihenfolge": 1,
+    }
+    f = options_flow2(
+        [
+            {"next_step_id": "kreis_bearbeiten"},
+            {"kreis": "rasen"},
+            {**rasen_basis, "typ": "topf"},
+            {
+                "veto_schwelle": 70, "min_dauer": 5, "max_dauer": 20,
+                "ziel_unten": 45, "ziel_oben": 65, "k_faktor": 2.0,
+                "leck_sensoren": [], "batterie_sensoren": [],
+            },
+        ]
+    )
+    assert f.get("type") == "create_entry", f
+    time.sleep(8)
+    ids3 = {s["entity_id"] for s in req("/api/states")}
+    for eid in (
+        "number.garten_rasen_sollband_unten",
+        "number.garten_rasen_sollband_oben",
+        "number.garten_rasen_dosis_antwort_k",
+        "sensor.garten_rasen_dosen_heute",
+    ):
+        assert eid in ids3, f"{eid} fehlt nach Typwechsel Rasen->Topf"
+    print("Typwechsel Rasen->Topf: Sollband/k/Dosen-Entities erschienen")
+
+    f = options_flow2(
+        [
+            {"next_step_id": "kreis_bearbeiten"},
+            {"kreis": "rasen"},
+            {**rasen_basis, "typ": "rasen"},
+            {"veto_schwelle": 70, "min_dauer": 5, "max_dauer": 20,
+             "leck_sensoren": [], "batterie_sensoren": []},
+        ]
+    )
+    assert f.get("type") == "create_entry", f
+    time.sleep(8)
+    ids4 = {s["entity_id"] for s in req("/api/states")}
+    for eid in ("number.garten_rasen_sollband_unten", "sensor.garten_rasen_dosen_heute"):
+        assert eid not in ids4, f"{eid} lebt noch nach Typwechsel Topf->Rasen"
+    assert "sensor.garten_tomaten_liter_heute" in ids4, "Nachbar-Kreis beschädigt"
+    assert "sensor.garten_rasen_score" in ids4, "Rasen-Basis-Entities weg"
+    # Registry-Datei: das Aufräumen ist die eigentliche Neuerung — Leichen-Check
+    # (Registry-Save ist verzögert, daher Retry-Fenster).
+    ende3 = time.time() + 40
+    leichen = None
+    while time.time() < ende3:
+        reg_json = subprocess.run(
+            ["docker", "exec", "int-test", "cat", "/config/.storage/core.entity_registry"],
+            check=True, capture_output=True, text=True,
+        ).stdout
+        leichen = [
+            frag
+            for frag in ("rasen_ziel_unten", "rasen_ziel_oben", "rasen_k_faktor", "rasen_dosen_heute")
+            if frag in reg_json
+        ]
+        if not leichen:
+            break
+        time.sleep(5)
+    assert not leichen, f"Registry-Leichen nach Typwechsel: {leichen}"
+    print("Typwechsel Topf->Rasen: typ-spezifische Entities + Registry-Einträge entfernt")
+
+    print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten und Typwechsel (v1.0.1) OK")
 
 
 if __name__ == "__main__":

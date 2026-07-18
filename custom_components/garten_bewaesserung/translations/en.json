@@ -106,6 +106,7 @@
         "title": "Edit circuit — basics",
         "data": {
           "name": "Circuit name",
+          "typ": "Circuit type",
           "ventile": "Valve switches",
           "bodensensoren": "Soil moisture sensors",
           "parallel": "Run in parallel with other circuits",

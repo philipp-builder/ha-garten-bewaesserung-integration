@@ -17,7 +17,17 @@ from homeassistant.helpers import (
     entity_registry as er,
 )
 
-from .const import CONF_KREIS_ID, CONF_KREISE, DOMAIN, HUB_SCHLUESSEL, PLATTFORMEN
+from .const import (
+    CONF_FLOW_SENSOR,
+    CONF_KREIS_ID,
+    CONF_KREIS_TYP,
+    CONF_KREISE,
+    DOMAIN,
+    FLOW_KREIS_SCHLUESSEL,
+    HUB_SCHLUESSEL,
+    PLATTFORMEN,
+    TOPF_KREIS_SCHLUESSEL,
+)
 from .controller import GartenController
 from .daten import GartenDaten
 
@@ -56,8 +66,20 @@ def _registry_aufraeumen(hass: HomeAssistant, entry: ConfigEntry) -> None:
     Ohne Aufräumen blieben sie als „nicht verfügbar" stehen — und ein später
     gleichnamig angelegter Kreis würde die alten Registry-Einträge samt
     restauriertem Alt-Zustand wiederverwenden.
+
+    Zusätzlich (v1.0.1): bedingte Kreis-Entities entfernen, deren Bedingung
+    weggefallen ist — Topf-Schlüssel nach Typwechsel auf Rasen/Beet,
+    Flow-Schlüssel nach Entfernen des Flow-Sensors.
     """
-    kids = {k[CONF_KREIS_ID] for k in entry.options.get(CONF_KREISE, [])}
+    kreise = entry.options.get(CONF_KREISE, [])
+    kids = {k[CONF_KREIS_ID] for k in kreise}
+    unerwartet: set[str] = set()
+    for k in kreise:
+        kid = k[CONF_KREIS_ID]
+        if k.get(CONF_KREIS_TYP) != "topf":
+            unerwartet |= {f"{kid}_{s}" for s in TOPF_KREIS_SCHLUESSEL}
+        if not k.get(CONF_FLOW_SENSOR):
+            unerwartet |= {f"{kid}_{s}" for s in FLOW_KREIS_SCHLUESSEL}
     praefix = f"{entry.entry_id}_"
     reg = er.async_get(hass)
     for eintrag in list(er.async_entries_for_config_entry(reg, entry.entry_id)):
@@ -66,7 +88,7 @@ def _registry_aufraeumen(hass: HomeAssistant, entry: ConfigEntry) -> None:
         rest = eintrag.unique_id[len(praefix):]
         if rest in HUB_SCHLUESSEL:
             continue
-        if any(rest.startswith(f"{kid}_") for kid in kids):
+        if rest not in unerwartet and any(rest.startswith(f"{kid}_") for kid in kids):
             continue
         _LOGGER.info("Entferne verwaiste Entity %s (%s)", eintrag.entity_id, rest)
         reg.async_remove(eintrag.entity_id)

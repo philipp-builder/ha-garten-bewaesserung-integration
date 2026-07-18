@@ -105,6 +105,12 @@ HUB_SCHLUESSEL = {
     CONF_STRAHLUNG_SCHWELLE, CONF_TARIF,
 }
 
+# Bedingte Kreis-Entity-Schlüssel (unique_id = "<entry>_<kid>_<schluessel>"):
+# existieren nur bei erfüllter Bedingung. Das Registry-Aufräumen entfernt sie,
+# wenn die Bedingung wegfällt (Typwechsel Topf→Rasen bzw. Flow-Sensor entfernt).
+TOPF_KREIS_SCHLUESSEL = {CONF_ZIEL_UNTEN, CONF_ZIEL_OBEN, CONF_K_FAKTOR, "dosen_heute"}
+FLOW_KREIS_SCHLUESSEL = {"liter_heute", "liter_monat", "kosten_monat"}
+
 STORE_VERSION = 1
 EVENT_LAUF_GESTARTET = f"{DOMAIN}_lauf_gestartet"
 EVENT_LAUF_BEENDET = f"{DOMAIN}_lauf_beendet"

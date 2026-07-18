@@ -497,6 +497,15 @@ class GartenOptionsFlow(OptionsFlowWithReload):
         k = self._neu
         if user_input is not None:
             k[CONF_KREIS_NAME] = user_input[CONF_KREIS_NAME].strip()
+            neuer_typ = user_input[CONF_KREIS_TYP]
+            if neuer_typ != k.get(CONF_KREIS_TYP):
+                # Typwechsel: fehlende typ-spezifische Felder mit Defaults
+                # seeden, konfigurierte Werte (Veto/Dauern) unangetastet lassen.
+                # Alt-Felder bleiben im Dict (harmlos; bei Rückwechsel wieder
+                # aktiv) — die Entities räumt _registry_aufraeumen beim Reload.
+                k[CONF_KREIS_TYP] = neuer_typ
+                for feld, wert in KREIS_TYP_DEFAULTS[neuer_typ].items():
+                    k.setdefault(feld, wert)
             k[CONF_VENTILE] = user_input[CONF_VENTILE]
             k[CONF_BODENSENSOREN] = user_input.get(CONF_BODENSENSOREN, [])
             k[CONF_PARALLEL] = user_input[CONF_PARALLEL]
@@ -505,6 +514,11 @@ class GartenOptionsFlow(OptionsFlowWithReload):
         schema = vol.Schema(
             {
                 vol.Required(CONF_KREIS_NAME, default=k[CONF_KREIS_NAME]): selector.TextSelector(),
+                vol.Required(CONF_KREIS_TYP, default=k[CONF_KREIS_TYP]): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=["rasen", "topf"], translation_key="kreis_typ"
+                    )
+                ),
                 vol.Required(CONF_VENTILE, default=k[CONF_VENTILE]): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="switch", multiple=True)
                 ),

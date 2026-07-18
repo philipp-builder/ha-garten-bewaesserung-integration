@@ -33,7 +33,7 @@ Alles Weitere passiert im **Options-Dialog** der Integration (Zahnrad am Hub-Ein
 | Globale Einstellungen | Wetter-Entität · optional eigener **Regen-24h-Sensor** (mm, beobachtet) · optional **Globalstrahlungs-Sensor** (Peak-Sonnen-Sperre) |
 | Benachrichtigungen | notify-Dienste (Komma-Liste) · kritische Pushes · Dashboard-Deep-Link |
 | Tuning | alle Score-Parameter (Gewichte, Skip-Schwelle, Temperatur-Anker/-Spanne, Tage-Sättigung, daily/hourly), Regen-Schwellen, Topf-Parameter, Wassertarif |
-| Kreis hinzufügen / bearbeiten / entfernen | Name, Typ (Rasen/Beet oder Topf/Tropf), **1–n Ventile**, 0–n Bodensensoren, Reihenfolge, parallel/sequenziell, Dauer-Grenzen, Sollband + k (Topf), optional Flow-/Leck-/Versorgungs-/Batterie-Sensoren |
+| Kreis hinzufügen / bearbeiten / entfernen | Name, Typ (Rasen/Beet oder Topf/Tropf — auch nachträglich änderbar; typ-spezifische Entities wie Sollband/Dosen erscheinen bzw. verschwinden dabei automatisch), **1–n Ventile**, 0–n Bodensensoren, Reihenfolge, parallel/sequenziell, Dauer-Grenzen, Sollband + k (Topf), optional Flow-/Leck-/Versorgungs-/Batterie-Sensoren |
 
 Nach jedem Speichern lädt die Integration automatisch neu — neue Kreis-Entities
 erscheinen sofort.
