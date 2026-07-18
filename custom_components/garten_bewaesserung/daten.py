@@ -45,6 +45,8 @@ class HubLaufzeit:
     naechster_lauf: datetime | None = None
     letzter_lauf_bericht: str | None = None
     lauf_aktiv: bool = False
+    plan_heute: str | None = None  # kompakte Tageszeile (Wetter · Böden · Zeit)
+    plan_details: dict[str, Any] = field(default_factory=dict)  # Rohwerte als Attribute
 
 
 class GartenDaten:

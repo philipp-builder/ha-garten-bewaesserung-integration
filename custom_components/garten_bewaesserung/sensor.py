@@ -34,6 +34,7 @@ async def async_setup_entry(
     entities: list[SensorEntity] = [
         NaechsterLaufSensor(entry, daten, "naechster_lauf"),
         BerichtSensor(entry, daten, "letzter_lauf_bericht"),
+        PlanHeuteSensor(entry, daten, "plan_heute"),
     ]
     for kreis in entry.options.get(CONF_KREISE, []):
         entities += [
@@ -120,6 +121,22 @@ class BerichtSensor(GartenEntity, SensorEntity):
     def native_value(self) -> str | None:
         b = self._daten.hub.letzter_lauf_bericht
         return b[:255] if b else None
+
+
+class PlanHeuteSensor(GartenEntity, SensorEntity):
+    """Kompakte Tageszeile: Wetter · Regen · Bodenfeuchte aller Kreise ·
+    Berechnungszeitpunkt — Rohwerte als Attribute für eigene Karten."""
+
+    _attr_name = "Plan heute"
+    _attr_icon = "mdi:calendar-check"
+
+    @property
+    def native_value(self) -> str | None:
+        return self._daten.hub.plan_heute
+
+    @property
+    def extra_state_attributes(self):
+        return self._daten.hub.plan_details
 
 
 class LiterHeuteSensor(GartenEntity, SensorEntity):

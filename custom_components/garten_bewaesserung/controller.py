@@ -86,6 +86,7 @@ from .score import (
     ScoreEingabe,
     ScoreParameter,
     baue_plan_push,
+    baue_plan_uebersicht,
     berechne_score,
     extrahiere_wetter,
     sicher_float,
@@ -309,16 +310,11 @@ class GartenController:
         )
 
         jetzt_ts = dt_util.utcnow().timestamp()
+        uebersicht: list[tuple[str, float | None]] = []
+        details_kreise: list[dict[str, Any]] = []
         for kreis in self._kreise():
             kid = kreis[CONF_KREIS_ID]
             laufzeit = self.daten.kreis(kid)
-
-            if not self._an("aktiv", kid):
-                laufzeit.score = 0
-                laufzeit.status = "⏸ Kreis deaktiviert — keine Bewässerung"
-                laufzeit.faktoren = {"deaktiviert": True}
-                await self._setze_dauer(kid, 0)
-                continue
 
             sensoren = kreis.get(CONF_BODENSENSOREN) or []
             boden = (
@@ -326,6 +322,19 @@ class GartenController:
                 if sensoren
                 else None
             )
+            uebersicht.append((kreis[CONF_KREIS_NAME], boden))
+
+            if not self._an("aktiv", kid):
+                laufzeit.score = 0
+                laufzeit.status = "⏸ Kreis deaktiviert — keine Bewässerung"
+                laufzeit.faktoren = {"deaktiviert": True}
+                await self._setze_dauer(kid, 0)
+                details_kreise.append(
+                    {"name": kreis[CONF_KREIS_NAME], "boden": boden,
+                     "score": 0, "dauer": 0, "deaktiviert": True}
+                )
+                continue
+
             if laufzeit.zuletzt_bewaessert is not None:
                 tage_roh = (jetzt_ts - laufzeit.zuletzt_bewaessert.timestamp()) / 86400
                 tage_seit = max(int(tage_roh * 10 + 0.5) / 10, 0.0)  # B1: round(1)
@@ -355,7 +364,23 @@ class GartenController:
             laufzeit.status = ergebnis.status
             laufzeit.faktoren = ergebnis.faktoren
             await self._setze_dauer(kid, ergebnis.dauer)
+            details_kreise.append(
+                {"name": kreis[CONF_KREIS_NAME], "boden": boden,
+                 "score": ergebnis.score, "dauer": ergebnis.dauer}
+            )
 
+        zeit_str = dt_util.now().strftime("%H:%M")
+        self.daten.hub.plan_heute = baue_plan_uebersicht(
+            tmax, wetter_ok, regen_beobachtet, regen_forecast, uebersicht, zeit_str
+        )
+        self.daten.hub.plan_details = {
+            "tmax_3d": tmax,
+            "wetter_ok": wetter_ok,
+            "regen_24h_mm": regen_beobachtet,
+            "regen_forecast_mm": regen_forecast,
+            "berechnet_um": dt_util.now().isoformat(),
+            "kreise": details_kreise,
+        }
         self.daten.broadcast()
 
     async def _setze_dauer(self, kid: str, dauer: int) -> None:

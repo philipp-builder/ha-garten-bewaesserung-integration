@@ -245,6 +245,18 @@ def main():
     assert wert("sensor.garten_nachster_lauf") not in ("unknown", "unavailable"), "nachster_lauf leer"
     assert "21:00" in wert("sensor.garten_nachster_lauf") or "T21:00" in wert("sensor.garten_nachster_lauf")
 
+    # Plan-heute-Übersicht (v1.0.1): kompakte Zeile + Rohwert-Attribute
+    plan = st["sensor.garten_plan_heute"]
+    print("   sensor.garten_plan_heute =", plan["state"])
+    assert plan["state"].startswith(
+        "Tmax3d 29 °C · Regen FC 0.0 mm · Rasen 42 % · Tomaten 38 % — berechnet "
+    ), plan["state"]
+    pa = plan["attributes"]
+    assert pa["tmax_3d"] == 29.0 and pa["wetter_ok"] is True, pa
+    assert pa["regen_24h_mm"] is None and pa["regen_forecast_mm"] == 0.0, pa
+    assert [k["name"] for k in pa["kreise"]] == ["Rasen", "Tomaten"], pa
+    assert pa["kreise"][0]["score"] == 72 and pa["kreise"][0]["dauer"] == 16, pa
+
     # Kreis deaktivieren -> Score 0, Status "deaktiviert"
     req("/api/services/switch/turn_off", {"entity_id": "switch.garten_rasen_aktiv"})
     req("/api/services/button/press", {"entity_id": "button.garten_plan_neu_berechnen"})

@@ -100,7 +100,7 @@ FALLBACK_TMAX = 20.0
 HUB_SCHLUESSEL = {
     "bewaesserungszeit", "heute_ueberspringen", "urlaubsmodus",
     "aggressiv_modus", "topf_steuerung", "not_aus", "sofort_start",
-    "plan_neu", "naechster_lauf", "letzter_lauf_bericht",
+    "plan_neu", "naechster_lauf", "letzter_lauf_bericht", "plan_heute",
     CONF_STANDARD_DAUER, CONF_REGEN_BEOBACHTET, CONF_REGEN_FORECAST,
     CONF_STRAHLUNG_SCHWELLE, CONF_TARIF,
 }

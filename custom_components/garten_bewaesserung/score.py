@@ -222,6 +222,35 @@ def berechne_score(e: ScoreEingabe, p: ScoreParameter) -> ScoreErgebnis:
     )
 
 
+def baue_plan_uebersicht(
+    tmax: float,
+    wetter_ok: bool,
+    regen_beobachtet: float | None,
+    regen_forecast: float,
+    kreise: list[tuple[str, float | None]],
+    zeit_str: str,
+) -> str:
+    """Kompakte Tages-Übersichtszeile für sensor.garten_plan_heute.
+
+    kreise: Liste (Name, Bodenfeuchte % oder None ohne Sensor).
+    Ergebnis ist auf 255 Zeichen gekappt (HA-State-Limit) — die Rohwerte
+    stehen ungekürzt in den Sensor-Attributen.
+    """
+    teile = [f"Tmax3d {_runde(tmax)} °C"]
+    if regen_beobachtet is not None:
+        teile.append(
+            f"Regen 24h {_runde1(regen_beobachtet)} mm + FC {_runde1(regen_forecast)} mm"
+        )
+    else:
+        teile.append(f"Regen FC {_runde1(regen_forecast)} mm")
+    for name, boden in kreise:
+        teile.append(f"{name} {_runde(boden)} %" if boden is not None else f"{name} —")
+    zeile = " · ".join(teile) + f" — berechnet {zeit_str}"
+    if not wetter_ok:
+        zeile += " (Wetter n/v)"
+    return zeile if len(zeile) <= 255 else zeile[:254] + "…"
+
+
 def baue_plan_push(
     zeit_str: str, kreise: list[tuple[str, int, int | None]]
 ) -> tuple[str, str]:

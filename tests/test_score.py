@@ -168,6 +168,23 @@ def test_plan_push_nachricht():
     ]
 
 
+def test_plan_uebersicht_zeile():
+    z = score.baue_plan_uebersicht(
+        26.0, True, 0.4, 1.5, [("Rasen", 42.0), ("Tomaten", 54.4), ("Beet", None)], "15:00"
+    )
+    assert z == (
+        "Tmax3d 26 °C · Regen 24h 0.4 mm + FC 1.5 mm · "
+        "Rasen 42 % · Tomaten 54 % · Beet — — berechnet 15:00"
+    ), z
+    # ohne Regen-24h-Sensor nur Forecast; Wetter-Ausfall wird markiert
+    z2 = score.baue_plan_uebersicht(20.0, False, None, 0.0, [("Rasen", 42.0)], "05:30")
+    assert z2 == "Tmax3d 20 °C · Regen FC 0.0 mm · Rasen 42 % — berechnet 05:30 (Wetter n/v)", z2
+    # 255-Zeichen-Kappung (HA-State-Limit)
+    viele = [(f"Kreis-mit-langem-Namen-{i}", 50.0) for i in range(20)]
+    z3 = score.baue_plan_uebersicht(26.0, True, None, 0.0, viele, "12:00")
+    assert len(z3) == 255 and z3.endswith("…"), len(z3)
+
+
 if __name__ == "__main__":
     fehler = 0
     for name, fn in sorted(globals().items()):

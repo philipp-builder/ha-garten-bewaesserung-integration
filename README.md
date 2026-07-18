@@ -4,6 +4,8 @@
   Lizenz: MIT · Stand: 2026-07
 -->
 
+<img src="assets/icon.svg" align="right" width="110" alt="Logo: Wassertropfen mit Setzling">
+
 # Garten-Bewässerung — Home-Assistant-Integration
 
 **Score-basierte Gartenbewässerung: Setup per Wizard, beliebig viele Kreise,
@@ -48,6 +50,9 @@ eingestellten Zeit automatisch aus. Regen — gemessen oder vorhergesagt — set
   Monat plus Monatskosten aus dem hinterlegten Wassertarif.
 - **Modi** — Heute überspringen (Auto-Reset um Mitternacht), Urlaubsmodus,
   Boost-Modus (Score 100), Kreise einzeln pausierbar.
+- **Plan-Übersicht** — `sensor.garten_plan_heute` fasst den Tagesplan in einer
+  Zeile zusammen (Tmax 3 Tage, Regen gemessen + Vorhersage, Bodenfeuchte aller
+  Kreise, Berechnungszeitpunkt); die Rohwerte liegen als Attribute bei.
 
 ## Installation
 
