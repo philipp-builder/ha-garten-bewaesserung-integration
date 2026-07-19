@@ -261,8 +261,11 @@ Stellschrauben:
   Die Berechnung bricht NICHT ab. Der Score rechnet mit Tmax = 20 °C und
   Regen-Vorhersage = 0 weiter, und der Status-Text des Kreises bekommt den
   Hinweis „(Wetter n/v)“ — so siehst du sofort, dass der Plan gerade auf dem
-  Fallback läuft. (Der ET₀-Modus fällt dabei automatisch auf den Tmax-Pfad
-  zurück.)
+  Fallback läuft. Die Integration versucht es dann automatisch alle 3 Minuten
+  erneut (typischer Fall: direkt nach einem HA-Neustart ist die
+  Wetter-Integration noch nicht bereit — das heilt sich so binnen Minuten
+  statt erst zum nächsten :00/:30-Raster). Der ET₀-Modus fällt dabei
+  automatisch auf den Tmax-Pfad zurück.
 
 Teste deinen Forecast direkt: „Entwicklerwerkzeuge → Aktionen“ →
 `weather.get_forecasts` → deine Wetter-Entität als Ziel, `type: daily` (oder

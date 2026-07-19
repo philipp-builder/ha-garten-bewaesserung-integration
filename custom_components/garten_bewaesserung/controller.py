@@ -125,6 +125,7 @@ class GartenController:
         self._batterie_debounce: dict[str, Any] = {}  # sensor -> Timer-unsub
         self._batterie_zuletzt: datetime | None = None  # globaler 24-h-Cooldown (B10)
         self._volumen_baseline: dict[str, float] = {}  # kid -> m³ bei Sitzungsbeginn
+        self._wetter_retry_unsub = None  # one-shot Kurz-Retry bei Wetter n/v
         self._volumen_settle: dict[str, Any] = {}  # kid -> Settle-Timer-unsub
 
     # ------------------------------------------------------------ Lebenszyklus
@@ -211,6 +212,9 @@ class GartenController:
             if unsub:
                 unsub()
         self._push_unsub = self._lauf_unsub = None
+        if self._wetter_retry_unsub:
+            self._wetter_retry_unsub()
+            self._wetter_retry_unsub = None
         for unsub in self._watchdogs.values():
             unsub()
         self._watchdogs.clear()
@@ -333,8 +337,18 @@ class GartenController:
                 if sensoren
                 else None
             )
-            uebersicht.append((kreis[CONF_KREIS_NAME], boden))
-            laufzeit.boden = boden
+            # Anzeige-Wert (Infofeld + Plan-Zeile): nur ECHTE Messwerte —
+            # ein toter Sensor soll als unbekannt erscheinen, nicht als
+            # scheinbar gemessene 50 % (der Score behält den 50er-Fallback).
+            messwerte = []
+            for s2 in sensoren:
+                try:
+                    messwerte.append(float(self._zustand(s2)))
+                except (TypeError, ValueError):
+                    continue
+            anzeige_boden = min(messwerte) if messwerte else None
+            uebersicht.append((kreis[CONF_KREIS_NAME], anzeige_boden))
+            laufzeit.boden = anzeige_boden
 
             if not self._an("aktiv", kid):
                 laufzeit.score = 0
@@ -406,6 +420,22 @@ class GartenController:
             "kreise": details_kreise,
         }
         self.daten.broadcast()
+
+        # Wetter n/v (typisch: erster Recompute direkt nach HA-Start, die
+        # Wetter-Integration ist noch nicht bereit) — statt bis zum
+        # :00/:30-Raster zu warten, in 3 min erneut versuchen. One-shot mit
+        # Selbst-Verlängerung, solange das Wetter fehlt.
+        if not wetter_ok and not self._gestoppt and self._wetter_retry_unsub is None:
+            @callback
+            def _wetter_retry(_jetzt) -> None:
+                self._wetter_retry_unsub = None
+                if self._gestoppt:
+                    return
+                self.entry.async_create_background_task(
+                    self.hass, self._recompute_alle(), f"{DOMAIN}_wetter_retry"
+                )
+
+            self._wetter_retry_unsub = async_call_later(self.hass, 180, _wetter_retry)
 
     async def _setze_dauer(self, kid: str, dauer: int) -> None:
         """Tagesdauer in die number-Entity schreiben (die eine Wahrheit,
