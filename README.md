@@ -87,7 +87,7 @@ Alles Weitere über das Zahnrad am Integrations-Eintrag:
 Startzeit, Dauer-Grenzen, Schwellen und Modi sind zusätzlich als Entities
 (`time`, `number`, `switch`) direkt im Dashboard verstellbar.
 
-**Vollständige Entity-Referenz und Migration von der Blueprint-Edition:**
+**Vollständige Entity-Referenz:**
 [docs/INSTALLATION.md](docs/INSTALLATION.md) ·
 Architektur: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 Rezepte & Troubleshooting (Regen-24h-Sensor, Template-Switch für

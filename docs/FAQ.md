@@ -1,26 +1,27 @@
 <!--
 =============================================================================
-FAQ.md — Häufige Fragen zum Garten-Bewässerungs-Kit (Blueprints + Package)
+FAQ.md — Häufige Fragen zur Garten-Bewässerungs-Integration (HACS)
 -----------------------------------------------------------------------------
 Zweck:  Antworten auf die häufigsten Installations-, Hardware- und
         Betriebsfragen, inklusive Copy-Paste-Rezepte (Template-Switch-Wrapper,
         Regen-24h-Sensor in 3 Varianten, notify-Gruppe, Webhook-Not-Aus,
         history_stats-Persistenz für den Trocken-Report).
 Quelle: portiert aus einem produktiven 4-Kreis-System.
-Lizenz: MIT · Stand: 2026-07 · Mindestversion Home Assistant: 2024.10.0
+Lizenz: MIT · Stand: 2026-07 · Mindestversion Home Assistant: 2025.8
 =============================================================================
 -->
 
-# FAQ — Garten-Bewässerungs-Kit
+# FAQ — Garten-Bewässerung (HACS-Integration)
 
-**Bevor du hier suchst:** Die Blueprint-Beschreibungen im Home-Assistant-UI sind
-die Detail-Doku jedes Bausteins (jede Eingabe hat einen erklärenden Text), das
-README erklärt die Installation Schritt für Schritt. Diese FAQ deckt alles ab,
-was quer dazu liegt: Hardware-Sonderfälle, Rezepte, Fehlersuche.
+**Bevor du hier suchst:** Die Dialoge der Integration erklären jedes Feld
+direkt darunter (Tuning, Kreis-Anlage, Globale Einstellungen), und
+[INSTALLATION.md](INSTALLATION.md) enthält die komplette Entity-Referenz.
+Diese FAQ deckt alles ab, was quer dazu liegt: Hardware-Sonderfälle,
+Copy-Paste-Rezepte, Fehlersuche.
 
 ## Inhalt
 
-1. [Welche Ventile funktionieren mit dem Kit?](#1-welche-ventile-funktionieren-mit-dem-kit)
+1. [Welche Ventile funktionieren?](#1-welche-ventile-funktionieren)
 2. [Mein Ventil ist eine `valve`- oder `light`-Entität — was nun? (Template-Switch-Rezept)](#2-mein-ventil-ist-eine-valve--oder-light-entität--was-nun-template-switch-rezept)
 3. [Welche Bodenfeuchte-Sensoren brauche ich? Geht es auch ohne?](#3-welche-bodenfeuchte-sensoren-brauche-ich-geht-es-auch-ohne)
 4. [Wie baue ich den Regen-24h-Sensor? (3 Rezepte je nach Quellsensor)](#4-wie-baue-ich-den-regen-24h-sensor-3-rezepte-je-nach-quellsensor)
@@ -30,37 +31,36 @@ was quer dazu liegt: Hardware-Sonderfälle, Rezepte, Fehlersuche.
 8. [„Warum bewässert er heute nicht?“](#8-warum-bewässert-er-heute-nicht)
 9. [Ein Ventil ging nicht zu — was ist passiert, was tun?](#9-ein-ventil-ging-nicht-zu--was-ist-passiert-was-tun)
 10. [Die Notaus-Schwelle und die Max-Dauern — welche Regel gilt? (Invariante)](#10-die-notaus-schwelle-und-die-max-dauern--welche-regel-gilt-invariante)
-11. [Ich habe mehr als 4 Kreise — geht das?](#11-ich-habe-mehr-als-4-kreise--geht-das)
-12. [Wie viele Blueprint-Instanzen brauche ich? (Checkliste)](#12-wie-viele-blueprint-instanzen-brauche-ich-checkliste)
-13. [Wie baue ich das Dashboard ein? (Raw-Editor)](#13-wie-baue-ich-das-dashboard-ein-raw-editor)
-14. [Wie aktualisiere oder deinstalliere ich das Kit?](#14-wie-aktualisiere-oder-deinstalliere-ich-das-kit)
-15. [iOS vs. Android — was ist bei den Pushes anders?](#15-ios-vs-android--was-ist-bei-den-pushes-anders)
-16. [Not-Aus per Webhook / Apple-Kurzbefehl auslösen (Rezept)](#16-not-aus-per-webhook--apple-kurzbefehl-auslösen-rezept)
-17. [Topf-Frequenzbewässerung: Wer setzt den Dosen-Zähler zurück? (Zähler-Kontrakt)](#17-topf-frequenzbewässerung-wer-setzt-den-dosen-zähler-zurück-zähler-kontrakt)
-18. [Trocken-Report: Ich will die exakte 23-h-Persistenz-Prüfung des Originals (history_stats-Rezept)](#18-trocken-report-ich-will-die-exakte-23-h-persistenz-prüfung-des-originals-history_stats-rezept)
+11. [Wie aktualisiere oder deinstalliere ich die Integration?](#11-wie-aktualisiere-oder-deinstalliere-ich-die-integration)
+12. [iOS vs. Android — was ist bei den Pushes anders?](#12-ios-vs-android--was-ist-bei-den-pushes-anders)
+13. [Not-Aus per Webhook / Apple-Kurzbefehl auslösen (Rezept)](#13-not-aus-per-webhook--apple-kurzbefehl-auslösen-rezept)
+14. [Topf-Frequenzbewässerung: Wer setzt den Dosen-Zähler zurück?](#14-topf-frequenzbewässerung-wer-setzt-den-dosen-zähler-zurück)
+15. [Trocken-Report: Ich will eine strenge 23-h-Persistenz-Prüfung (history_stats-Rezept)](#15-trocken-report-ich-will-eine-strenge-23-h-persistenz-prüfung-history_stats-rezept)
+16. [Kann ich kurz vor Mitternacht bewässern?](#16-kann-ich-kurz-vor-mitternacht-bewässern)
 
 ---
 
-## 1. Welche Ventile funktionieren mit dem Kit?
+## 1. Welche Ventile funktionieren?
 
 **Alles, was in Home Assistant als `switch` erscheint und Wasser schaltet.**
-Die Blueprints rufen ausschließlich `switch.turn_on` / `switch.turn_off` auf und
-prüfen den Zustand mit `is_state(…, 'on'/'off')`. Getestet wurde das Kit im
-Ursprungssystem mit Zigbee-Bewässerungsventilen (Sonoff SWV), die als `switch`
-mit eigenem Durchfluss-, Leck- und Wasserversorgungs-Sensor erscheinen — aber
-genauso funktionieren:
+Die Integration ruft ausschließlich `switch.turn_on` / `switch.turn_off` auf
+und prüft den Zustand über die State-Machine. Getestet wurde im Ursprungssystem
+mit Zigbee-Bewässerungsventilen (Sonoff SWV), die als `switch` mit eigenem
+Durchfluss-, Leck- und Wasserversorgungs-Sensor erscheinen — aber genauso
+funktionieren:
 
 - Zigbee-/Z-Wave-Bewässerungsventile beliebiger Hersteller (solange sie als
   `switch` auftauchen),
 - eine Pumpe an einer smarten Steckdose (`switch.steckdose_pumpe`),
 - ein Magnetventil an einem Relais (Shelly, ESPHome, Hutschienen-Aktor).
 
-**Wichtig für Funk-Ventile:** Jeder Schließ-Befehl im Kit läuft als
-Retry-Schleife (Standard: bis zu 5 Versuche im 3-Sekunden-Abstand, bis das
-Ventil wirklich `off` meldet) — das fängt den klassischen Zigbee-Aussetzer
-„device did not respond“ ab, bei dem ein einzelner `turn_off` still verpufft.
-Zusätzlich unbedingt den Watchdog-Blueprint „Ventil-Notaus“ mit **allen**
-Ventilen instanziieren (siehe [Frage 9](#9-ein-ventil-ging-nicht-zu--was-ist-passiert-was-tun)).
+**Wichtig für Funk-Ventile:** Jeder Schließ-Befehl läuft als Retry-Schleife
+(bis zu 5 Versuche im 3-Sekunden-Abstand, bis das Ventil wirklich `off`
+meldet) — das fängt den klassischen Zigbee-Aussetzer „device did not respond“
+ab, bei dem ein einzelner `turn_off` still verpufft. Der eingebaute
+Notaus-Watchdog überwacht automatisch **alle** Ventile aller Kreise — es gibt
+nichts zu instanziieren und keine Liste zu pflegen
+(siehe [Frage 9](#9-ein-ventil-ging-nicht-zu--was-ist-passiert-was-tun)).
 
 Erscheint dein Ventil nicht als `switch`, sondern als `valve` oder `light`:
 [Frage 2](#2-mein-ventil-ist-eine-valve--oder-light-entität--was-nun-template-switch-rezept).
@@ -68,12 +68,12 @@ Erscheint dein Ventil nicht als `switch`, sondern als `valve` oder `light`:
 ## 2. Mein Ventil ist eine `valve`- oder `light`-Entität — was nun? (Template-Switch-Rezept)
 
 Manche Integrationen legen Bewässerungsventile als `valve.*` an, manche
-Zigbee-Ventile tauchen (falscher Gerätetyp im Quirk) als `light.*` auf. Die
-Kit-Blueprints erwarten `switch` — wickle das Ventil in einen
+Zigbee-Ventile tauchen (falscher Gerätetyp im Quirk) als `light.*` auf. Der
+Kreis-Dialog erwartet `switch` — wickle das Ventil in einen
 **Template-Switch**. Der Wrapper ist einmalig 10 Zeilen YAML in der
 `configuration.yaml` (danach „Entwicklerwerkzeuge → YAML → Template-Entitäten
-neu laden" bzw. HA-Neustart) und verhält sich in allen Blueprints exakt wie
-ein natives Ventil-Switch.
+neu laden" bzw. HA-Neustart) und verhält sich exakt wie ein natives
+Ventil-Switch.
 
 **Variante A — Ventil ist `valve.*`:**
 
@@ -116,56 +116,56 @@ switch:
               entity_id: light.DEIN_VENTIL
 ```
 
-Danach trägst du in den Blueprints überall `switch.bewaesserungsventil_rasen`
-(bzw. `_tropf`) ein — **nie** die darunterliegende `valve`/`light`-Entität.
-Der Wrapper spiegelt den echten Gerätezustand (kein `optimistic`), d. h. die
-Retry-Close-Härtung und der Notaus-Watchdog sehen den tatsächlichen Zustand.
+Danach wählst du im Kreis-Dialog `switch.bewaesserungsventil_rasen`
+(bzw. `_tropf`) als Ventil — **nie** die darunterliegende
+`valve`/`light`-Entität. Der Wrapper spiegelt den echten Gerätezustand (kein
+`optimistic`), d. h. Retry-Close-Härtung und Notaus-Watchdog sehen den
+tatsächlichen Zustand.
 
 ## 3. Welche Bodenfeuchte-Sensoren brauche ich? Geht es auch ohne?
 
 **Jeder Sensor, der Bodenfeuchte in Prozent (0–100) meldet, funktioniert:**
 Zigbee-Bodenfeuchtesensoren, ESPHome-Eigenbauten mit kapazitiver Sonde,
-Pflanzensensoren — der Score-Blueprint liest schlicht `states(sensor)` als
-Zahl.
+Pflanzensensoren — die Score-Engine liest schlicht den Zustand als Zahl.
 
-- **Mehrere Sensoren pro Kreis:** erlaubt (Eingabe `bodensensoren` ist eine
-  Mehrfachauswahl). Es zählt das **Minimum** — der trockenste Sensor gewinnt.
-  Sinnvoll, wenn ein Ventil mehrere Zonen mit je eigenem Sensor bewässert.
+- **Mehrere Sensoren pro Kreis:** erlaubt (das Feld ist eine Mehrfachauswahl).
+  Es zählt das **Minimum** — der trockenste Sensor gewinnt. Sinnvoll, wenn
+  ein Ventil mehrere Zonen mit je eigenem Sensor bewässert.
 - **Sensor fällt aus:** Ein konfigurierter, aber `unavailable`r Sensor wird
   mit 50 % angenommen (neutraler Wert — der Score läuft weiter, statt zu
   eskalieren oder zu verhungern).
-- **Gar kein Sensor:** Geht. Lass die Eingabe leer — die Score-Gewichte
-  werden automatisch renormalisiert, der Score bildet sich dann nur aus
-  Temperatur-Vorhersage und „Tage seit letzter Bewässerung“. Das Boden-Veto
-  („feucht genug → 0 min“) entfällt logischerweise mit.
+- **Gar kein Sensor:** Geht. Lass das Feld leer — die Score-Gewichte werden
+  automatisch renormalisiert, der Score bildet sich dann nur aus
+  Wetter-Faktor (Tmax oder ET₀) und „Tage seit letzter Bewässerung“. Das
+  Boden-Veto („feucht genug → 0 min“) entfällt logischerweise mit. Tipp:
+  Für sensorlose Rasenkreise lohnt die ET₀-Quelle (Tuning → „Temperatur &
+  Verdunstung“ oder direkt am Kreis).
 - **Kalibrierung:** Bodenfeuchte-Prozente sind je nach Substrat, Einbautiefe
   und Sensor-Modell sehr unterschiedlich. Beobachte nach dem Gießen und nach
   2–3 trockenen Tagen, welche Werte DEIN Sensor liefert, und stelle danach
-  die Veto-Schwelle des Kreises (Dashboard-Slider) ein. Die Seed-Werte
-  (Rasen 70 %, Beeren 65 %, Tomate 70 %) stammen aus dem Ursprungssystem mit
+  die Veto-Schwelle des Kreises ein (`number.garten_<kreis>_veto_schwelle_boden`).
+  Die Seed-Werte (Rasen 70 %, Topf 65 %) stammen aus dem Ursprungssystem mit
   Zigbee-Sensoren in Töpfen.
-- **Glitch-Schutz (nur Topf-Blueprint):** Funk-Sensoren melden bei Dropouts
-  gern kurz 0 %. Die Topf-Frequenzbewässerung ignoriert Werte unter der
-  `glitch_grenze` (Standard 5 %) — eine 0-%-Falschmeldung löst also keine
-  Dosis aus.
+- **Glitch-Schutz (Topf-Kreise):** Funk-Sensoren melden bei Dropouts gern
+  kurz 0 %. Die Topf-Frequenzbewässerung ignoriert Werte unter der
+  Glitch-Untergrenze (Tuning → Töpfe, Standard 5 %) — eine 0-%-Falschmeldung
+  löst also keine Dosis aus.
 
 ## 4. Wie baue ich den Regen-24h-Sensor? (3 Rezepte je nach Quellsensor)
 
-Der Score-Blueprint und die Topf-Frequenzbewässerung akzeptieren optional
-einen Sensor „Regen der letzten 24 h in mm“ (Eingabe `regen_24h_sensor`,
-Vergleich gegen den Schwellen-Helfer `input_number.bewaesserung_regen_beobachtet_mm`,
-Seed 3 mm). Welches Rezept du brauchst, hängt davon ab, **in welcher Form dein
-Regensensor liefert**. Prüfe das zuerst in „Entwicklerwerkzeuge → Zustände“:
-Steigt der Wert immer weiter (kumulativ)? Springt er pro Messintervall auf
-kleine Häppchen (Intervall-mm)? Oder ist es eine Rate in mm/h?
+Die Integration akzeptiert optional einen Sensor „Regen der letzten 24 h in
+mm“ (Globale Einstellungen → Regensensor; Schwelle =
+`number.garten_regen_veto_beobachtet`, Seed 3 mm). Welches Rezept du brauchst,
+hängt davon ab, **in welcher Form dein Regensensor liefert**. Prüfe das zuerst
+in „Entwicklerwerkzeuge → Zustände“: Steigt der Wert immer weiter (kumulativ)?
+Springt er pro Messintervall auf kleine Häppchen (Intervall-mm)? Oder ist es
+eine Rate in mm/h?
 
 Alle Rezepte kommen in die `configuration.yaml` (oder eine included Datei),
-danach HA neu starten. Der Name ist bewusst ASCII („Bewaesserung“), damit die
-Entity-ID exakt `sensor.bewaesserung_regen_24h` lautet.
+danach HA neu starten.
 
 **Form 1 — Intervall-mm** (Sensor meldet mm *pro Messintervall*, z. B.
-„0.4 mm in den letzten 10 Minuten“ — das ist auch das auskommentierte Rezept
-im Package):
+„0.4 mm in den letzten 10 Minuten“):
 
 ```yaml
 sensor:
@@ -204,9 +204,8 @@ nach dem Reset negativ. Nimm dann stattdessen
 `state_characteristic: sum_differences_nonnegative` — das summiert nur die
 *Anstiege* im Fenster und ignoriert den Mitternachts-Sprung auf 0. Ergebnis
 ist wieder eine saubere rollende 24-h-Summe. (Alternativ kannst du einen
-„Regen heute“-Sensor auch DIREKT als `regen_24h_sensor` eintragen — dann gilt
-die Schwelle eben „seit Mitternacht“ statt rollend; für das Skip-Veto meist
-gut genug.)
+„Regen heute“-Sensor auch DIREKT eintragen — dann gilt die Schwelle eben
+„seit Mitternacht“ statt rollend; für das Skip-Veto meist gut genug.)
 
 **Form 3 — Rate in mm/h**: erst per Integral-Helfer zu einem kumulativen
 Zähler aufintegrieren, dann Form 2 anwenden:
@@ -232,35 +231,40 @@ sensor:
 
 Nach dem Neustart prüfen: „Entwicklerwerkzeuge → Zustände“ →
 `sensor.bewaesserung_regen_24h` zeigt eine plausible Zahl (0 bei Trockenheit).
-Dann den Sensor in den Blueprint-Instanzen (Score + Topf) als
-`regen_24h_sensor` eintragen — ohne Eintrag bleibt das Regen-beobachtet-Veto
-schlicht deaktiviert, nichts geht kaputt.
+Dann den Sensor in **Globale Einstellungen → Regensensor** eintragen — ohne
+Eintrag bleibt das Regen-beobachtet-Veto schlicht deaktiviert, nichts geht
+kaputt.
 
 ## 5. Meine Wetter-Integration liefert kein `daily` / keinen Niederschlag
 
-Der Score-Blueprint holt die Vorhersage per `weather.get_forecasts`. Zwei
+Die Integration holt die Vorhersage per `weather.get_forecasts`. Zwei
 Stellschrauben:
 
 - **Kein `daily`-Forecast** (manche Integrationen können nur stündlich):
-  Stelle im Score-Blueprint die Eingabe **`Vorhersage-Typ` auf „hourly“**.
-  Tmax wird dann über die ersten 72 Stunden gebildet (entspricht den 3 Tagen
-  des daily-Modus), der Niederschlag über die ersten 24 Stunden summiert
-  (entspricht der 24-h-Semantik der Regen-Schwelle).
-- **Kein `precipitation`-Feld im Forecast:** Der Blueprint liest fehlende
-  Werte als 0 (`| default(0)`) — das Regen-**Vorhersage**-Veto feuert dann
-  einfach nie. Kompensiere mit dem Regen-**beobachtet**-Veto: baue den
-  Regen-24h-Sensor aus [Frage 4](#4-wie-baue-ich-den-regen-24h-sensor-3-rezepte-je-nach-quellsensor)
+  Stelle im **Tuning → „Temperatur & Verdunstung“ → Vorhersage-Typ** auf
+  „hourly“. Tmax wird dann über die ersten 72 Stunden gebildet (entspricht
+  den 3 Tagen des daily-Modus), der Niederschlag über die ersten 24 Stunden
+  summiert. Merke den Unterschied fürs Regen-Vorhersage-Veto: **daily zählt
+  nur den heutigen Tageswert, hourly die Summe der nächsten 24 h** (rollt
+  über Mitternacht) — für einen Abendlauf ist hourly meist das ehrlichere
+  Fenster. Welcher Modus aktiv war, steht als `forecast_typ` in den
+  Attributen von `sensor.garten_plan_heute`.
+- **Kein `precipitation`-Feld im Forecast:** Fehlende Werte werden als 0
+  gelesen — das Regen-**Vorhersage**-Veto feuert dann einfach nie.
+  Kompensiere mit dem Regen-**beobachtet**-Veto: baue den Regen-24h-Sensor
+  aus [Frage 4](#4-wie-baue-ich-den-regen-24h-sensor-3-rezepte-je-nach-quellsensor)
   aus einer echten Messquelle.
 - **Vorhersage-Abruf schlägt komplett fehl** (Integration offline, Timeout):
   Die Berechnung bricht NICHT ab. Der Score rechnet mit Tmax = 20 °C und
   Regen-Vorhersage = 0 weiter, und der Status-Text des Kreises bekommt den
-  Hinweis „(Wetter n/v)“ — so siehst du auf dem Dashboard sofort, dass der
-  Plan gerade auf dem Fallback läuft.
+  Hinweis „(Wetter n/v)“ — so siehst du sofort, dass der Plan gerade auf dem
+  Fallback läuft. (Der ET₀-Modus fällt dabei automatisch auf den Tmax-Pfad
+  zurück.)
 
 Teste deinen Forecast direkt: „Entwicklerwerkzeuge → Aktionen“ →
 `weather.get_forecasts` → deine Wetter-Entität als Ziel, `type: daily` (oder
-`hourly`) → „Aktion ausführen“. In der Antwort siehst du, ob `temperature`
-und `precipitation` geliefert werden.
+`hourly`) → „Aktion ausführen“. In der Antwort siehst du, ob `temperature`,
+`templow` (für ET₀) und `precipitation` geliefert werden.
 
 ## 6. Wie finde ich den Namen meines notify-Dienstes?
 
@@ -274,13 +278,13 @@ Unterstrichen versehen (aus „Peters iPhone“ wird
 
 Direkt dort testen: Dienst auswählen, bei `message` einen Text eintragen,
 „Aktion ausführen“ — kommt der Push an, ist der Name korrekt. Genau diesen
-Namen (mit `notify.`-Präfix) trägst du in die Blueprint-Eingabe
-`notify_dienste` ein.
+Namen (mit `notify.`-Präfix) trägst du im **Options-Dialog →
+Benachrichtigungen** ein.
 
 ## 7. Wie schicke ich Pushes an mehrere Handys? (notify-Gruppen-Rezept)
 
-**Weg 1 (ohne YAML):** Alle Blueprints des Kits akzeptieren in
-`notify_dienste` eine **komma-getrennte Liste**:
+**Weg 1 (ohne YAML):** Das Benachrichtigungen-Feld akzeptiert eine
+**komma-getrennte Liste**:
 
 ```
 notify.mobile_app_handy1, notify.mobile_app_handy2
@@ -301,73 +305,71 @@ notify:
       - action: mobile_app_handy2
 ```
 
-Danach trägst du in allen Blueprint-Instanzen nur noch `notify.alle_handys`
-ein. Kommt später ein drittes Handy dazu, ergänzt du es einmal in der Gruppe —
-statt in ~6 Blueprint-Instanzen. Stolperfalle: Unter `services:` steht der
-Dienstname **ohne** `notify.`-Präfix (also `mobile_app_handy1`, nicht
-`notify.mobile_app_handy1`). Auf älteren HA-Versionen heißt der Schlüssel
-`service:` statt `action:` — ab der Kit-Mindestversion 2024.10 funktioniert
-`action:`.
+Danach trägst du im Options-Dialog nur noch `notify.alle_handys` ein. Kommt
+später ein drittes Handy dazu, ergänzt du es einmal in der Gruppe.
+Stolperfalle: Unter `services:` steht der Dienstname **ohne**
+`notify.`-Präfix (also `mobile_app_handy1`, nicht
+`notify.mobile_app_handy1`).
 
 ## 8. „Warum bewässert er heute nicht?“
 
-**Schau auf den Status-Text des Kreises** — das ist die eingebaute Antwort auf
-genau diese Frage. Der Score-Blueprint schreibt alle 30 Minuten pro Kreis
-einen erklärenden Satz in `input_text.bewaesserung_kreisN_status`; das
-Kit-Dashboard zeigt ihn unter der Plan-Tabelle. Die möglichen Texte und was
-sie bedeuten:
+**Schau auf den Status-Sensor des Kreises** (`sensor.garten_<kreis>_status`) —
+das ist die eingebaute Antwort auf genau diese Frage. Die Engine schreibt
+alle 30 Minuten pro Kreis einen erklärenden Satz; `sensor.garten_plan_heute`
+fasst zusätzlich den ganzen Tag in einer Zeile zusammen. Die möglichen Texte:
 
 | Status-Text beginnt mit | Bedeutung | Was tun (falls unerwünscht) |
 |---|---|---|
-| `⏭ Übersprungen` | „Heute überspringen“ ist an | Toggle auf dem Dashboard ausschalten (wird sonst um 00:01 automatisch zurückgesetzt) |
+| `⏭ Übersprungen` | „Heute überspringen“ ist an | `switch.garten_heute_uberspringen` ausschalten (wird sonst um 00:01 automatisch zurückgesetzt) |
 | `⏸ Urlaubsmodus` | Urlaubsmodus ist an | Toggle ausschalten — er bleibt an, bis DU ihn ausschaltest |
-| `☔ Regen-Veto: … gemessen` | Regen-24h-Sensor über der Schwelle | Schwelle (`Regen beobachtet`) auf dem Dashboard erhöhen |
-| `☔ Regen-Veto: … Vorhersage` | Forecast-Regen über der Schwelle | Schwelle (`Regen Vorhersage`) erhöhen |
+| `⏸ Kreis deaktiviert` | `switch.garten_<kreis>_aktiv` ist aus | Kreis wieder aktivieren |
+| `☔ Regen-Veto: … gemessen` | Regen-24h-Sensor über der Schwelle | `number.garten_regen_veto_beobachtet` erhöhen |
+| `☔ Regen-Veto: … Vorhersage` | Forecast-Regen über der Schwelle | `number.garten_regen_veto_vorhersage` erhöhen — oder daily/hourly-Fenster prüfen ([Frage 5](#5-meine-wetter-integration-liefert-kein-daily--keinen-niederschlag)) |
 | `💧 Boden feucht genug` | Bodenfeuchte ÜBER der Veto-Schwelle | Veto-Schwelle des Kreises senken — oder freuen: der Boden ist wirklich nass |
 | `Score X unter Schwelle Y` | Score zu niedrig (Boden ok, kühl, kürzlich bewässert) | Skip-Schwelle senken oder Veto-Schwelle erhöhen (macht den Kreis „durstiger“) |
 | `… (Wetter n/v)` (Anhang) | Vorhersage-Abruf schlug fehl, Fallback Tmax 20 °C | Wetter-Integration prüfen ([Frage 5](#5-meine-wetter-integration-liefert-kein-daily--keinen-niederschlag)) |
 
-Wenn der Status-Text eine Dauer > 0 zeigt, aber trotzdem nichts lief, prüfe
-zusätzlich die Ausführungs-Ebene:
+Wenn der Status eine Dauer > 0 zeigt, aber trotzdem nichts lief, prüfe die
+Ausführungs-Ebene:
 
-1. **Skip/Urlaub zur Startzeit:** Der Executor prüft beide Toggles NOCHMAL
-   beim Start — auch beim Manuell-Knopf.
-2. **Ventil `unavailable` zur Startzeit:** Der Slot wird einzeln
-   übersprungen (Funkverbindung prüfen, [Frage 9](#9-ein-ventil-ging-nicht-zu--was-ist-passiert-was-tun)).
+1. **Skip/Urlaub zur Startzeit:** Die Engine prüft beide Toggles NOCHMAL beim
+   Start — auch beim Sofort-Start-Knopf.
+2. **Ventil `unavailable` zur Startzeit:** Der Slot wird einzeln übersprungen
+   (Funkverbindung prüfen, [Frage 9](#9-ein-ventil-ging-nicht-zu--was-ist-passiert-was-tun)).
 3. **Dauer wurde nach dem Push wieder 0:** Der Score rechnet alle 30 min neu —
-   ein Regenschauer zwischen Plan-Push (Standard ~20:35, Trigger-Raster :05/:35) und Ausführung (21:00)
-   kann den Plan legitim auf 0 ziehen.
-4. **Automations-Trace ansehen:** Einstellungen → Automationen → deine
-   Executor-Instanz → „Verlauf“ (Traces) zeigt jeden Durchlauf mit dem
-   exakten Abzweig, der genommen wurde.
+   ein Regenschauer zwischen Plan-Push (Startzeit − Vorlauf) und Ausführung
+   kann den Plan legitim auf 0 ziehen. (Deine MANUELL überschriebene Dauer
+   bleibt dagegen bis zum Lauf erhalten — der Lauf nimmt beim Start einen
+   Schnappschuss.)
+4. **Bericht ansehen:** `sensor.garten_letzter_lauf` zeigt den letzten Lauf
+   mit Quelle, Kreisen und ob er abgebrochen wurde; die Events
+   `garten_bewaesserung_lauf_gestartet/_beendet` stehen im
+   Entwicklerwerkzeuge-Event-Log.
 
 ## 9. Ein Ventil ging nicht zu — was ist passiert, was tun?
 
-Das Kit hat für genau diesen Fall vier gestaffelte Sicherungen — im
-Ursprungssystem war ein Zigbee-Ventil, das zum Schließzeitpunkt nicht
-erreichbar war („device did not respond“), der Auslöser für die gesamte
-Härtung:
+Die Integration hat für genau diesen Fall vier gestaffelte, **eingebaute**
+Sicherungen — im Ursprungssystem war ein Zigbee-Ventil, das zum
+Schließzeitpunkt nicht erreichbar war („device did not respond“), der
+Auslöser für die gesamte Härtung:
 
-1. **Retry-Close überall:** Jeder Schließ-Vorgang (Executor, Auto-Aus,
+1. **Retry-Close überall:** Jeder Schließ-Vorgang (Lauf, Auto-Aus,
    Topf-Dosis, Not-Aus, Watchdog) wiederholt `turn_off`, bis das Ventil
-   wirklich `off` meldet (Standard: 5 Versuche, 3 s Abstand). Ein einzelner
+   wirklich `off` meldet (5 Versuche, 3 s Abstand). Ein einzelner
    Funk-Aussetzer wird so fast immer abgefangen.
-2. **Sicherheits-Sweep:** Der Executor schließt am Ende jedes Laufs noch
-   einmal ALLE konfigurierten Ventile — auch die, deren Slot vorher einen
-   Fehler hatte. Meldet danach trotzdem noch ein Ventil „an“, bekommst du
-   (falls `notify_dienste` gesetzt) den Push „⚠️ Bewässerung: Ventil noch
-   offen".
-3. **Watchdog „Ventil-Notaus“:** Ist ein Ventil länger als die
-   Notaus-Schwelle (Standard 40 min) ununterbrochen offen — egal wodurch —
-   wird es zwangsgeschlossen + Push. Der Watchdog hat zusätzlich einen
-   Neustart-Trigger: nach jedem HA-Start werden offene Ventile SOFORT
-   geschlossen (ein Neustart tötet alle laufenden Warte-Schritte, das Ventil
-   wäre sonst herrenlos).
-4. **„Ventil Auto-Aus“-Backstop:** fängt manuell geöffnete Ventile nach der
-   Standard-Dauer.
+2. **Sicherheits-Sweep:** Am Ende jedes Laufs werden noch einmal ALLE
+   Ventile geschlossen — auch die, deren Slot vorher einen Fehler hatte.
+   Meldet danach trotzdem noch ein Ventil „an“, bekommst du (falls
+   notify-Dienste gesetzt) einen Warn-Push.
+3. **Notaus-Watchdog:** Ist ein Ventil länger als die Notaus-Schwelle
+   (Globale Einstellungen, Standard 40 min) ununterbrochen offen — egal
+   wodurch geöffnet —, wird es zwangsgeschlossen + Push. Er überwacht
+   automatisch **alle** Ventile aller Kreise; nach einem HA-Neustart werden
+   verwaiste offene Ventile sofort zwangsgeschlossen.
+4. **Auto-Aus-Backstop:** fängt von Hand geöffnete Ventile nach der
+   Auto-Aus-Dauer (Globale Einstellungen, Standard 10 min).
 
-**Wenn es trotzdem passiert ist** (Push „meldet trotz 5 Schließversuchen noch
-nicht aus"):
+**Wenn es trotzdem passiert ist** (Warn-Push „Ventil noch offen“):
 
 - Zuerst physisch: Wasserhahn zu / Ventil von Hand schließen.
 - Dann Ursache: In 9 von 10 Fällen ist es die Funkstrecke. Prüfe die
@@ -376,170 +378,56 @@ nicht aus"):
   **netzbetriebenen Zigbee-Router** (Smart Plug ~15 €) zwischen Koordinator
   und Garten-Ventil stecken — das stabilisiert den Hop mehr als jede
   Software-Maßnahme.
-- Kontrolliere, dass der Watchdog wirklich ALLE Ventile in seiner
-  `ventile`-Liste hat — ein Ventil, das dort fehlt, wird nicht überwacht.
 
 ## 10. Die Notaus-Schwelle und die Max-Dauern — welche Regel gilt? (Invariante)
 
 **Regel: `Notaus-Schwelle > größte Max-Dauer aller Kreise` und
-`Notaus-Schwelle > Standard-Dauer (Auto-Aus)`.**
+`Notaus-Schwelle > Auto-Aus-Dauer`.**
 
 Der Watchdog kann nicht unterscheiden, ob ein Ventil *legitim* lange läuft
 oder *hängt* — er kennt nur die Zeit. Liegt die Notaus-Schwelle unter einer
 Max-Dauer, würgt er jede lange (aber gewollte) Bewässerung dieses Kreises ab
 und schickt dir dazu noch einen Fehlalarm-Push.
 
-Mit den Seed-Werten passt es: Notaus 40 min gegen Max-Dauern 20/20/18/3 min
-und Standard-Dauer 10 min — komfortabler Abstand. **Wenn du eine Max-Dauer
-über ~35 min stellst, erhöhe im selben Zug die Notaus-Schwelle** (Eingabe
-`notaus_minuten` der Watchdog-Instanz), z. B. Max-Dauer 45 → Notaus 60.
-Merkhilfe: Notaus ≈ größte Max-Dauer + 15–20 min Reserve. Die Reserve deckt
-den Slot-Versatz sequenzieller Gruppen NICHT ab — muss sie auch nicht: der
-`for:`-Timer des Watchdogs läuft **pro Ventil** ab dessen Einschalt-Moment,
-nicht ab Gruppenstart.
+Mit den Seed-Werten passt es: Notaus 40 min gegen Max-Dauer 20 min (Rasen)
+bzw. 4 min (Topf) und Auto-Aus 10 min — komfortabler Abstand. **Wenn du eine
+Max-Dauer über ~35 min stellst, erhöhe im selben Zug die Notaus-Schwelle**
+(Globale Einstellungen), z. B. Max-Dauer 45 → Notaus 60. Merkhilfe: Notaus ≈
+größte Max-Dauer + 15–20 min Reserve. Die Reserve muss den Versatz
+sequenzieller Ketten NICHT abdecken: Der Watchdog-Timer läuft **pro Ventil**
+ab dessen Einschalt-Moment, nicht ab Laufbeginn. Achtung Sonderfall
+**mehrere Ventile in EINEM Kreis**: die laufen nacheinander je die volle
+Kreis-Dauer — pro Ventil gilt trotzdem die eigene Uhr, die Invariante bleibt
+also einfach „Notaus > Max-Dauer“.
 
-## 11. Ich habe mehr als 4 Kreise — geht das?
+## 11. Wie aktualisiere oder deinstalliere ich die Integration?
 
-Ja, aber ehrlich: **nicht per Klick.** Das Package liefert Helfer für genau
-4 Kreise. Für Kreis 5 (und weitere) musst du selbst Hand anlegen — das Kit
-ist darauf ausgelegt, dass das sauber möglich ist:
+**Update:** HACS zeigt neue Versionen automatisch an (Repo öffnen →
+„Herunterladen“/Update), danach Home Assistant neu starten. Deine
+Konfiguration (Kreise, Tuning, Zähler) bleibt vollständig erhalten — sie
+lebt im Config-Entry und im integrationseigenen Speicher, nicht im Code.
 
-1. **Helfer-Satz anlegen:** Kopiere im Package (`packages/bewaesserung.yaml`)
-   die kompletten `kreis4_*`-Blöcke und benenne sie auf `kreis5_*` um — in
-   allen vier Abschnitten: `input_number` (score, dauer_heute, veto_schwelle,
-   min_dauer, max_dauer, dosen_heute, ziel_unten, ziel_oben),
-   `input_datetime` (kreis5_letzte_bewaesserung), `input_text`
-   (kreis5_status). ASCII beachten („ae“, kein „ä“ in den Schlüsseln).
-2. **Reset erweitern:** In der Package-Automation `bewaesserung_system_reset`
-   die Entity-Listen des Tages-Resets um
-   `input_number.bewaesserung_kreis5_dauer_heute` und
-   `…_kreis5_dosen_heute` ergänzen — **sonst blockiert das Topf-Tages-Limit
-   ab Tag 2 und die Tagesdauer von gestern leckt in den neuen Tag.**
-3. **HA neu starten** (Packages werden nur beim Start geladen), dann die
-   Kreis-5-Werte von Hand setzen (das Seed-Script kennt Kreis 5 nicht).
-4. **Blueprint-Instanzen:** eine weitere „Kreis: Score & Tagesdauer“-Instanz,
-   die auf die Kreis-5-Helfer zeigt; je Ventil eine „Auto-Aus“- und eine
-   „Sitzungs-Tracker“-Instanz; das Ventil zusätzlich in die `ventile`-Listen
-   von Watchdog UND Not-Aus aufnehmen.
-5. **Grenzen der 4er-Slots:** Der Executor („Ausführung — sequenzielle
-   Gruppe") hat 4 Slots pro Instanz — Ventil 5 kommt in eine **zweite
-   Executor-Instanz** (gleiche Startzeit = läuft parallel zur ersten Gruppe;
-   andere Startzeit = läuft danach). Der Tagesplan-Push hat ebenfalls
-   4 Slots — entweder eine zweite Push-Instanz (ergibt zwei Nachrichten)
-   oder Kreis 5 im Push weglassen.
-6. **Dashboard:** Die Tier-1-Karten iterieren über Kreis 1–4 — für Kreis 5
-   die Markdown-Schleifen von `range(1, 5)` auf `range(1, 6)` erweitern bzw.
-   Karten duplizieren.
+**Deinstallation:**
 
-Beim nächsten Kit-Update deine Package-Änderungen nicht blind überschreiben —
-eigene Blöcke vorher sichern ([Frage 14](#14-wie-aktualisiere-oder-deinstalliere-ich-das-kit)).
+1. **Integration entfernen:** Einstellungen → Geräte & Dienste →
+   Garten-Bewässerung → ⋮ → Löschen. Damit verschwinden alle Entities,
+   Geräte, Timer und der Speicher der Integration.
+2. **HACS-Download entfernen:** HACS → Garten-Bewässerung → ⋮ → Entfernen,
+   danach HA neu starten.
+3. **Reste von Hand:** Eigene Zutaten aus dieser FAQ — Template-Switches
+   ([Frage 2](#2-mein-ventil-ist-eine-valve--oder-light-entität--was-nun-template-switch-rezept)),
+   Regen-24h-Sensor ([Frage 4](#4-wie-baue-ich-den-regen-24h-sensor-3-rezepte-je-nach-quellsensor)),
+   notify-Gruppen, Webhook-Automationen — liegen in deiner
+   `configuration.yaml` und bleiben, bis du sie entfernst. Historien-Daten
+   gelöschter Entities altern über die normale Recorder-Aufbewahrung heraus;
+   sofort loswerden: Aktion `recorder.purge_entities`.
 
-## 12. Wie viele Blueprint-Instanzen brauche ich? (Checkliste)
+## 12. iOS vs. Android — was ist bei den Pushes anders?
 
-Ehrliche Antwort: Für den Vollausbau des Ursprungssystems (4 Kreise,
-4 Ventile, 2 Töpfe, alle Alarme) sind es **rund 15–20 Instanzen**. Das klingt
-nach viel, ist aber je Instanz ein 1-Minuten-Formular, weil die Standardwerte
-zum Package passen. Anlegen: Einstellungen → Automationen & Szenen →
-Blueprints → Blueprint anklicken → „Automation erstellen“.
+Die Pushes der Integration benutzen einen einheitlichen Payload, der auf
+beiden Plattformen funktioniert. Die Unterschiede im Detail:
 
-| Blueprint (Datei) | Instanzen | Pflicht-Eingaben (Rest hat Package-Defaults) |
-|---|---|---|
-| Kreis: Score & Tagesdauer (`kreis_score.yaml`) | 1 **pro Kreis** | `wetter` |
-| Tagesplan-Push (`tagesplan_push.yaml`) | 1 | keine (ohne `notify_dienste` wirkungslos) |
-| Ausführung — sequenzielle Gruppe (`ausfuehrung_gruppe.yaml`) | 1 pro sequenzielle Gruppe | `ventil_1` |
-| Ventil Auto-Aus (`ventil_auto_aus.yaml`) | 1 **pro Ventil** | `ventil` |
-| Ventil-Notaus / Watchdog (`ventil_notaus.yaml`) | 1 (alle Ventile eintragen!) | `ventile` |
-| Topf-Frequenzbewässerung (`topf_soll_band.yaml`) | 1 pro Topf-Kreis | `bodensensor`, `ventil`, `k` |
-| Alarm: Wasserleck (`alarm_leck.yaml`) | 0–1 (nur mit Leck-Sensoren) | `leck_sensoren` |
-| Alarm: Wasserversorgung (`alarm_wasserversorgung.yaml`) | 1 pro Sensor/Ventil-Paar | `versorgung_sensor`, `ventil` |
-| Ventil: Sitzungs-Tracker (`ventil_sitzung.yaml`) | 1 **pro Ventil** | `ventil` |
-| Batterie-Warnung (`batterie_warnung.yaml`) | 1 | `batterie_sensoren` |
-| Not-Aus: Alle Ventile zu (`not_aus.yaml`) | 1 (alle Ventile eintragen!) | `ventile` |
-| Trocken-Report (`boden_kritisch_report.yaml`) | 0–1 | `sensor_1` |
-
-Drei Stolperfallen aus der Praxis:
-
-- **Watchdog und Not-Aus brauchen ALLE Ventile** in ihrer Liste — ein
-  vergessenes Ventil ist unbewacht bzw. bleibt beim Not-Aus offen.
-- **Zwei Ventile am selben Kreis** (z. B. Rasen West + Ost teilen sich
-  Kreis 1): beide Sitzungs-Tracker-Instanzen zeigen mit `letzte_helper` auf
-  DENSELBEN Helfer (`…kreis1_letzte_bewaesserung`), im Executor bekommen
-  beide Slots denselben Tagesdauer-Helfer. Nur EINE Score-Instanz für den
-  Kreis.
-- **Kreis 2–4 konfigurieren heißt: die sieben Kreis-Helfer umstellen.** Die
-  Defaults jeder Score-Instanz zeigen auf Kreis 1 — für Kreis 2 stellst du
-  score/dauer/veto/min/max/letzte/status auf die `kreis2_*`-Helfer um.
-
-## 13. Wie baue ich das Dashboard ein? (Raw-Editor)
-
-Die Datei `dashboard/garten.yaml` ist eine komplette `views:`-Liste für den
-Lovelace-Raw-Editor:
-
-1. **Eigenes Dashboard (empfohlen):** Einstellungen → Dashboards →
-   „Dashboard hinzufügen“ → „Neues Dashboard von Grund auf“ → öffnen →
-   Stift-Symbol (Bearbeiten) → ⋮ oben rechts → **„Raw-Konfigurationseditor“**
-   → gesamten Inhalt durch den Inhalt von `dashboard/garten.yaml` ersetzen →
-   speichern.
-2. **In ein bestehendes Dashboard:** im Raw-Editor NUR den Eintrag unterhalb
-   von `views:` (den Block ab `- title: Garten`) in deine bestehende
-   `views:`-Liste kopieren.
-
-Danach gilt:
-
-- **Tier 1 funktioniert sofort**, wenn das Package installiert und HA neu
-  gestartet ist — es referenziert ausschließlich Package-Entities und native
-  Karten (keine HACS-Abhängigkeiten). Zeigt eine Zeile „—“, fehlt nur das
-  optionale Volumen-Tracking (Absicht, kein Fehler).
-- **Tier 2 (Abschnitt „HARDWARE“) ist auskommentiert.** Erst die
-  `REPLACE_ME_VENTIL_1..4`- und `REPLACE_ME_BODENSENSOR_1..4`-Marker durch
-  deine echten Entity-IDs ersetzen, DANN die `#` entfernen. Ein
-  einkommentierter Block mit übrig gebliebenem `REPLACE_ME_…` erzeugt rote
-  Fehlerkarten.
-- Der Raw-Editor validiert beim Speichern — bei einer YAML-Fehlermeldung ist
-  fast immer die Einrück-Tiefe beim Kopieren verrutscht (der `- title:`-Block
-  muss exakt eine Ebene unter `views:` stehen).
-
-## 14. Wie aktualisiere oder deinstalliere ich das Kit?
-
-**Update:**
-
-- **Blueprints:** Einstellungen → Automationen & Szenen → Tab „Blueprints“ →
-  ⋮ am jeweiligen Blueprint → **„Blueprint neu importieren“** (gleiche
-  Quell-URL). Bestehende Instanzen behalten ihre Eingaben; neue Eingaben
-  einer neuen Version bekommen deren Standardwerte. Danach die Instanzen
-  einmal öffnen und speichern schadet nie.
-- **Package:** neue `packages/bewaesserung.yaml` über die alte kopieren → HA
-  neu starten. Deine **eingestellten Helfer-WERTE bleiben erhalten** (HA
-  restauriert Helfer-Zustände beim Start), solange die Helfer-Schlüssel
-  gleich heißen. Das Seed-Script danach **nicht** erneut ausführen — es ist
-  ein bewusster „Werks-Reset“ und überschreibt dein Tuning.
-- **Dashboard:** neue Datei erneut per Raw-Editor einspielen; deine
-  Tier-2-Marker-Ersetzungen musst du dabei erneut vornehmen (vorher
-  rauskopieren).
-
-**Deinstallation (Reihenfolge wichtig):**
-
-1. **Blueprint-Instanzen löschen:** Einstellungen → Automationen — alle
-   Kit-Automationen entfernen. (Tipp: auf der Blueprint-Seite zeigt jeder
-   Blueprint seine Instanzen.)
-2. **Blueprints löschen:** Tab „Blueprints“ → ⋮ → Löschen. Geht erst, wenn
-   keine Instanz mehr existiert — HA weigert sich sonst.
-3. **Dashboard-Ansicht entfernen** (Raw-Editor oder Dashboard löschen).
-4. **Package entfernen:** die Zeile `bewaesserung: !include packages/bewaesserung.yaml`
-   aus der `configuration.yaml` nehmen, Datei löschen, HA neu starten — alle
-   Kit-Helfer, die Reset-Automation und das Seed-Script verschwinden damit.
-5. **Reste:** Per UI angelegte Volumen-Helfer (Integral + Verbrauchszähler
-   aus dem README-Rezept) von Hand löschen (Einstellungen → Geräte & Dienste
-   → Helfer). Historien-Daten der gelöschten Entities altern über die
-   normale Recorder-Aufbewahrung heraus; wer sie sofort loswerden will:
-   Aktion `recorder.purge_entities`.
-
-## 15. iOS vs. Android — was ist bei den Pushes anders?
-
-Die Kit-Pushes benutzen einen einheitlichen Payload, der auf beiden
-Plattformen funktioniert. Die Unterschiede im Detail:
-
-- **`push_kritisch` (zeitkritisch):** setzt iOS
+- **„Kritische Pushes“ (Benachrichtigungen-Dialog):** setzt iOS
   `interruption-level: time-sensitive` — die Nachricht durchbricht
   Fokus-Modi/„Nicht stören“ (aber NICHT die Stummschaltung; es ist bewusst
   keine „Critical Notification“ mit Ton-Zwang). Damit das greift, muss in den
@@ -548,9 +436,9 @@ Plattformen funktioniert. Die Unterschiede im Detail:
   harmlos** — dort steuerst du die Wichtigkeit über den
   Benachrichtigungskanal des Geräts (Systemeinstellungen → Apps → Home
   Assistant → Benachrichtigungen).
-- **`dashboard_pfad` (Deep-Link):** Der Payload setzt `url` (iOS) UND
-  `clickAction` (Android) auf denselben Pfad — ein Tipp auf den Push öffnet
-  die Companion-App direkt auf diesem Dashboard, auf beiden Plattformen.
+- **Dashboard-Deep-Link (Benachrichtigungen-Dialog):** Der Payload setzt
+  `url` (iOS) UND `clickAction` (Android) auf denselben Pfad — ein Tipp auf
+  den Push öffnet die Companion-App direkt auf diesem Dashboard.
   **Stolperfalle:** Der Pfad muss ein GÜLTIGER Lovelace-Pfad sein (so wie er
   in der Browser-URL steht, z. B. `/garten-bewaesserung` oder
   `/dashboard-garten/wasser`). Bei einem ungültigen Pfad öffnet die App
@@ -561,13 +449,10 @@ Plattformen funktioniert. Die Unterschiede im Detail:
   Zustellung (iOS via Apple Push über den HA-Cloud-Relay der Companion-App,
   Android via Firebase oder lokalen Push).
 
-## 16. Not-Aus per Webhook / Apple-Kurzbefehl auslösen (Rezept)
+## 13. Not-Aus per Webhook / Apple-Kurzbefehl auslösen (Rezept)
 
-Der Not-Aus-Blueprint hat **bewusst nur den Button-Trigger** (ein optionaler
-Webhook-Trigger ist in Blueprints technisch nicht sauber abbildbar — ein
-leerer `webhook_id` wäre eine ungültige Trigger-Konfiguration). Von unterwegs
-(Apple-Kurzbefehl, Widget, Kurzautomation) löst du ihn über eine
-Mini-Automation aus, die deine Not-Aus-Instanz direkt triggert:
+Von unterwegs (Apple-Kurzbefehl, Widget, Kurzautomation) löst du den Not-Aus
+über eine Mini-Automation aus, die den Service der Integration ruft:
 
 ```yaml
 # automations.yaml (oder per UI: Neue Automation → YAML-Modus)
@@ -579,19 +464,8 @@ Mini-Automation aus, die deine Not-Aus-Instanz direkt triggert:
       allowed_methods:
         - POST
   actions:
-    - action: automation.trigger
-      target:
-        entity_id: automation.DEINE_NOT_AUS_INSTANZ
+    - action: garten_bewaesserung.not_aus
 ```
-
-**So findest du die Entity-ID deiner Not-Aus-Instanz** (der Platzhalter oben):
-Die ID leitet sich aus dem NAMEN ab, den du der Instanz beim Anlegen gegeben
-hast — Umlaute werden dabei verstümmelt („Bewässerung Not-Aus“ wird zu
-`automation.bewasserung_not_aus`, mit nur einem „a“!). Verlass dich nicht auf
-Raten: Einstellungen → Automationen & Szenen → Instanz öffnen → ⋮ →
-„Informationen“ zeigt die Entity-ID — oder „Entwicklerwerkzeuge → Zustände“
-nach `automation.` filtern und den Alias suchen. (Nachträgliches Umbenennen
-der Automation ändert die Entity-ID übrigens NICHT.)
 
 **Wichtige Hinweise:**
 
@@ -603,62 +477,35 @@ der Automation ändert die Entity-ID übrigens NICHT.)
   deines LANs kommt — HA verwirft externe Aufrufe an lokale Webhooks sonst
   **stillschweigend** (nur eine Debug-Zeile im Log, der Kurzbefehl sieht
   trotzdem Erfolg).
-- `automation.trigger` startet die Aktionen der Not-Aus-Instanz direkt — das
-  Verhalten ist identisch zum Buttondruck (Lauf-Flag aus, alle Ventile
-  retry-schließen, Push).
-- Gleichwertige Alternative ohne Instanz-ID-Suche: statt `automation.trigger`
-  einfach den Paket-Button drücken —
-  `action: input_button.press`, `target.entity_id: input_button.bewaesserung_not_aus`.
-  Das triggert dieselbe Not-Aus-Instanz über ihren regulären Button-Trigger.
+- `garten_bewaesserung.not_aus` verhält sich identisch zum
+  `button.garten_not_aus`: Lauf abbrechen, alle Ventile retry-schließen,
+  Push. Weitere Services für eigene Automationen: `jetzt_bewaessern`,
+  `plan_neu_berechnen`, `dosis_geben` (siehe README).
 
-## 17. Topf-Frequenzbewässerung: Wer setzt den Dosen-Zähler zurück? (Zähler-Kontrakt)
+## 14. Topf-Frequenzbewässerung: Wer setzt den Dosen-Zähler zurück?
 
-**Der Blueprint erhöht den Zähler nur — zurücksetzen tut ihn das Package.**
-Das ist ein bewusster Kontrakt:
+**Niemand außer der Integration selbst — das ist eingebaut.** Der Zähler
+(`sensor.garten_<kreis>_dosen_heute`) wird bei jeder Dosis erhöht (auch wenn
+das Ventil beim Öffnen nicht reagiert — Absicht: ein wild „nachfeuernder“
+Kreis bei Funkproblemen wäre gefährlicher als eine verpasste Dosis), täglich
+um **00:01** automatisch auf 0 gesetzt und überlebt HA-Neustarts (eigener
+Speicher — auch der Mindestabstand zwischen Dosen übersteht einen Neustart).
 
-- Die Topf-Frequenzbewässerung zählt jede Dosis in den Helfer
-  (`input_number.bewaesserung_kreisN_dosen_heute`) und verweigert weitere
-  Dosen, sobald das Tages-Limit (Seed: 4) erreicht ist. Der Zähler erhöht
-  sich übrigens auch, wenn das Ventil beim Öffnen nicht reagiert — Absicht:
-  ein wild „nachfeuernder“ Kreis bei Funkproblemen wäre gefährlicher als
-  eine verpasste Dosis.
-- Die Package-Automation `bewaesserung_system_reset` setzt **alle vier**
-  `kreisN_dosen_heute`-Zähler täglich um **00:01** auf 0 (gemeinsam mit den
-  Tagesdauern und dem Skip-Toggle).
-- **Verwendest du einen EIGENEN Zähler-Helfer** (nicht die Package-Helfer,
-  z. B. für einen selbstgebauten Kreis 5), musst du auch einen eigenen
-  täglichen Reset bauen — sonst steht der Zähler am zweiten Tag noch auf 4
-  und **das Tages-Limit blockiert ab Tag 2 dauerhaft jede weitere Dose.**
-  Genau dieser stille Ausfallmodus ist der Grund für diesen FAQ-Eintrag.
+Diagnose-Tipp: Wenn ein Topf „keine Dosen mehr bekommt“, prüfe zuerst
+`sensor.garten_<kreis>_dosen_heute` gegen das Tageslimit (Tuning → Töpfe,
+Standard 4) — steht er am Limit, ist das die Erklärung. Danach die übrigen
+Gates: Master-Schalter `switch.garten_topf_frequenzbewasserung`, Kreis aktiv,
+Bodenwert über der Glitch-Grenze aber unter dem Sollband, Peak-Sonnen-Sperre,
+Mindestabstand, Regen-Veto.
 
-Mini-Reset für eigene Zähler (an die Reset-Zeit des Packages angelehnt):
+## 15. Trocken-Report: Ich will eine strenge 23-h-Persistenz-Prüfung (history_stats-Rezept)
 
-```yaml
-- alias: "Bewaesserung Kreis 5 Dosen-Reset"
-  triggers:
-    - trigger: time
-      at: "00:01:00"
-  actions:
-    - action: input_number.set_value
-      target:
-        entity_id: input_number.bewaesserung_kreis5_dosen_heute
-      data:
-        value: 0
-```
-
-Diagnose-Tipp: Wenn ein Topf „seit gestern keine Dosen mehr bekommt“, prüfe
-als Erstes den Zählerstand auf dem Dashboard — steht er auf dem Limit, fehlt
-der Reset.
-
-## 18. Trocken-Report: Ich will die exakte 23-h-Persistenz-Prüfung des Originals (history_stats-Rezept)
-
-Der Trocken-Report-Blueprint prüft den **Momentanwert** zum Report-Zeitpunkt
-plus den „kürzlich bewässert“-Dämpfer (siehe seine Beschreibung — die
-Abweichung vom Original ist dort offengelegt). Das Original prüfte strenger:
-*„lag der Boden ≥ 23 der letzten 24 Stunden durchgehend unter der Schwelle?“*
-— unempfindlich gegen kurze Morgen-Ausreißer. Das braucht zwei
-Zusatz-Sensoren pro Pflanze plus eine kleine Automation (hier für eine
-Tomate mit Schwelle 35 %):
+Der eingebaute Trocken-Report (08:00) prüft den **Momentanwert** gegen die
+halbe Veto-Schwelle des Kreises, gedämpft wenn in den letzten 24 h bewässert
+wurde. Wer strenger prüfen will — *„lag der Boden ≥ 23 der letzten
+24 Stunden durchgehend unter der Schwelle?“*, unempfindlich gegen kurze
+Morgen-Ausreißer — baut das mit zwei Zusatz-Sensoren pro Pflanze plus einer
+kleinen Automation nach (hier für eine Tomate mit Schwelle 35 %):
 
 ```yaml
 # configuration.yaml — Schicht 1: Momentan-Flag (unter Schwelle JETZT?)
@@ -716,16 +563,13 @@ Drei Hinweise aus dem Ursprungssystem:
   Binärsensor per `recorder:`-Exclude ausgeschlossen hast).
 
 Pro weiterer Pflanze duplizierst du die drei Blöcke mit eigener Schwelle.
-Die Trocken-Report-Blueprint-Instanz kannst du dann weglassen — oder
-parallel weiterlaufen lassen (der Blueprint bündelt mehrere Pflanzen in
-einen Push, das Rezept hier pusht pro Pflanze).
 
-## 19. Kann ich kurz vor Mitternacht bewässern?
+## 16. Kann ich kurz vor Mitternacht bewässern?
 
-Besser nicht mit Startzeiten ab ~23:40. Der Grund: Das Package setzt um **00:01**
-alle Tages-Helfer zurück (geplante Dauern auf 0, „Lauf aktiv“ aus) — ein Plan-Lauf,
-der über Mitternacht hinausläuft, wird dadurch entwaffnet: noch nicht gestartete
-Kreise lesen Dauer 0 und werden übersprungen, und für bereits offene Ventile
-übernimmt der Auto-Aus-Backstop bzw. der Notaus-Watchdog das Schließen (es bleibt
-also nichts offen — aber der Plan wird nicht zu Ende bewässert). Mit den
-Standardwerten (Startzeit 21:00, Max-Dauern ≤ 20 min) ist das nie ein Thema.
+**Ja.** Der Lauf nimmt beim Start einen **Schnappschuss aller Dauern** und
+arbeitet ihn vollständig ab — der Tagesreset um 00:01 (Dauern, Skip-Toggle,
+Dosen-/Liter-Zähler) entwaffnet einen bereits laufenden Plan nicht. Zwei
+Randnotizen: Die Tages-Zähler (Liter heute, Dosen heute) wechseln um 00:01
+auf den neuen Tag, auch wenn gerade gewässert wird; und die
+Watchdog-Invariante aus [Frage 10](#10-die-notaus-schwelle-und-die-max-dauern--welche-regel-gilt-invariante)
+gilt natürlich unabhängig von der Uhrzeit.
