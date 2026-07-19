@@ -418,6 +418,18 @@ def main():
     assert zustand("sensor.garten_tomaten_kosten_monat") == "0.06", zustand("sensor.garten_tomaten_kosten_monat")
     print("Volumen (B9): 20,0 L Sitzung → Liter heute/Monat + Kosten korrekt")
 
+    # Cent-genauer Wassertarif (v1.3.4): 2.13 muss die Number akzeptieren
+    req("/api/services/number/set_value",
+        {"entity_id": "number.garten_wassertarif_pro_m3", "value": 2.13})
+    time.sleep(1)
+    assert zustand("number.garten_wassertarif_pro_m3") == "2.13", (
+        zustand("number.garten_wassertarif_pro_m3")
+    )
+    req("/api/services/number/set_value",
+        {"entity_id": "number.garten_wassertarif_pro_m3", "value": 3.0})
+    time.sleep(1)
+    print("Wassertarif: Cent-Schritt 2.13 akzeptiert")
+
     # ======== Services (F7): dosis_geben umgeht Gates, not_aus räumt ab ========
     req("/api/services/garten_bewaesserung/dosis_geben", {"kreis": "tomaten"})
     time.sleep(3)

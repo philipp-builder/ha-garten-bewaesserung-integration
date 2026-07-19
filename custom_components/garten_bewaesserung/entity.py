@@ -28,7 +28,14 @@ def hub_device(entry: ConfigEntry) -> DeviceInfo:
 def kreis_device(entry: ConfigEntry, kreis: dict[str, Any]) -> DeviceInfo:
     return DeviceInfo(
         identifiers={(DOMAIN, f"{entry.entry_id}_{kreis[CONF_KREIS_ID]}")},
-        name=f"Garten {kreis[CONF_KREIS_NAME]}",
+        # Kein Doppel-Präfix, wenn der Kreisname selbst mit „Garten" beginnt
+        # („Garten Beet links" -> Device „Garten Beet links", nicht „Garten
+        # Garten …"). Bestehende Entity-IDs bleiben stabil (Registry).
+        name=(
+            kreis[CONF_KREIS_NAME]
+            if kreis[CONF_KREIS_NAME].lower().startswith("garten")
+            else f"Garten {kreis[CONF_KREIS_NAME]}"
+        ),
         manufacturer="philipp-builder",
         model={"rasen": "Rasen/Beet-Kreis", "topf": "Topf/Tropf-Kreis"}.get(
             kreis.get("typ", "rasen"), "Kreis"

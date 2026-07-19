@@ -370,7 +370,7 @@ class GartenOptionsFlow(OptionsFlowWithReload):
                 vol.Required("kosten"): section(
                     vol.Schema(
                         {
-                            vol.Required(CONF_TARIF, default=o.get(CONF_TARIF)): _num(0, 20, 0.1),
+                            vol.Required(CONF_TARIF, default=o.get(CONF_TARIF)): _num(0, 20, 0.01),
                             vol.Required(CONF_WAEHRUNG, default=o.get(CONF_WAEHRUNG, DEFAULT_WAEHRUNG)): selector.TextSelector(),
                         }
                     ),

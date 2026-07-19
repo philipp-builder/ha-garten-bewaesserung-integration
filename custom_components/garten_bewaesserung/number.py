@@ -74,7 +74,7 @@ HUB_NUMBERS = [
          "mdi:weather-cloudy-arrow-right", DEFAULT_REGEN_FORECAST),
     _Def(CONF_STRAHLUNG_SCHWELLE, "Peak-Sonnen-Sperre", 0, 200000, 1, None,
          "mdi:weather-sunny-alert", DEFAULT_STRAHLUNG_SCHWELLE),
-    _Def(CONF_TARIF, "Wassertarif pro m³", 0, 20, 0.1, None, "mdi:cash", DEFAULT_TARIF),
+    _Def(CONF_TARIF, "Wassertarif pro m³", 0, 20, 0.01, None, "mdi:cash", DEFAULT_TARIF),
 ]
 DAUER_HEUTE = _Def("dauer_heute", "Dauer heute", 0, 90, 1, "min", "mdi:timer-outline")
 
