@@ -334,6 +334,7 @@ class GartenController:
                 else None
             )
             uebersicht.append((kreis[CONF_KREIS_NAME], boden))
+            laufzeit.boden = boden
 
             if not self._an("aktiv", kid):
                 laufzeit.score = 0

@@ -29,6 +29,7 @@ class KreisLaufzeit:
 
     score: int | None = None
     status: str | None = None
+    boden: float | None = None  # Min über die Kreis-Sensoren (Engine-Sicht)
     dauer_heute: int | None = None  # von Engine geschrieben; number zeigt/überschreibt
     zuletzt_bewaessert: datetime | None = None
     dosen_heute: int = 0

@@ -4,6 +4,7 @@ from __future__ import annotations
 from typing import Any
 
 from homeassistant.components.sensor import (
+    SensorStateClass,
     RestoreSensor,
     SensorDeviceClass,
     SensorEntity,
@@ -16,6 +17,7 @@ from homeassistant.util import dt as dt_util
 
 from .const import (
     CONF_FLOW_SENSOR,
+    CONF_BODENSENSOREN,
     CONF_KREIS_TYP,
     CONF_KREISE,
     CONF_TARIF,
@@ -42,6 +44,8 @@ async def async_setup_entry(
             StatusSensor(entry, daten, "status", kreis),
             ZuletztSensor(entry, daten, "zuletzt_bewaessert", kreis),
         ]
+        if kreis.get(CONF_BODENSENSOREN):
+            entities.append(BodenfeuchteSensor(entry, daten, "bodenfeuchte", kreis))
         if kreis.get(CONF_KREIS_TYP) == "topf":
             entities.append(DosenSensor(entry, daten, "dosen_heute", kreis))
         if kreis.get(CONF_FLOW_SENSOR):
@@ -65,6 +69,21 @@ class ScoreSensor(GartenEntity, SensorEntity):
     @property
     def extra_state_attributes(self) -> dict[str, Any]:
         return dict(self.kreis_laufzeit.faktoren)
+
+
+class BodenfeuchteSensor(GartenEntity, SensorEntity):
+    """Engine-Sicht der Kreis-Bodenfeuchte (Minimum über die Sensoren) —
+    dauerhaft sichtbares Infofeld, unabhängig vom Status-Text."""
+
+    _attr_name = "Bodenfeuchte"
+    _attr_native_unit_of_measurement = "%"
+    _attr_device_class = SensorDeviceClass.MOISTURE
+    _attr_state_class = SensorStateClass.MEASUREMENT
+    _attr_icon = "mdi:water-percent"
+
+    @property
+    def native_value(self):
+        return self.kreis_laufzeit.boden
 
 
 class StatusSensor(GartenEntity, SensorEntity):

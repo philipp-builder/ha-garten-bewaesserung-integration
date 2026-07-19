@@ -18,6 +18,8 @@ from homeassistant.helpers import (
 )
 
 from .const import (
+    BODEN_KREIS_SCHLUESSEL,
+    CONF_BODENSENSOREN,
     CONF_FLOW_SENSOR,
     CONF_KREIS_ID,
     CONF_KREIS_TYP,
@@ -80,6 +82,8 @@ def _registry_aufraeumen(hass: HomeAssistant, entry: ConfigEntry) -> None:
             unerwartet |= {f"{kid}_{s}" for s in TOPF_KREIS_SCHLUESSEL}
         if not k.get(CONF_FLOW_SENSOR):
             unerwartet |= {f"{kid}_{s}" for s in FLOW_KREIS_SCHLUESSEL}
+        if not k.get(CONF_BODENSENSOREN):
+            unerwartet |= {f"{kid}_{s}" for s in BODEN_KREIS_SCHLUESSEL}
     praefix = f"{entry.entry_id}_"
     reg = er.async_get(hass)
     for eintrag in list(er.async_entries_for_config_entry(reg, entry.entry_id)):

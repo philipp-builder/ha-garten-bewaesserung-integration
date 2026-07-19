@@ -184,6 +184,8 @@ def main():
         "sensor.garten_rasen_score",
         "sensor.garten_rasen_status",
         "sensor.garten_rasen_zuletzt_bewassert",
+        "sensor.garten_rasen_bodenfeuchte",
+        "sensor.garten_tomaten_bodenfeuchte",
         "number.garten_rasen_dauer_heute",
         "number.garten_rasen_veto_schwelle_boden",
         "number.garten_rasen_min_dauer",
@@ -238,6 +240,7 @@ def main():
     # Rasen:   Boden 42/Veto 70 -> 56 | Temp 93,33 | Tage nie -> 100  => 72 -> 16 min
     # Tomaten: Boden 38/Veto 70 -> 64 | dito                          => 77 -> 3 min
     assert wert("sensor.garten_rasen_score") == "72", st["sensor.garten_rasen_score"]
+    assert wert("sensor.garten_rasen_bodenfeuchte") == "42.0", wert("sensor.garten_rasen_bodenfeuchte")
     assert wert("number.garten_rasen_dauer_heute") == "16.0", wert("number.garten_rasen_dauer_heute")
     assert wert("sensor.garten_tomaten_score") == "77", st["sensor.garten_tomaten_score"]
     assert wert("number.garten_tomaten_dauer_heute") == "3.0", wert("number.garten_tomaten_dauer_heute")
@@ -644,7 +647,12 @@ def main():
     time.sleep(3)
     for v in ("switch.testventil_3", "switch.testventil_4"):
         assert zustand(v) == "off", f"{v} nach Not-Aus offen"
+    ids5 = {s["entity_id"] for s in req("/api/states")}
+    assert "sensor.garten_rasen_zwei_bodenfeuchte" not in ids5, (
+        "Bodenfeuchte-Feld darf ohne Sensoren nicht existieren"
+    )
     print("Parallel-Kopplung: Tomaten startete mit Kettenposition 2 (Rasen Zwei)")
+    print("Bodenfeuchte-Infofeld: Rasen 42.0, Rasen Zwei (ohne Sensor) korrekt ohne Feld")
 
     print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten und Typwechsel (v1.0.1) OK")
 

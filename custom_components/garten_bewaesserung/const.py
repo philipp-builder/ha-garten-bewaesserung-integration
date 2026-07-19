@@ -116,6 +116,7 @@ HUB_SCHLUESSEL = {
 # wenn die Bedingung wegfällt (Typwechsel Topf→Rasen bzw. Flow-Sensor entfernt).
 TOPF_KREIS_SCHLUESSEL = {CONF_ZIEL_UNTEN, CONF_ZIEL_OBEN, CONF_K_FAKTOR, "dosen_heute"}
 FLOW_KREIS_SCHLUESSEL = {"liter_heute", "liter_monat", "kosten_monat"}
+BODEN_KREIS_SCHLUESSEL = {"bodenfeuchte"}  # nur mit konfigurierten Bodensensoren
 
 STORE_VERSION = 1
 EVENT_LAUF_GESTARTET = f"{DOMAIN}_lauf_gestartet"

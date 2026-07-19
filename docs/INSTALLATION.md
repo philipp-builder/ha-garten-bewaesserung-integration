@@ -80,6 +80,7 @@ Pro Kreis-Gerät **„Garten \<Name\>"** (Beispiel `rasen`):
 | `number.garten_rasen_dauer_heute` | heutige Dauer — Engine schreibt, du darfst überschreiben |
 | `number.garten_rasen_veto_schwelle_boden` / `_min_dauer` / `_max_dauer` | Kreis-Regler |
 | `sensor.garten_rasen_zuletzt_bewassert` | Stempel bei JEDEM Ventil-Schließen |
+| `sensor.garten_rasen_bodenfeuchte` | Engine-Sicht der Bodenfeuchte (Minimum über die Kreis-Sensoren) — nur bei konfigurierten Bodensensoren |
 | `switch.garten_rasen_aktiv` | Kreis pausieren |
 | Topf zusätzlich: `number.…_sollband_unten/oben`, `number.…_dosis_antwort_k`, `sensor.…_dosen_heute` | Soll-Band + Dosis-Zähler |
 | mit Flow-Sensor: `sensor.…_liter_heute` / `_liter_monat` / `_kosten_monat` | Volumen & Kosten |

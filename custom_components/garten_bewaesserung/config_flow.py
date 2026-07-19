@@ -409,6 +409,9 @@ class GartenOptionsFlow(OptionsFlowWithReload):
             self._edit_id = None
             return await self.async_step_kreis_details()
 
+        naechste_nr = (
+            max((k.get(CONF_GRUPPE, 1) for k in self._kreise()), default=0) + 1
+        )
         schema = vol.Schema(
             {
                 vol.Required(CONF_KREIS_NAME): selector.TextSelector(),
@@ -429,7 +432,7 @@ class GartenOptionsFlow(OptionsFlowWithReload):
                         translation_key="ausfuehrung",
                     )
                 ),
-                vol.Required(CONF_GRUPPE, default=1): selector.NumberSelector(
+                vol.Required(CONF_GRUPPE, default=naechste_nr): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=1, max=20, step=1, mode=selector.NumberSelectorMode.BOX
                     )
