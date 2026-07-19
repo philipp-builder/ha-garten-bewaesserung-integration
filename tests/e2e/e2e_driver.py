@@ -124,7 +124,7 @@ def main():
                 "typ": "rasen",
                 "ventile": ["switch.testventil_1", "switch.testventil_2"],
                 "bodensensoren": ["sensor.testboden_1"],
-                "parallel": False,
+                "ausfuehrung": "sequenziell",
                 "gruppe_reihenfolge": 1,
             },
             {"veto_schwelle": 70, "min_dauer": 5, "max_dauer": 20, "leck_sensoren": [], "batterie_sensoren": []},
@@ -142,7 +142,7 @@ def main():
                 "typ": "topf",
                 "ventile": ["switch.testventil_3"],
                 "bodensensoren": ["sensor.testboden_2"],
-                "parallel": True,
+                "ausfuehrung": "parallel_start",
                 "gruppe_reihenfolge": 2,
             },
             {
@@ -348,7 +348,7 @@ def main():
                 "typ": "topf",
                 "ventile": ["switch.testventil_3"],
                 "bodensensoren": ["sensor.testboden_2"],
-                "parallel": True,
+                "ausfuehrung": "parallel_start",
                 "gruppe_reihenfolge": 2,
             },
             {
@@ -453,7 +453,7 @@ def main():
         "name": "Rasen",
         "ventile": ["switch.testventil_1", "switch.testventil_2"],
         "bodensensoren": ["sensor.testboden_1"],
-        "parallel": False,
+        "ausfuehrung": "sequenziell",
         "gruppe_reihenfolge": 1,
     }
     f = options_flow2(
@@ -554,7 +554,7 @@ def main():
                 "typ": "topf",
                 "ventile": ["switch.testventil_3"],
                 "bodensensoren": ["sensor.testboden_2"],
-                "parallel": True,
+                "ausfuehrung": "parallel_start",
                 "gruppe_reihenfolge": 2,
             },
             {
@@ -577,6 +577,71 @@ def main():
     )
     assert "Tmax" in st4["sensor.garten_tomaten_status"]["state"]
     print("Per-Kreis-Quelle: Rasen=ET₀ (global), Tomaten=Tmax (Override)")
+
+    # ===== Parallel-Kopplung (v1.3.0): Tomaten startet mit Kettenposition 2 ====
+    req("/api/services/switch/turn_off", {"entity_id": "switch.garten_topf_frequenzbewasserung"})
+    f = options_flow2(
+        [
+            {"next_step_id": "kreis_hinzufuegen"},
+            {
+                "name": "Rasen Zwei",
+                "typ": "rasen",
+                "ventile": ["switch.testventil_4"],
+                "bodensensoren": [],
+                "ausfuehrung": "sequenziell",
+                "gruppe_reihenfolge": 2,
+            },
+            {"veto_schwelle": 70, "min_dauer": 1, "max_dauer": 5,
+             "temp_quelle": "global", "leck_sensoren": [], "batterie_sensoren": []},
+        ]
+    )
+    assert f.get("type") == "create_entry", f
+    time.sleep(8)
+    f = options_flow2(
+        [
+            {"next_step_id": "kreis_bearbeiten"},
+            {"kreis": "tomaten"},
+            {
+                "name": "Tomaten",
+                "typ": "topf",
+                "ventile": ["switch.testventil_3"],
+                "bodensensoren": ["sensor.testboden_2"],
+                "ausfuehrung": "parallel_gruppe",
+                "gruppe_reihenfolge": 2,
+            },
+            {
+                "veto_schwelle": 55, "min_dauer": 1, "max_dauer": 3,
+                "temp_quelle": "tmax",
+                "ziel_unten": 50, "ziel_oben": 70, "k_faktor": 3.7,
+                "flow_sensor": "sensor.testflow",
+                "leck_sensoren": [], "batterie_sensoren": [],
+            },
+        ]
+    )
+    assert f.get("type") == "create_entry", f
+    time.sleep(8)
+    # Rasen auf 0 min -> Kette springt sofort zu Rasen Zwei; Tomaten koppelt dort an
+    req("/api/services/button/press", {"entity_id": "button.garten_plan_neu_berechnen"})
+    time.sleep(4)
+    for eid, wert2 in (
+        ("number.garten_rasen_dauer_heute", 0),
+        ("number.garten_rasen_zwei_dauer_heute", 3),
+        ("number.garten_tomaten_dauer_heute", 2),
+    ):
+        req("/api/services/number/set_value", {"entity_id": eid, "value": wert2})
+    time.sleep(1)
+    req("/api/services/button/press", {"entity_id": "button.garten_sofort_start"})
+    time.sleep(6)
+    assert zustand("switch.testventil_1") == "off" and zustand("switch.testventil_2") == "off", (
+        "Rasen (0 min) haette uebersprungen werden muessen"
+    )
+    assert zustand("switch.testventil_4") == "on", "Rasen Zwei nicht gestartet"
+    assert zustand("switch.testventil_3") == "on", "Tomaten nicht an Position 2 angekoppelt"
+    req("/api/services/button/press", {"entity_id": "button.garten_not_aus"})
+    time.sleep(3)
+    for v in ("switch.testventil_3", "switch.testventil_4"):
+        assert zustand(v) == "off", f"{v} nach Not-Aus offen"
+    print("Parallel-Kopplung: Tomaten startete mit Kettenposition 2 (Rasen Zwei)")
 
     print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten und Typwechsel (v1.0.1) OK")
 

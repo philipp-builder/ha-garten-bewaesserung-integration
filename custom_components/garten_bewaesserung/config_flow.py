@@ -42,6 +42,7 @@ from .const import (
     CONF_NOTAUS_MIN,
     CONF_NOTIFY,
     CONF_PARALLEL,
+    CONF_START_MIT_GRUPPE,
     CONF_PUSH_KRITISCH,
     CONF_REGEN_BEOBACHTET,
     CONF_REGEN_FORECAST,
@@ -381,8 +382,8 @@ class GartenOptionsFlow(OptionsFlowWithReload):
             step_id="tuning",
             data_schema=schema,
             description_placeholders={
-                "rechner_url": "https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/#playground",
-                "rechner_url_de": "https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/de/#playground",
+                "rechner_url": "https://philipp-builder.github.io/ha-garten-bewaesserung-integration/#playground",
+                "rechner_url_de": "https://philipp-builder.github.io/ha-garten-bewaesserung-integration/de/#playground",
             },
         )
 
@@ -400,7 +401,8 @@ class GartenOptionsFlow(OptionsFlowWithReload):
                 CONF_KREIS_TYP: typ,
                 CONF_VENTILE: user_input[CONF_VENTILE],
                 CONF_BODENSENSOREN: user_input.get(CONF_BODENSENSOREN, []),
-                CONF_PARALLEL: user_input[CONF_PARALLEL],
+                CONF_PARALLEL: user_input["ausfuehrung"] != "sequenziell",
+                CONF_START_MIT_GRUPPE: user_input["ausfuehrung"] == "parallel_gruppe",
                 CONF_GRUPPE: int(user_input[CONF_GRUPPE]),
                 **defaults,
             }
@@ -421,7 +423,12 @@ class GartenOptionsFlow(OptionsFlowWithReload):
                 vol.Optional(CONF_BODENSENSOREN, default=[]): selector.EntitySelector(
                     selector.EntitySelectorConfig(domain="sensor", multiple=True)
                 ),
-                vol.Required(CONF_PARALLEL, default=True): selector.BooleanSelector(),
+                vol.Required("ausfuehrung", default="parallel_start"): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=["sequenziell", "parallel_start", "parallel_gruppe"],
+                        translation_key="ausfuehrung",
+                    )
+                ),
                 vol.Required(CONF_GRUPPE, default=1): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=1, max=20, step=1, mode=selector.NumberSelectorMode.BOX
@@ -572,7 +579,8 @@ class GartenOptionsFlow(OptionsFlowWithReload):
                     k.setdefault(feld, wert)
             k[CONF_VENTILE] = user_input[CONF_VENTILE]
             k[CONF_BODENSENSOREN] = user_input.get(CONF_BODENSENSOREN, [])
-            k[CONF_PARALLEL] = user_input[CONF_PARALLEL]
+            k[CONF_PARALLEL] = user_input["ausfuehrung"] != "sequenziell"
+            k[CONF_START_MIT_GRUPPE] = user_input["ausfuehrung"] == "parallel_gruppe"
             k[CONF_GRUPPE] = int(user_input[CONF_GRUPPE])
             return await self.async_step_kreis_details()
         schema = vol.Schema(
@@ -592,8 +600,20 @@ class GartenOptionsFlow(OptionsFlowWithReload):
                     selector.EntitySelectorConfig(domain="sensor", multiple=True)
                 ),
                 vol.Required(
-                    CONF_PARALLEL, default=k.get(CONF_PARALLEL, True)
-                ): selector.BooleanSelector(),
+                    "ausfuehrung",
+                    default=(
+                        "sequenziell"
+                        if not k.get(CONF_PARALLEL, True)
+                        else "parallel_gruppe"
+                        if k.get(CONF_START_MIT_GRUPPE)
+                        else "parallel_start"
+                    ),
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=["sequenziell", "parallel_start", "parallel_gruppe"],
+                        translation_key="ausfuehrung",
+                    )
+                ),
                 vol.Required(CONF_GRUPPE, default=k.get(CONF_GRUPPE, 1)): selector.NumberSelector(
                     selector.NumberSelectorConfig(
                         min=1, max=20, step=1, mode=selector.NumberSelectorMode.BOX

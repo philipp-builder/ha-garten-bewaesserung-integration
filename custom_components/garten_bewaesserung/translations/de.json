@@ -140,12 +140,12 @@
           "typ": "Kreis-Typ",
           "ventile": "Ventil-Schalter (mehrere = nacheinander bewässert)",
           "bodensensoren": "Bodenfeuchte-Sensoren (optional, mehrere = Minimum zählt)",
-          "parallel": "Parallel zu anderen Kreisen laufen",
-          "gruppe_reihenfolge": "Reihenfolge im Lauf (nur sequenzielle Kreise)"
+          "gruppe_reihenfolge": "Reihenfolge im Lauf",
+          "ausfuehrung": "Ausführung"
         },
         "data_description": {
-          "gruppe_reihenfolge": "Sortiergewicht, kein exklusiver Platz: gleiche Nummern sind erlaubt (dann alphabetisch). Gilt nur für sequenzielle Kreise — parallele starten alle gleichzeitig. Lücken (10/20/30) lassen später Platz zum Einschieben.",
-          "parallel": "Ein: startet gleichzeitig mit dem Lauf. Aus: wartet, bis die sequenziellen Kreise davor fertig sind."
+          "gruppe_reihenfolge": "Sortiergewicht, kein exklusiver Platz: gleiche Nummern sind erlaubt (Gleichstand alphabetisch). Bestimmt die Ketten-Position sequenzieller Kreise und den Anker für „Parallel ab Reihenfolge-Position\"; bei „Parallel ab Laufbeginn\" ohne Wirkung. Lücken (10/20/30) lassen Platz zum Einschieben.",
+          "ausfuehrung": "Sequenziell: reiht sich in die Reihenfolge-Kette ein (Kreise laufen nacheinander — z. B. Sprenger, die sich den Wasserdruck teilen). Parallel ab Laufbeginn: startet sofort mit dem Lauf. Parallel ab Reihenfolge-Position: startet erst, wenn die Kette den sequenziellen Kreis mit gleicher (oder nächsthöherer) Nummer erreicht — z. B. Tropfkreis gekoppelt an den zweiten Sprenger. Ohne passende Position: Start mit Laufbeginn."
         }
       },
       "kreis_details": {
@@ -180,12 +180,12 @@
           "typ": "Kreis-Typ",
           "ventile": "Ventil-Schalter (mehrere = nacheinander bewässert)",
           "bodensensoren": "Bodenfeuchte-Sensoren (optional, mehrere = Minimum zählt)",
-          "parallel": "Parallel zu anderen Kreisen laufen",
-          "gruppe_reihenfolge": "Reihenfolge im Lauf (nur sequenzielle Kreise)"
+          "gruppe_reihenfolge": "Reihenfolge im Lauf",
+          "ausfuehrung": "Ausführung"
         },
         "data_description": {
-          "gruppe_reihenfolge": "Sortiergewicht, kein exklusiver Platz: gleiche Nummern sind erlaubt (dann alphabetisch). Gilt nur für sequenzielle Kreise — parallele starten alle gleichzeitig. Lücken (10/20/30) lassen später Platz zum Einschieben.",
-          "parallel": "Ein: startet gleichzeitig mit dem Lauf. Aus: wartet, bis die sequenziellen Kreise davor fertig sind."
+          "gruppe_reihenfolge": "Sortiergewicht, kein exklusiver Platz: gleiche Nummern sind erlaubt (Gleichstand alphabetisch). Bestimmt die Ketten-Position sequenzieller Kreise und den Anker für „Parallel ab Reihenfolge-Position\"; bei „Parallel ab Laufbeginn\" ohne Wirkung. Lücken (10/20/30) lassen Platz zum Einschieben.",
+          "ausfuehrung": "Sequenziell: reiht sich in die Reihenfolge-Kette ein (Kreise laufen nacheinander — z. B. Sprenger, die sich den Wasserdruck teilen). Parallel ab Laufbeginn: startet sofort mit dem Lauf. Parallel ab Reihenfolge-Position: startet erst, wenn die Kette den sequenziellen Kreis mit gleicher (oder nächsthöherer) Nummer erreicht — z. B. Tropfkreis gekoppelt an den zweiten Sprenger. Ohne passende Position: Start mit Laufbeginn."
         }
       },
       "kreis_entfernen": {
@@ -214,6 +214,13 @@
         "global": "Wie global eingestellt (Standard)",
         "tmax": "Tmax (Maximaltemperatur)",
         "et0": "ET₀ — Verdunstung nach Hargreaves"
+      }
+    },
+    "ausfuehrung": {
+      "options": {
+        "sequenziell": "Sequenziell (in Reihenfolge)",
+        "parallel_start": "Parallel — ab Laufbeginn (Standard)",
+        "parallel_gruppe": "Parallel — ab Reihenfolge-Position (gekoppelt)"
       }
     }
   },

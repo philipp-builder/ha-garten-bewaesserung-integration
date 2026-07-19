@@ -33,6 +33,7 @@ CONF_VENTILE = "ventile"
 CONF_BODENSENSOREN = "bodensensoren"
 CONF_GRUPPE = "gruppe_reihenfolge"
 CONF_PARALLEL = "parallel"
+CONF_START_MIT_GRUPPE = "start_mit_gruppe"  # parallel, aber erst ab Kettenposition
 CONF_VETO = "veto_schwelle"
 CONF_MIN_DAUER = "min_dauer"
 CONF_MAX_DAUER = "max_dauer"

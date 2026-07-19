@@ -21,6 +21,7 @@ input_boolean:
   v1: {name: V1}
   v2: {name: V2}
   v3: {name: V3}
+  v4: {name: V4}
 input_number:
   flow:
     name: Flow
@@ -51,6 +52,10 @@ template:
         state: "{{ is_state('input_boolean.v3','on') }}"
         turn_on: {action: input_boolean.turn_on, target: {entity_id: input_boolean.v3}}
         turn_off: {action: input_boolean.turn_off, target: {entity_id: input_boolean.v3}}
+      - name: testventil_4
+        state: "{{ is_state('input_boolean.v4','on') }}"
+        turn_on: {action: input_boolean.turn_on, target: {entity_id: input_boolean.v4}}
+        turn_off: {action: input_boolean.turn_off, target: {entity_id: input_boolean.v4}}
   - weather:
       - name: testwetter
         condition_template: "{{ 'sunny' }}"

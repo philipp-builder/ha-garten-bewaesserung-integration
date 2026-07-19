@@ -140,12 +140,12 @@
           "typ": "Circuit type",
           "ventile": "Valve switches (several = watered in sequence)",
           "bodensensoren": "Soil moisture sensors (optional, several = minimum wins)",
-          "parallel": "Run in parallel with other circuits",
-          "gruppe_reihenfolge": "Order in the run (sequential circuits only)"
+          "gruppe_reihenfolge": "Order in the run",
+          "ausfuehrung": "Execution"
         },
         "data_description": {
-          "gruppe_reihenfolge": "Sort weight, not an exclusive slot: duplicate numbers are fine (ties break alphabetically). Only affects sequential circuits — parallel ones all start together. Gaps (10/20/30) leave room to insert later.",
-          "parallel": "On: starts together with the run. Off: waits until the sequential circuits before it have finished."
+          "gruppe_reihenfolge": "Sort weight, not an exclusive slot: duplicate numbers are fine (ties break alphabetically). Sets the chain position of sequential circuits and the anchor for \"parallel from order position\"; has no effect for \"parallel from run start\". Gaps (10/20/30) leave room to insert later.",
+          "ausfuehrung": "Sequential: joins the order chain (circuits run one after another — e.g. sprinklers sharing water pressure). Parallel from run start: starts immediately with the run. Parallel from order position: starts when the chain reaches the sequential circuit with the same (or next higher) number — e.g. a drip zone coupled to the second sprinkler. Without a matching position it starts with the run."
         }
       },
       "kreis_details": {
@@ -180,12 +180,12 @@
           "typ": "Circuit type",
           "ventile": "Valve switches",
           "bodensensoren": "Soil moisture sensors",
-          "parallel": "Run in parallel with other circuits",
-          "gruppe_reihenfolge": "Order in the run (sequential circuits only)"
+          "gruppe_reihenfolge": "Order in the run",
+          "ausfuehrung": "Execution"
         },
         "data_description": {
-          "gruppe_reihenfolge": "Sort weight, not an exclusive slot: duplicate numbers are fine (ties break alphabetically). Only affects sequential circuits — parallel ones all start together. Gaps (10/20/30) leave room to insert later.",
-          "parallel": "On: starts together with the run. Off: waits until the sequential circuits before it have finished."
+          "gruppe_reihenfolge": "Sort weight, not an exclusive slot: duplicate numbers are fine (ties break alphabetically). Sets the chain position of sequential circuits and the anchor for \"parallel from order position\"; has no effect for \"parallel from run start\". Gaps (10/20/30) leave room to insert later.",
+          "ausfuehrung": "Sequential: joins the order chain (circuits run one after another — e.g. sprinklers sharing water pressure). Parallel from run start: starts immediately with the run. Parallel from order position: starts when the chain reaches the sequential circuit with the same (or next higher) number — e.g. a drip zone coupled to the second sprinkler. Without a matching position it starts with the run."
         }
       },
       "kreis_entfernen": {
@@ -214,6 +214,13 @@
         "global": "As set globally (default)",
         "tmax": "Tmax (maximum temperature)",
         "et0": "ET₀ — Hargreaves evapotranspiration"
+      }
+    },
+    "ausfuehrung": {
+      "options": {
+        "sequenziell": "Sequential (in order)",
+        "parallel_start": "Parallel — from run start (default)",
+        "parallel_gruppe": "Parallel — from order position (coupled)"
       }
     }
   },

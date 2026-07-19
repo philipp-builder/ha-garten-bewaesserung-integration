@@ -50,6 +50,7 @@ from .const import (
     CONF_NOTAUS_MIN,
     CONF_NOTIFY,
     CONF_PARALLEL,
+    CONF_START_MIT_GRUPPE,
     CONF_PUSH_KRITISCH,
     CONF_REGEN_SENSOR,
     CONF_STANDARD_DAUER,
@@ -551,18 +552,46 @@ class GartenController:
         try:
             sequenz = [(k, d) for k, d in plan if not k.get(CONF_PARALLEL)]
             parallel = [(k, d) for k, d in plan if k.get(CONF_PARALLEL)]
-            self._parallel_tasks = [
-                self.entry.async_create_background_task(
-                    self.hass,
-                    self._kreis_ausfuehren(kreis, dauer_min),
-                    f"{DOMAIN}_kreis_{kreis[CONF_KREIS_ID]}",
+
+            def _anker_index(kreis: dict[str, Any]) -> int | None:
+                """Erster Ketten-Index mit Reihenfolge >= der des Kreises."""
+                nr = kreis.get(CONF_GRUPPE, 99)
+                for i, (sk, _sd) in enumerate(sequenz):
+                    if sk.get(CONF_GRUPPE, 99) >= nr:
+                        return i
+                return None
+
+            def _parallel_starten(kreis: dict[str, Any], dauer_min: int) -> None:
+                self._parallel_tasks.append(
+                    self.entry.async_create_background_task(
+                        self.hass,
+                        self._kreis_ausfuehren(kreis, dauer_min),
+                        f"{DOMAIN}_kreis_{kreis[CONF_KREIS_ID]}",
+                    )
                 )
-                for kreis, dauer_min in parallel
-                if dauer_min > 0
-            ]
-            for kreis, dauer_min in sequenz:
+
+            # Gekoppelte Parallel-Kreise (start_mit_gruppe) warten, bis die
+            # Kette ihre Reihenfolge-Position erreicht; alle anderen — und
+            # solche ohne passende Position — starten mit Laufbeginn.
+            self._parallel_tasks = []
+            gekoppelt: dict[int, list[tuple[dict[str, Any], int]]] = {}
+            for kreis, dauer_min in parallel:
+                if dauer_min <= 0:
+                    continue
+                anker = (
+                    _anker_index(kreis)
+                    if kreis.get(CONF_START_MIT_GRUPPE)
+                    else None
+                )
+                if anker is None:
+                    _parallel_starten(kreis, dauer_min)
+                else:
+                    gekoppelt.setdefault(anker, []).append((kreis, dauer_min))
+            for i, (kreis, dauer_min) in enumerate(sequenz):
                 if not self.daten.hub.lauf_aktiv:  # Not-Aus-Abbruch (B3)
                     break
+                for pk, pd in gekoppelt.pop(i, []):
+                    _parallel_starten(pk, pd)
                 await self._kreis_ausfuehren(kreis, dauer_min)
             if self._parallel_tasks:
                 await asyncio.gather(*self._parallel_tasks, return_exceptions=True)
