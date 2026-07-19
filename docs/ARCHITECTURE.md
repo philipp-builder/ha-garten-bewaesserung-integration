@@ -1,9 +1,9 @@
 # Architektur: HACS-Integration `garten_bewaesserung` (v1.0)
 
 Verbindliche Spec für die Portierung der Blueprint-Edition nach Python.
-**Referenz-Verhalten = die 12 Blueprints der
-[Blueprint-Edition](https://github.com/philipp-builder/ha-garten-bewaesserung-blueprint)**
-(adversarial verifiziert, 2026-07). Jede bewusste Abweichung steht in diesem
+**Referenz-Verhalten = die 12 Blueprints der Blueprint-Edition**
+(adversarial verifiziert, 2026-07; das Kit-Repo ist inzwischen offline —
+historische Referenz). Jede bewusste Abweichung steht in diesem
 Dokument — alles andere ist Parität. Leitentscheidungen, die sich in der
 Umsetzung als falsch herausstellten, sind unter „Umsetzungs-Entscheidungen“
 korrigiert — die Korrektur gilt.
@@ -68,8 +68,11 @@ entry.options: {
       "typ": "rasen" | "topf",
       "ventile": ["switch.a", "switch.b"],# 1..n; >1 = sequenzielle Gruppe IM Kreis
       "bodensensoren": ["sensor.x"],      # 0..n; min()-Aggregation
-      "gruppe_reihenfolge": 1,            # Kreise mit gleicher Startzeit: Ordnung
-      "parallel": true,                   # false = wartet auf vorherige Kreise
+      "gruppe_reihenfolge": 1,            # Sortiergewicht der Kette + Kopplungs-Anker
+      "parallel": true,                   # false = Teil der sequenziellen Kette
+      "start_mit_gruppe": false,          # true: parallel, aber erst ab der Ketten-
+                                          # Position mit Reihenfolge >= eigener Nummer
+                                          # (kein Treffer ⇒ Laufbeginn) — v1.3.0
       "veto_schwelle": 70, "min_dauer": 5, "max_dauer": 20,
       "ziel_unten": 50, "ziel_oben": 70, "k_faktor": 2.0,   # topf-only
       "flow_sensor": "", "leck_sensoren": [], "versorgung_sensor": "",
@@ -131,7 +134,8 @@ GartenController
 │              Lauf-Timer (Zeit) · 00:01 Tagesreset · Report-Timer
 ├─ executor:   run() als asyncio.Task
 │              Reihenfolge: Kreise sortiert (gruppe_reihenfolge); parallel-
-│              Kreise als eigene Tasks. Pro Ventil: on → sleep(dauer) →
+│              Kreise als eigene Tasks — ab Laufbeginn oder (start_mit_gruppe)
+│              erst, wenn die Kette ihre Reihenfolge-Position erreicht. Pro Ventil: on → sleep(dauer) →
 │              retry_close(). Dauer-SNAPSHOT bei Lauf-Start (B3-Parität).
 │              cancel() bei Not-Aus/Skip → Safety-Sweep in finally-Block.
 ├─ watchdog:   pro Ventil-on einen Timer (notaus_minuten) — kein for:-Trigger-

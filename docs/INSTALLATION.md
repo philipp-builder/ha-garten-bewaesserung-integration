@@ -1,14 +1,14 @@
 <!--
   INSTALLATION.md — Integration `garten_bewaesserung`: Installation, Bedienung,
-  Entity-Referenz, Migration vom Blueprint-Kit.
+  Entity-Referenz.
   Lizenz: MIT · Stand: 2026-07
 -->
 
 # Integration `garten_bewaesserung` — Installation & Bedienung
 
-Die Integration ist die Ein-Klick-Edition des Bewässerungs-Kits: dieselbe
-Score-Formel, derselbe Executor, dasselbe Sicherheitsnetz — aber als Config-Flow
-statt Blueprints, mit **beliebig vielen Kreisen** und punktgenauen Timern.
+Score-basierte Bewässerung als Config-Flow: erprobte Formel, robuster
+Executor, mehrschichtiges Sicherheitsnetz — mit **beliebig vielen Kreisen**
+und punktgenauen Timern.
 
 - **Home Assistant:** ≥ 2025.8.0
 - **Sprache:** Deutsch (bewusst — wie das Kit; die Setup-Dialoge gibt es auch auf Englisch)
@@ -33,7 +33,7 @@ Alles Weitere passiert im **Options-Dialog** der Integration (Zahnrad am Hub-Ein
 | Globale Einstellungen | Wetter-Entität · optional eigener **Regen-24h-Sensor** (mm, beobachtet) · optional **Globalstrahlungs-Sensor** (Peak-Sonnen-Sperre) |
 | Benachrichtigungen | notify-Dienste (Komma-Liste) · kritische Pushes · Dashboard-Deep-Link |
 | Tuning | in einklappbaren Sektionen mit Erklärtext unter jedem Feld: Score-Gewichte & Schwellen · Temperatur & Verdunstung (Quelle **Tmax oder ET₀ nach Hargreaves** — Sonnenstand aus Breitengrad + Tmax/Tmin der Vorhersage, keine Extra-Sensoren; besonders für Rasen interessant) · Regen & Sonne · Topf-Parameter · Wasserkosten. Der aktuelle ET₀-Wert steht vorab in den Attributen von `sensor.garten_plan_heute` |
-| Kreis hinzufügen / bearbeiten / entfernen | Name, Typ (Rasen/Beet oder Topf/Tropf — auch nachträglich änderbar; typ-spezifische Entities wie Sollband/Dosen erscheinen bzw. verschwinden dabei automatisch), **1–n Ventile**, 0–n Bodensensoren, Reihenfolge, parallel/sequenziell, Dauer-Grenzen, **Temperatur-Quelle je Kreis** (wie global / Tmax / ET₀), Sollband + k (Topf), optional Flow-/Leck-/Versorgungs-/Batterie-Sensoren |
+| Kreis hinzufügen / bearbeiten / entfernen | Name, Typ (Rasen/Beet oder Topf/Tropf — auch nachträglich änderbar; typ-spezifische Entities wie Sollband/Dosen erscheinen bzw. verschwinden dabei automatisch), **1–n Ventile**, 0–n Bodensensoren, Reihenfolge, Ausführung (sequenziell · parallel ab Laufbeginn · **parallel ab Reihenfolge-Position** — koppelt z. B. einen Tropfkreis an den zweiten Sprenger der Kette), Dauer-Grenzen, **Temperatur-Quelle je Kreis** (wie global / Tmax / ET₀), Sollband + k (Topf), optional Flow-/Leck-/Versorgungs-/Batterie-Sensoren |
 
 Nach jedem Speichern lädt die Integration automatisch neu — neue Kreis-Entities
 erscheinen sofort.
@@ -88,30 +88,6 @@ Zähler (Dosen, Liter) und der Mindestabstand überleben Neustarts (eigener Stor
 
 ## FAQ / Rezepte
 
-Die Sensor- und Hardware-Rezepte der Blueprint-Edition gelten unverändert —
-Regen-24h-Sensor bauen, `valve.`-/`light.`-Entities als Switch wrappen,
-Wetter-Sonderfälle: [FAQ im Kit-Repo](https://github.com/philipp-builder/ha-garten-bewaesserung-blueprint/blob/main/docs/FAQ.md).
+Sensor- und Hardware-Rezepte — Regen-24h-Sensor bauen, `valve.`-/`light.`-
+Entities als Switch wrappen, Wetter-Sonderfälle: [FAQ](FAQ.md).
 
-## Migration vom Blueprint-Kit
-
-1. **Blueprint-Automationen deaktivieren** (nicht löschen — Rollback bleibt möglich):
-   alle Instanzen der 12 Kit-Blueprints auf „aus".
-2. Integration installieren + Wizard durchlaufen; Kreise mit denselben Ventilen,
-   Sensoren und Werten anlegen (Veto/Min/Max/Sollband/k aus deinen Package-Helfern
-   ablesen).
-3. Werte, die weiterlaufen sollen, übertragen: Bewässerungszeit (`time.…`),
-   Tuning-Regler im Options-Dialog.
-4. Eine Nacht parallel beobachten (Blueprints aus, Integration an) — der
-   Status-Sensor je Kreis zeigt, was die Engine entscheidet.
-5. Danach optional das Package (`packages/bewaesserung.yaml` aus dem [Kit-Repo](https://github.com/philipp-builder/ha-garten-bewaesserung-blueprint)) entfernen und die
-   Dashboard-Karten auf die neuen Entity-IDs umstellen.
-
-**Nicht migriert wird automatisch:** Historie der alten Helfer (andere Entity-IDs)
-und der „zuletzt bewässert"-Stempel — er stempelt sich beim ersten Lauf neu
-(bis dahin gilt der Kreis als „nie bewässert" = maximal durstig; das ist gewollt
-konservativ in Richtung „einmal gießen").
-
-## Rollback
-
-Integration entfernen (Einstellungen → Geräte & Dienste), Blueprint-Automationen
-wieder aktivieren. Das Package war nie weg — alles läuft wie vorher.

@@ -11,8 +11,7 @@
 **Score-basierte Gartenbewässerung: Setup per Wizard, beliebig viele Kreise,
 erklärbare Entscheidungen, mehrschichtiges Sicherheitsnetz gegen hängende Ventile.**
 
-> 🌐 Landing Page: [Deutsch](https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/de/) · [English](https://philipp-builder.github.io/ha-garten-bewaesserung-blueprint/) ·
-> 🧩 Dieselbe Logik als Blueprints + Package: [Blueprint-Edition](https://github.com/philipp-builder/ha-garten-bewaesserung-blueprint)
+> 🌐 Landing Page: [Deutsch](https://philipp-builder.github.io/ha-garten-bewaesserung-integration/de/) · [English](https://philipp-builder.github.io/ha-garten-bewaesserung-integration/)
 
 Die Integration berechnet für jeden Bewässerungskreis alle 30 Minuten einen
 **Score (0–100)** aus Bodenfeuchte, Temperatur-Vorhersage und „Tagen seit letzter
@@ -32,8 +31,10 @@ eingestellten Zeit automatisch aus. Regen — gemessen oder vorhergesagt — set
   („Score 72 → 16 min (Boden 42 %, Tmax 29 °C, nie bewässert)") und allen
   Score-Faktoren als Attributen.
 - **Beliebig viele Kreise, komplett per UI** — anlegen, bearbeiten, löschen im
-  Options-Dialog. Je Kreis 1–n Ventile, 0–n Bodenfeuchte-Sensoren, sequenzielle
-  oder parallele Ausführung, eigene Dauer-Grenzen und Veto-Schwelle.
+  Options-Dialog. Je Kreis 1–n Ventile, 0–n Bodenfeuchte-Sensoren, Ausführung
+  sequenziell, parallel ab Laufbeginn oder an eine Ketten-Position gekoppelt
+  (Tropfkreis startet z. B. erst mit dem zweiten Sprenger), eigene Dauer-Grenzen
+  und Veto-Schwelle.
 - **Topf-Frequenzbewässerung** — Topf-Kreise erhalten tagsüber kleine Dosen, die
   die Bodenfeuchte in einem Soll-Band halten; Dosisgröße aus einer einstellbaren
   Dosis-Antwort-Konstante, abgesichert durch neun Gates (u. a. Peak-Sonnen-Sperre,
@@ -90,8 +91,7 @@ Startzeit, Dauer-Grenzen, Schwellen und Modi sind zusätzlich als Entities
 [docs/INSTALLATION.md](docs/INSTALLATION.md) ·
 Architektur: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
 Rezepte & Troubleshooting (Regen-24h-Sensor, Template-Switch für
-`valve.`-Entities u. v. m.): [FAQ](https://github.com/philipp-builder/ha-garten-bewaesserung-blueprint/blob/main/docs/FAQ.md)
-— die Sensor-Rezepte gelten für beide Editionen.
+`valve.`-Entities u. v. m.): [FAQ](docs/FAQ.md).
 
 ## Services & Events
 

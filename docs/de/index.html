@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Garten-Bewässerung für Home Assistant — gießt, was dein Garten braucht</title>
+<link rel="icon" type="image/svg+xml" href="../media/icon.svg">
+<meta name="description" content="Smarte Bewässerung für Home Assistant: gießt genau das, was Boden, Wetter und Saison verlangen, erklärt jede Entscheidung im Klartext — und lässt nie ein Ventil offen. Keine Cloud, keine Abhängigkeiten.">
+<style>
+  :root{
+    --bg:#0b1210; --bg2:#0f1a16; --card:#12201b; --line:#1e332c;
+    --text:#e8f2ec; --muted:#93aca0; --green:#3ddc84; --teal:#2bb8a3;
+    --amber:#ffb454; --red:#ff6b6b; --blue:#6aa9ff;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);color:var(--text);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--green);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+  section{padding:72px 0}
+  h1,h2,h3{line-height:1.15;letter-spacing:-.02em}
+  h2{font-size:clamp(26px,4vw,34px);margin-bottom:12px}
+  .kicker{
+    font:600 12px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;
+    color:var(--teal);margin-bottom:14px;display:block;
+  }
+  .kicker a{color:var(--muted);text-transform:none;letter-spacing:0}
+  .sub{color:var(--muted);max-width:640px}
+
+  /* ---------- Hero ---------- */
+  header{
+    position:relative;overflow:hidden;
+    background:
+      radial-gradient(900px 420px at 78% -8%, rgba(61,220,132,.14), transparent 62%),
+      radial-gradient(700px 380px at 12% 8%, rgba(43,184,163,.10), transparent 60%),
+      var(--bg);
+    border-bottom:1px solid var(--line);
+  }
+  .hero{padding:96px 0 72px;display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center}
+  .hero h1{font-size:clamp(34px,5.6vw,54px);margin:14px 0 18px}
+  .hero h1 em{font-style:normal;background:linear-gradient(92deg,var(--green),var(--teal));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{color:var(--muted);font-size:18px;max-width:520px}
+  .badges{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 28px}
+  .badge{font:500 12.5px/1 var(--mono);color:var(--muted);border:1px solid var(--line);
+    border-radius:999px;padding:7px 12px;background:rgba(255,255,255,.02)}
+  .cta{display:flex;gap:14px;flex-wrap:wrap}
+  .btn{display:inline-block;padding:13px 22px;border-radius:10px;font-weight:600;font-size:15px}
+  .btn-primary{background:linear-gradient(92deg,var(--green),var(--teal));color:#06130d}
+  .btn-primary:hover{filter:brightness(1.08);text-decoration:none}
+  .btn-ghost{border:1px solid var(--line);color:var(--text)}
+  .btn-ghost:hover{border-color:var(--green);text-decoration:none}
+
+  /* Hero-Statuskarte */
+  .statuscard{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 18px 14px;box-shadow:0 24px 60px rgba(0,0,0,.35);font-family:var(--mono);font-size:13px}
+  .statuscard .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:8px}
+  .srow{display:flex;justify-content:space-between;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line)}
+  .srow:last-child{border-bottom:none}
+  .srow .val{color:var(--green)}
+  .statuscard .explain{color:var(--muted);padding:10px 4px 4px;font-size:12.2px;line-height:1.55}
+
+  /* ---------- Schritte ---------- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px}
+  .step .num{font:700 13px var(--mono);color:#06130d;background:linear-gradient(120deg,var(--green),var(--teal));
+    width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+  .step h3{font-size:17px;margin-bottom:8px}
+  .step p{color:var(--muted);font-size:14.2px}
+
+  /* ---------- Feature-Grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .card h3{font-size:16.5px;margin:10px 0 8px}
+  .card p{color:var(--muted);font-size:14.2px}
+  .ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:rgba(61,220,132,.10);border:1px solid rgba(61,220,132,.25);font-size:19px}
+
+  /* ---------- Playground ---------- */
+  .play{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:34px;align-items:center}
+  .sliders label{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);
+    margin:20px 0 6px;font-family:var(--mono)}
+  .sliders label b{color:var(--text);font-weight:600}
+  input[type=range]{width:100%;accent-color:var(--green);height:22px}
+  .verdict{margin-top:22px;padding:14px 16px;border-radius:10px;border:1px solid var(--line);
+    background:rgba(255,255,255,.02);font-family:var(--mono);font-size:13.5px;color:var(--muted);min-height:74px}
+  .verdict b{color:var(--text)}
+  .gaugebox{text-align:center}
+  .factorbars{display:grid;gap:10px;margin-top:22px;text-align:left}
+  .fb{display:grid;grid-template-columns:130px 1fr 52px;gap:10px;align-items:center;
+    font:12.5px var(--mono);color:var(--muted)}
+  .fb .track{height:9px;border-radius:6px;background:var(--line);overflow:hidden}
+  .fb .fill{height:100%;border-radius:6px;transition:width .25s ease}
+
+  /* ---------- Timeline ---------- */
+  .tl-svg{width:100%;height:auto;margin-top:30px}
+
+  /* ---------- Safety ---------- */
+  .layers{display:grid;gap:12px;margin-top:32px;counter-reset:layer}
+  .layer{display:grid;grid-template-columns:52px 1fr;gap:18px;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;padding:18px 20px;align-items:center}
+  .layer:before{counter-increment:layer;content:counter(layer);
+    width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font:700 16px var(--mono);color:#06130d;background:linear-gradient(120deg,var(--green),var(--teal))}
+  .layer h3{font-size:15.5px;margin-bottom:3px}
+  .layer p{color:var(--muted);font-size:13.8px}
+
+  /* ---------- Editionen / Herkunft ---------- */
+  table{width:100%;border-collapse:collapse;margin-top:28px;font-size:14.2px}
+  th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{color:var(--muted);font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  td:first-child{color:var(--muted)}
+  .tablebox{overflow-x:auto}
+  .origin{max-width:720px;margin:0 auto;text-align:center}
+  .origin p{color:var(--muted);font-size:16px}
+
+  footer{border-top:1px solid var(--line);padding:36px 0 48px;color:var(--muted);font-size:13.5px}
+  footer .wrap{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}
+
+  @media(max-width:860px){
+    .hero{grid-template-columns:1fr;padding-top:64px}
+    .grid,.steps{grid-template-columns:1fr 1fr}
+    .play{grid-template-columns:1fr}
+  }
+  @media(max-width:560px){ .grid,.steps{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hero">
+    <div>
+      <img src="../media/icon.svg" alt="" width="52" height="52" style="display:block;margin-bottom:14px">
+      <span class="kicker">Home Assistant · HACS-Integration · <a href="../">English&nbsp;version&nbsp;→</a></span>
+      <h1>Gießt, was dein Garten <em>wirklich braucht</em>. Nicht mehr.</h1>
+      <p>Starre Zeitpläne wässern im Regen, lassen den Rasen in der Hitzewelle
+         verdursten — und schweigen, wenn ein Ventil klemmt. Das hier nicht:
+         Es wägt Bodenfeuchte, Vorhersage und Wartezeit jedes Kreises ab und
+         erklärt seine Entscheidung in einem Klartext-Satz. Und es lässt
+         niemals ein Ventil offen.</p>
+      <div class="badges">
+        <span class="badge">keine Cloud</span>
+        <span class="badge">kein Abo</span>
+        <span class="badge">läuft mit deinen Ventilen</span>
+        <span class="badge">Open Source · MIT</span>
+      </div>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/philipp-builder/ha-garten-bewaesserung-integration">Auf GitHub holen</a>
+        <a class="btn btn-ghost" href="https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/INSTALLATION.md">Installations-Doku</a>
+      </div>
+    </div>
+    <div class="statuscard" aria-label="Beispiel des erklärenden Status">
+      <div class="srow"><span><span class="dot" style="background:var(--green)"></span>Rasen</span><span class="val">Score 72 → 16 min</span></div>
+      <div class="srow"><span><span class="dot" style="background:var(--green)"></span>Tomaten (Topf)</span><span class="val">Score 77 → 3 min</span></div>
+      <div class="srow"><span><span class="dot" style="background:var(--amber)"></span>Beeren</span><span style="color:var(--amber)">Regen-Veto → 0 min</span></div>
+      <div class="explain">„Score 72 → 16 min (Boden 42 %, Tmax 29 °C, nie bewässert)“<br>
+      „☔ Regen-Veto: 4,2 mm in 24 h gemessen (Schwelle 3 mm)“</div>
+    </div>
+  </div>
+</header>
+
+<!-- ================= Video ================= -->
+<section id="video" style="padding-bottom:0">
+  <div class="wrap" style="max-width:980px">
+    <span class="kicker">60 Sekunden</span>
+    <h2>Sieh es dir an.</h2>
+    <video controls preload="none" poster="../media/erklaervideo_poster.jpg"
+           src="https://github.com/philipp-builder/ha-garten-bewaesserung-integration/releases/download/v1.3.0/erklaervideo_de.mp4"
+           style="width:100%;border-radius:16px;border:1px solid var(--line);
+                  box-shadow:0 30px 80px rgba(0,0,0,.45);margin-top:26px;display:block"></video>
+  </div>
+</section>
+
+<!-- ================= So funktioniert's ================= -->
+<section id="how">
+  <div class="wrap">
+    <span class="kicker">So funktioniert’s</span>
+    <h2>Messen. Entscheiden. Handeln — sicher.</h2>
+    <p class="sub">Einmal die Bewässerungszeit einstellen. Alles Weitere läuft
+       von selbst — und du kannst bei jedem Schritt mitlesen.</p>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><h3>Messen</h3>
+        <p>Bodenfeuchte-Sensoren (optional), die Vorhersage deiner
+           Wetter-Integration und der gemessene Regen der letzten 24 Stunden.
+           Was fehlt, wird sauber umgangen — und dazugesagt.</p></div>
+      <div class="step"><div class="num">2</div><h3>Entscheiden</h3>
+        <p>Alle 30 Minuten bekommt jeder Kreis einen Score von 0–100: trockener
+           Boden, heiße Vorhersage und lange nicht bewässerte Kreise treiben ihn
+           hoch; Regen — gefallen oder angekündigt — setzt ihn aus. Aus dem Score
+           werden die Minuten für heute Abend, aus der Begründung ein
+           Klartext-Satz auf deinem Dashboard.</p></div>
+      <div class="step"><div class="num">3</div><h3>Handeln</h3>
+        <p>Zur eingestellten Zeit laufen die Kreise der Reihe nach (oder
+           parallel, wo die Leitungen es hergeben). Topfpflanzen bekommen
+           stattdessen tagsüber kleine Dosen. Fünf Sicherheitsschichten
+           überwachen jedes einzelne Ventil.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Playground ================= -->
+<section id="playground" style="background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <span class="kicker">Ausprobieren</span>
+    <h2>Sieh zu, wie es entscheidet.</h2>
+    <p class="sub">Das ist die <b>echte</b> Formel der Integration — kein Mock-up.
+       Zieh an den Reglern und beobachte, wie die Entscheidung kippt.</p>
+    <div class="play">
+      <div class="sliders">
+        <label><span>Bodenfeuchte</span><b><span id="v-soil">42</span> %</b></label>
+        <input type="range" id="soil" min="0" max="100" value="42">
+        <label><span>Vorhersage-Tmax (3 Tage)</span><b><span id="v-tmax">29</span> °C</b></label>
+        <input type="range" id="tmax" min="5" max="40" value="29">
+        <label><span>Tage seit letzter Bewässerung</span><b><span id="v-days">7</span> d</b></label>
+        <input type="range" id="days" min="0" max="14" value="7">
+        <label><span>Regen letzte 24 h</span><b><span id="v-rain">0</span> mm</b></label>
+        <input type="range" id="rain" min="0" max="10" step="0.5" value="0">
+        <div class="verdict" id="verdict"></div>
+      </div>
+      <div class="gaugebox">
+        <svg viewBox="0 0 220 220" width="230" height="230" aria-label="Score-Anzeige">
+          <circle cx="110" cy="110" r="92" fill="none" stroke="var(--line)" stroke-width="14"/>
+          <circle id="arc" cx="110" cy="110" r="92" fill="none" stroke="url(#g1)" stroke-width="14"
+                  stroke-linecap="round" stroke-dasharray="578" stroke-dashoffset="578"
+                  transform="rotate(-90 110 110)" style="transition:stroke-dashoffset .3s ease"/>
+          <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#3ddc84"/><stop offset="1" stop-color="#2bb8a3"/>
+          </linearGradient></defs>
+          <text id="score-n" x="110" y="104" text-anchor="middle" fill="var(--text)"
+                font-family="var(--mono)" font-size="46" font-weight="700">72</text>
+          <text x="110" y="130" text-anchor="middle" fill="var(--muted)" font-size="13">Score</text>
+          <text id="dur-n" x="110" y="158" text-anchor="middle" fill="var(--green)"
+                font-family="var(--mono)" font-size="17" font-weight="600">→ 16 min</text>
+        </svg>
+        <div class="factorbars">
+          <div class="fb"><span>Boden-Trockenheit ×0,6</span><div class="track"><div class="fill" id="fb-soil" style="background:var(--green)"></div></div><span id="fv-soil"></span></div>
+          <div class="fb"><span>Temperatur ×0,2</span><div class="track"><div class="fill" id="fb-temp" style="background:var(--amber)"></div></div><span id="fv-temp"></span></div>
+          <div class="fb"><span>Durst-Tage ×0,2</span><div class="track"><div class="fill" id="fb-days" style="background:var(--blue)"></div></div><span id="fv-days"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Funktionen ================= -->
+<section id="features">
+  <div class="wrap">
+    <span class="kicker">Was du bekommst</span>
+    <h2>Alles, was ein Garten braucht. Nichts, was du babysitten musst.</h2>
+    <div class="grid">
+      <div class="card"><div class="ic">💬</div><h3>Du weißt immer, warum</h3>
+        <p>Jeder Kreis hat einen Status-Sensor mit der Entscheidung im
+           Klartext — „Score 72 → 16 min“ oder „Regen-Veto“. Keine Blackbox,
+           kein Rätselraten, warum der Rasen trocken blieb. Ein Hub-Sensor
+           fasst den ganzen Tag in einer Zeile zusammen: Vorhersage, Regen,
+           Bodenfeuchte aller Kreise, Berechnungszeitpunkt.</p></div>
+      <div class="card"><div class="ic">💧</div><h3>Wasser, wenn es zählt</h3>
+        <p>Gefallener — oder angekündigter — Regen lässt den Lauf ausfallen.
+           Hitzewellen und lange nicht bewässerte Kreise treiben ihn hoch.
+           Feuchter Boden über deiner Schwelle stoppt ihn komplett. Optional
+           bewertet echte Verdunstung (ET₀ nach Hargreaves aus Sonnenstand +
+           Vorhersage) den Durst — ohne zusätzliche Sensoren.</p></div>
+      <div class="card"><div class="ic">🪴</div><h3>Töpfe sind anders — und werden anders behandelt</h3>
+        <p>Topfpflanzen trocknen in Stunden aus, nicht in Tagen. Topf-Kreise
+           bekommen tagsüber kleine Dosen, die die Feuchte im Soll-Band halten —
+           mit Mittagssonnen-Sperre und Tageslimit.</p></div>
+      <div class="card"><div class="ic">♾️</div><h3>So viele Kreise, wie du hast</h3>
+        <p>Kreise per UI anlegen, bearbeiten, löschen — jeder mit eigenen
+           Ventilen, Sensoren, Grenzen und Schwellen. Zwei Ventile können sich
+           einen Kreis teilen und nacheinander laufen.</p></div>
+      <div class="card"><div class="ic">📊</div><h3>Wissen, was es kostet</h3>
+        <p>Mit einem Durchfluss-Sensor je Kreis bekommst du Liter pro Sitzung,
+           Tag und Monat — und die Monatskosten aus deinem Wassertarif.</p></div>
+      <div class="card"><div class="ic">🎛️</div><h3>Deine Regeln, verstellbar</h3>
+        <p>Heute überspringen, Urlaubsmodus, Boost-Modus, Kreise einzeln
+           pausieren. Jede Schwelle und jedes Gewicht ist ein Regler in der UI —
+           sinnvolle Defaults, kein YAML nötig.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Hardware ================= -->
+<section id="hardware" style="background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <span class="kicker">Kompatibilität</span>
+    <h2>Läuft mit der Hardware, die du schon hast.</h2>
+    <p class="sub">Kein proprietärer Controller, kein Hub zu kaufen. Was
+       Home Assistant schalten kann, kann hiermit gießen.</p>
+    <div class="tablebox">
+    <table>
+      <tr><th>Du hast</th><th>Was gebraucht wird</th></tr>
+      <tr><td>Bewässerungsventile</td><td>Jedes Ventil, das als <b>Switch</b> erscheint — Zigbee, WLAN, Z-Wave, Relais-Boards. (<code>valve.</code>-/<code>light.</code>-Entities: Einzeiler-Wrapper-Rezept in der <a href="https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/FAQ.md">FAQ</a>.)</td></tr>
+      <tr><td>Wetter</td><td>Jede Wetter-Integration mit Vorhersage — Met.no (eingebaut), AccuWeather, DWD, … Das ist die einzige harte Voraussetzung.</td></tr>
+      <tr><td>Bodenfeuchte-Sensoren</td><td><b>Optional.</b> Jeder %-Sensor, jede Marke, mehrere pro Kreis. Ohne sie rechnet der Score nur mit Wetter und Durst-Tagen.</td></tr>
+      <tr><td>Regenmesser, Globalstrahlung, Durchflussmesser</td><td><b>Optional.</b> Ein Regensensor schärft das Regen-Veto, Strahlung aktiviert die Mittagssonnen-Sperre für Töpfe, ein Durchflussmesser schaltet Liter &amp; Kosten frei.</td></tr>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Tagesablauf ================= -->
+<section id="day">
+  <div class="wrap">
+    <span class="kicker">Ein Tag im Garten</span>
+    <h2>Vom Morgen-Report bis zum Abend-Lauf.</h2>
+    <p class="sub">Ein Trockenheits-Report zum Kaffee, eine Plan-Nachricht vor dem
+       Lauf, der Lauf selbst zur Wunschzeit — und Topf-Dosen dazwischen.</p>
+    <svg class="tl-svg" viewBox="0 0 1000 190" role="img" aria-label="Tagesablauf">
+      <line x1="30" y1="120" x2="970" y2="120" stroke="var(--line)" stroke-width="2"/>
+      <g font-family="var(--mono)" font-size="11" fill="var(--muted)" text-anchor="middle">
+        <g id="ticks"></g>
+        <text x="30" y="145">0 Uhr</text><text x="265" y="145">6 Uhr</text>
+        <text x="500" y="145">12 Uhr</text><text x="735" y="145">18 Uhr</text><text x="970" y="145">24 Uhr</text>
+      </g>
+      <g font-size="12" fill="var(--text)">
+        <g><circle cx="69" cy="120" r="6" fill="var(--blue)"/>
+           <text x="69" y="98" text-anchor="middle" fill="var(--blue)" font-family="var(--mono)" font-size="11">00:01</text>
+           <text x="69" y="82" text-anchor="middle" fill="var(--muted)" font-size="11">Tagesreset</text></g>
+        <g><circle cx="343" cy="120" r="6" fill="var(--amber)"/>
+           <text x="343" y="98" text-anchor="middle" fill="var(--amber)" font-family="var(--mono)" font-size="11">08:00</text>
+           <text x="343" y="82" text-anchor="middle" fill="var(--muted)" font-size="11">Trockenheits-Report</text></g>
+        <g><rect x="420" y="112" width="180" height="16" rx="8" fill="rgba(61,220,132,.18)" stroke="rgba(61,220,132,.4)"/>
+           <text x="510" y="98" text-anchor="middle" fill="var(--green)" font-size="11">Topf-Dosen</text></g>
+        <g><circle cx="830" cy="120" r="6" fill="var(--teal)"/>
+           <text x="830" y="98" text-anchor="middle" fill="var(--teal)" font-family="var(--mono)" font-size="11">20:30</text>
+           <text x="830" y="82" text-anchor="middle" fill="var(--muted)" font-size="11">Plan-Nachricht</text></g>
+        <g><circle cx="850" cy="120" r="8" fill="var(--green)"/>
+           <text x="884" y="60 " text-anchor="middle" fill="var(--green)" font-family="var(--mono)" font-size="11">21:00</text>
+           <text x="905" y="44" text-anchor="middle" fill="var(--muted)" font-size="11">Lauf: Kreis für Kreis,</text>
+           <text x="905" y="30" text-anchor="middle" fill="var(--muted)" font-size="11">parallel wo erlaubt</text>
+           <line x1="850" y1="112" x2="884" y2="68" stroke="var(--line)"/></g>
+        <text x="500" y="176" text-anchor="middle" fill="var(--muted)" font-size="11.5">
+          ▲ Plan wird jede halbe Stunde neu berechnet — dein Dashboard zeigt immer, was heute Abend passiert und warum</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- ================= Sicherheit ================= -->
+<section id="safety" style="background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <span class="kicker">Sicherheit zuerst</span>
+    <h2>Fünf Schichten zwischen dir und einem gefluteten Garten.</h2>
+    <p class="sub">Funk-Ventile fallen auf kreative Arten aus. Jede Schicht unten
+       existiert wegen eines echten Vorfalls in dem Garten, in dem das hier
+       entstanden ist.</p>
+    <div class="layers">
+      <div class="layer"><div><h3>Schließen ist eine Schleife, kein Befehl</h3>
+        <p>Jedes Schließen wird wiederholt, bis das Ventil wirklich „aus“ meldet —
+           ein Funk-Aussetzer im falschen Moment kann kein Wasser laufen lassen.</p></div></div>
+      <div class="layer"><div><h3>Sweep nach jedem Lauf</h3>
+        <p>Wenn ein Lauf endet — normal, abgebrochen oder abgestürzt — geht ein
+           letzter Schließbefehl an <i>alle</i> Ventile. Meldet eins noch „offen“,
+           weiß es dein Handy.</p></div></div>
+      <div class="layer"><div><h3>Backstop für von Hand geöffnete Ventile</h3>
+        <p>Ventil vom Dashboard geöffnet und abgelenkt worden? Es schließt sich
+           nach deiner Standard-Dauer von selbst. Ein harter Watchdog
+           zwangsschließt alles, was länger als das Notaus-Limit offen ist —
+           egal, wer es geöffnet hat.</p></div></div>
+      <div class="layer"><div><h3>Neustart-Wiederherstellung</h3>
+        <p>Home Assistant mitten in der Bewässerung neu gestartet? Verwaiste
+           Ventile werden gefunden, sobald das Funknetz zurück ist — und sofort
+           geschlossen.</p></div></div>
+      <div class="layer"><div><h3>Not-Aus</h3>
+        <p>Ein Knopf bricht alles ab und schließt jedes Ventil mit
+           Wiederholversuchen. Ein Ventil, das nicht bestätigen kann, zählt als
+           offen — du wirst informiert, nicht beruhigt.</p></div></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================= Herkunft ================= -->
+<section id="origin">
+  <div class="wrap origin">
+    <span class="kicker">Woher es kommt</span>
+    <h2>In einem echten Garten entstanden, nicht am Whiteboard.</h2>
+    <p>Angefangen hat das als Automation eines einzelnen Haushalts: zwei
+       Rasenzonen, eine Beeren-Tropfleitung und ein Tomatentopf, über ganze
+       Saisons hinweg. Die Defaults sind die Werte, die sich dort bewährt
+       haben — und die Sicherheitsschichten existieren, weil Ventile wirklich
+       hingen, Funk wirklich abriss und Home Assistant wirklich mitten in der
+       Bewässerung neu startete. Dann wurde alles für beliebige Hardware neu
+       gebaut — offen, unter MIT.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>MIT-Lizenz · keine Cloud, kein Konto, keine Telemetrie · <a href="../">English version</a></div>
+    <div>
+      <a href="https://github.com/philipp-builder/ha-garten-bewaesserung-integration">Integration</a> ·
+      <a href="https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/INSTALLATION.md">Installation</a> ·
+      <a href="https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/FAQ.md">FAQ</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Exakt die Integrations-Formel (score.py): Gewichte 60/20/20, Anker 15/15,
+// Sättigung 7 d, Skip-Schwelle 25, Veto-verankerte Trockenheit, Regen-Veto 3 mm.
+(function(){
+  const $ = id => document.getElementById(id);
+  const VETO=70, MIN=5, MAX=20, SKIP=25, RAIN_T=3;
+  function halfUp(x){ return Math.floor(x + 0.5); }
+  function de(x){ return String(x).replace('.', ','); }
+  function update(){
+    const soil=+$('soil').value, tmax=+$('tmax').value, days=+$('days').value, rain=+$('rain').value;
+    $('v-soil').textContent=soil; $('v-tmax').textContent=tmax;
+    $('v-days').textContent=days; $('v-rain').textContent=de(rain);
+
+    const fSoil=Math.max((VETO-soil)*2,0);
+    const fTemp=Math.min(Math.max((tmax-15)/15*100,0),100);
+    const fDays=Math.min(days/7*100,100);
+    let score=halfUp((fSoil*60+fTemp*20+fDays*20)/100);
+    score=Math.min(Math.max(score,0),100);
+
+    const vetoRain = rain>=RAIN_T, vetoSoil = soil>VETO;
+    let dur=0, why='';
+    if(vetoRain){ score=0; why='☔ Regen-Veto: '+de(rain.toFixed(1))+' mm gemessen (Schwelle '+RAIN_T+' mm) → <b>0 min</b>'; }
+    else if(vetoSoil){ score=0; why='💧 Boden feucht genug: '+soil+' % liegt über der Veto-Schwelle '+VETO+' % → <b>0 min</b>'; }
+    else if(score<SKIP){ why='Score <b>'+score+'</b> liegt unter der Skip-Schwelle '+SKIP+' → heute <b>0 min</b>'; }
+    else { dur=halfUp(MIN+(MAX-MIN)*score/100);
+           why='Score <b>'+score+'</b> → heute Abend <b>'+dur+' min</b> (Boden '+soil+' %, Tmax '+tmax+' °C, '+
+               (days>=14?'14+':days)+' Tage seit Bewässerung)'; }
+
+    $('score-n').textContent=score;
+    $('dur-n').textContent='→ '+dur+' min';
+    $('arc').style.strokeDashoffset = 578 - 578*score/100;
+    $('verdict').innerHTML=why;
+
+    const set=(bar,val,label,max)=>{ $(bar).style.width=Math.min(val/max*100,100)+'%'; $(label).textContent=halfUp(val); };
+    set('fb-soil',fSoil,'fv-soil',140);
+    set('fb-temp',fTemp,'fv-temp',100);
+    set('fb-days',fDays,'fv-days',100);
+  }
+  ['soil','tmax','days','rain'].forEach(id=>$(id).addEventListener('input',update));
+  update();
+})();
+</script>
+</body>
+</html>

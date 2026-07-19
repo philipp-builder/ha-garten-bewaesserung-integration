@@ -1,0 +1,436 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Garden Irrigation for Home Assistant — waters what your garden needs</title>
+<link rel="icon" type="image/svg+xml" href="media/icon.svg">
+<meta name="description" content="Smart irrigation for Home Assistant: waters exactly what soil, weather and season demand, explains every decision in plain words, and never leaves a valve open. No cloud, no dependencies.">
+<style>
+  :root{
+    --bg:#0b1210; --bg2:#0f1a16; --card:#12201b; --line:#1e332c;
+    --text:#e8f2ec; --muted:#93aca0; --green:#3ddc84; --teal:#2bb8a3;
+    --amber:#ffb454; --red:#ff6b6b; --blue:#6aa9ff;
+    --mono:ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
+  }
+  *{box-sizing:border-box;margin:0;padding:0}
+  html{scroll-behavior:smooth}
+  body{
+    background:var(--bg);color:var(--text);
+    font:16px/1.65 -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Inter,sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  a{color:var(--green);text-decoration:none}
+  a:hover{text-decoration:underline}
+  .wrap{max-width:1060px;margin:0 auto;padding:0 24px}
+  section{padding:72px 0}
+  h1,h2,h3{line-height:1.15;letter-spacing:-.02em}
+  h2{font-size:clamp(26px,4vw,34px);margin-bottom:12px}
+  .kicker{
+    font:600 12px/1 var(--mono);letter-spacing:.18em;text-transform:uppercase;
+    color:var(--teal);margin-bottom:14px;display:block;
+  }
+  .sub{color:var(--muted);max-width:640px}
+
+  /* ---------- Hero ---------- */
+  header{
+    position:relative;overflow:hidden;
+    background:
+      radial-gradient(900px 420px at 78% -8%, rgba(61,220,132,.14), transparent 62%),
+      radial-gradient(700px 380px at 12% 8%, rgba(43,184,163,.10), transparent 60%),
+      var(--bg);
+    border-bottom:1px solid var(--line);
+  }
+  .hero{padding:96px 0 72px;display:grid;grid-template-columns:1.15fr .85fr;gap:48px;align-items:center}
+  .hero h1{font-size:clamp(34px,5.6vw,54px);margin:14px 0 18px}
+  .hero h1 em{font-style:normal;background:linear-gradient(92deg,var(--green),var(--teal));
+    -webkit-background-clip:text;background-clip:text;color:transparent}
+  .hero p{color:var(--muted);font-size:18px;max-width:520px}
+  .badges{display:flex;gap:10px;flex-wrap:wrap;margin:22px 0 28px}
+  .badge{font:500 12.5px/1 var(--mono);color:var(--muted);border:1px solid var(--line);
+    border-radius:999px;padding:7px 12px;background:rgba(255,255,255,.02)}
+  .cta{display:flex;gap:14px;flex-wrap:wrap}
+  .btn{display:inline-block;padding:13px 22px;border-radius:10px;font-weight:600;font-size:15px}
+  .btn-primary{background:linear-gradient(92deg,var(--green),var(--teal));color:#06130d}
+  .btn-primary:hover{filter:brightness(1.08);text-decoration:none}
+  .btn-ghost{border:1px solid var(--line);color:var(--text)}
+  .btn-ghost:hover{border-color:var(--green);text-decoration:none}
+
+  /* Hero-Statuskarte */
+  .statuscard{background:var(--card);border:1px solid var(--line);border-radius:14px;
+    padding:18px 18px 14px;box-shadow:0 24px 60px rgba(0,0,0,.35);font-family:var(--mono);font-size:13px}
+  .statuscard .dot{width:9px;height:9px;border-radius:50%;display:inline-block;margin-right:8px}
+  .srow{display:flex;justify-content:space-between;align-items:center;padding:9px 4px;border-bottom:1px solid var(--line)}
+  .srow:last-child{border-bottom:none}
+  .srow .val{color:var(--green)}
+  .statuscard .explain{color:var(--muted);padding:10px 4px 4px;font-size:12.2px;line-height:1.55}
+
+  /* ---------- Schritte (How it works) ---------- */
+  .steps{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
+  .step{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:24px}
+  .step .num{font:700 13px var(--mono);color:#06130d;background:linear-gradient(120deg,var(--green),var(--teal));
+    width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;margin-bottom:14px}
+  .step h3{font-size:17px;margin-bottom:8px}
+  .step p{color:var(--muted);font-size:14.2px}
+
+  /* ---------- Feature-Grid ---------- */
+  .grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-top:34px}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:22px}
+  .card h3{font-size:16.5px;margin:10px 0 8px}
+  .card p{color:var(--muted);font-size:14.2px}
+  .ic{width:38px;height:38px;border-radius:10px;display:flex;align-items:center;justify-content:center;
+    background:rgba(61,220,132,.10);border:1px solid rgba(61,220,132,.25);font-size:19px}
+
+  /* ---------- Playground ---------- */
+  .play{display:grid;grid-template-columns:1fr 1fr;gap:36px;margin-top:34px;align-items:center}
+  .sliders label{display:flex;justify-content:space-between;font-size:14px;color:var(--muted);
+    margin:20px 0 6px;font-family:var(--mono)}
+  .sliders label b{color:var(--text);font-weight:600}
+  input[type=range]{width:100%;accent-color:var(--green);height:22px}
+  .verdict{margin-top:22px;padding:14px 16px;border-radius:10px;border:1px solid var(--line);
+    background:rgba(255,255,255,.02);font-family:var(--mono);font-size:13.5px;color:var(--muted);min-height:74px}
+  .verdict b{color:var(--text)}
+  .gaugebox{text-align:center}
+  .factorbars{display:grid;gap:10px;margin-top:22px;text-align:left}
+  .fb{display:grid;grid-template-columns:118px 1fr 52px;gap:10px;align-items:center;
+    font:12.5px var(--mono);color:var(--muted)}
+  .fb .track{height:9px;border-radius:6px;background:var(--line);overflow:hidden}
+  .fb .fill{height:100%;border-radius:6px;transition:width .25s ease}
+
+  /* ---------- Timeline ---------- */
+  .tl-svg{width:100%;height:auto;margin-top:30px}
+
+  /* ---------- Safety ---------- */
+  .layers{display:grid;gap:12px;margin-top:32px;counter-reset:layer}
+  .layer{display:grid;grid-template-columns:52px 1fr;gap:18px;background:var(--card);
+    border:1px solid var(--line);border-radius:12px;padding:18px 20px;align-items:center}
+  .layer:before{counter-increment:layer;content:counter(layer);
+    width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;
+    font:700 16px var(--mono);color:#06130d;background:linear-gradient(120deg,var(--green),var(--teal))}
+  .layer h3{font-size:15.5px;margin-bottom:3px}
+  .layer p{color:var(--muted);font-size:13.8px}
+
+  /* ---------- Editionen / Herkunft ---------- */
+  table{width:100%;border-collapse:collapse;margin-top:28px;font-size:14.2px}
+  th,td{padding:12px 14px;border-bottom:1px solid var(--line);text-align:left;vertical-align:top}
+  th{color:var(--muted);font:600 12px var(--mono);letter-spacing:.08em;text-transform:uppercase}
+  td:first-child{color:var(--muted)}
+  .tablebox{overflow-x:auto}
+  .origin{max-width:720px;margin:0 auto;text-align:center}
+  .origin p{color:var(--muted);font-size:16px}
+
+  footer{border-top:1px solid var(--line);padding:36px 0 48px;color:var(--muted);font-size:13.5px}
+  footer .wrap{display:flex;justify-content:space-between;gap:18px;flex-wrap:wrap}
+
+  @media(max-width:860px){
+    .hero{grid-template-columns:1fr;padding-top:64px}
+    .grid,.steps{grid-template-columns:1fr 1fr}
+    .play{grid-template-columns:1fr}
+  }
+  @media(max-width:560px){ .grid,.steps{grid-template-columns:1fr} }
+</style>
+</head>
+<body>
+
+<header>
+  <div class="wrap hero">
+    <div>
+      <img src="media/icon.svg" alt="" width="52" height="52" style="display:block;margin-bottom:14px">
+      <span class="kicker">Home Assistant · HACS Integration · <a href="de/" style="color:var(--muted);text-transform:none;letter-spacing:0">Deutsche&nbsp;Version&nbsp;→</a></span>
+      <h1>Waters what your garden <em>actually needs</em>. Nothing more.</h1>
+      <p>Fixed schedules water in the rain, starve your lawn in a heatwave, and say
+         nothing when a valve sticks open. This doesn’t: it weighs soil moisture,
+         the forecast and how long each zone has waited — then tells you its
+         decision in one plain sentence. And it never, ever leaves a valve open.</p>
+      <div class="badges">
+        <span class="badge">no cloud</span>
+        <span class="badge">no subscription</span>
+        <span class="badge">works with your valves</span>
+        <span class="badge">open source · MIT</span>
+      </div>
+      <div class="cta">
+        <a class="btn btn-primary" href="https://github.com/philipp-builder/ha-garten-bewaesserung-integration">Get it on GitHub</a>
+        <a class="btn btn-ghost" href="https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/INSTALLATION.md">Install docs</a>
+      </div>
+    </div>
+    <div class="statuscard" aria-label="Example of the explainable status">
+      <div class="srow"><span><span class="dot" style="background:var(--green)"></span>Lawn</span><span class="val">score 72 → 16 min</span></div>
+      <div class="srow"><span><span class="dot" style="background:var(--green)"></span>Tomatoes (pot)</span><span class="val">score 77 → 3 min</span></div>
+      <div class="srow"><span><span class="dot" style="background:var(--amber)"></span>Berries</span><span style="color:var(--amber)">rain veto → 0 min</span></div>
+      <div class="explain">“Score 72 → 16 min (soil 42 %, Tmax 29 °C, never watered)”<br>
+      “☔ Rain veto: 4.2 mm measured in 24 h (threshold 3 mm)”</div>
+    </div>
+  </div>
+</header>
+
+<!-- ================= Video ================= -->
+<section id="video" style="padding-bottom:0">
+  <div class="wrap" style="max-width:980px">
+    <span class="kicker">60 seconds</span>
+    <h2>See it in action.</h2>
+    <p class="sub">German voice-over — everything else speaks for itself.</p>
+    <video controls preload="none" poster="media/erklaervideo_poster.jpg"
+           src="https://github.com/philipp-builder/ha-garten-bewaesserung-integration/releases/download/v1.3.0/erklaervideo_de.mp4"
+           style="width:100%;border-radius:16px;border:1px solid var(--line);
+                  box-shadow:0 30px 80px rgba(0,0,0,.45);margin-top:26px;display:block"></video>
+  </div>
+</section>
+
+<!-- ================= How it works ================= -->
+<section id="how">
+  <div class="wrap">
+    <span class="kicker">How it works</span>
+    <h2>Sense. Decide. Act — safely.</h2>
+    <p class="sub">Set a watering time once. Everything else runs on its own,
+       and you can read along at every step.</p>
+    <div class="steps">
+      <div class="step"><div class="num">1</div><h3>Sense</h3>
+        <p>Soil-moisture sensors (optional), your weather integration’s forecast,
+           and measured rain from the last 24 hours. Whatever is missing, the
+           system works around — it just says so.</p></div>
+      <div class="step"><div class="num">2</div><h3>Decide</h3>
+        <p>Every 30 minutes each zone gets a score from 0–100: dry soil, hot
+           forecast and long-unwatered zones push it up; rain — fallen or
+           expected — vetoes it. The score becomes tonight’s minutes, and the
+           reasoning becomes one plain sentence on your dashboard.</p></div>
+      <div class="step"><div class="num">3</div><h3>Act</h3>
+        <p>At your chosen time the zones run in order (or in parallel where the
+           plumbing allows). Potted plants get small top-up doses during the day
+           instead. Five safety layers watch every single valve.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Playground ================= -->
+<section id="playground" style="background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <span class="kicker">Try it</span>
+    <h2>See how it decides.</h2>
+    <p class="sub">This is the <b>actual</b> formula the integration runs — not a mock-up.
+       Drag the sliders and watch the decision change.</p>
+    <div class="play">
+      <div class="sliders">
+        <label><span>Soil moisture</span><b><span id="v-soil">42</span> %</b></label>
+        <input type="range" id="soil" min="0" max="100" value="42">
+        <label><span>Forecast Tmax (3 days)</span><b><span id="v-tmax">29</span> °C</b></label>
+        <input type="range" id="tmax" min="5" max="40" value="29">
+        <label><span>Days since last watering</span><b><span id="v-days">7</span> d</b></label>
+        <input type="range" id="days" min="0" max="14" value="7">
+        <label><span>Rain last 24 h</span><b><span id="v-rain">0</span> mm</b></label>
+        <input type="range" id="rain" min="0" max="10" step="0.5" value="0">
+        <div class="verdict" id="verdict"></div>
+      </div>
+      <div class="gaugebox">
+        <svg viewBox="0 0 220 220" width="230" height="230" aria-label="Score gauge">
+          <circle cx="110" cy="110" r="92" fill="none" stroke="var(--line)" stroke-width="14"/>
+          <circle id="arc" cx="110" cy="110" r="92" fill="none" stroke="url(#g1)" stroke-width="14"
+                  stroke-linecap="round" stroke-dasharray="578" stroke-dashoffset="578"
+                  transform="rotate(-90 110 110)" style="transition:stroke-dashoffset .3s ease"/>
+          <defs><linearGradient id="g1" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stop-color="#3ddc84"/><stop offset="1" stop-color="#2bb8a3"/>
+          </linearGradient></defs>
+          <text id="score-n" x="110" y="104" text-anchor="middle" fill="var(--text)"
+                font-family="var(--mono)" font-size="46" font-weight="700">72</text>
+          <text x="110" y="130" text-anchor="middle" fill="var(--muted)" font-size="13">score</text>
+          <text id="dur-n" x="110" y="158" text-anchor="middle" fill="var(--green)"
+                font-family="var(--mono)" font-size="17" font-weight="600">→ 16 min</text>
+        </svg>
+        <div class="factorbars">
+          <div class="fb"><span>soil dryness ×0.6</span><div class="track"><div class="fill" id="fb-soil" style="background:var(--green)"></div></div><span id="fv-soil"></span></div>
+          <div class="fb"><span>temperature ×0.2</span><div class="track"><div class="fill" id="fb-temp" style="background:var(--amber)"></div></div><span id="fv-temp"></span></div>
+          <div class="fb"><span>thirst days ×0.2</span><div class="track"><div class="fill" id="fb-days" style="background:var(--blue)"></div></div><span id="fv-days"></span></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Features ================= -->
+<section id="features">
+  <div class="wrap">
+    <span class="kicker">What you get</span>
+    <h2>Everything a garden needs. Nothing you have to babysit.</h2>
+    <div class="grid">
+      <div class="card"><div class="ic">💬</div><h3>You always know why</h3>
+        <p>Each zone has a status sensor with the decision in plain words —
+           “Score 72 → 16 min” or “rain veto”. No black box, no guessing why
+           the lawn stayed dry. A hub sensor adds the whole day in one line:
+           forecast, rain, every zone’s soil, computed-at time.</p></div>
+      <div class="card"><div class="ic">💧</div><h3>Water when it matters</h3>
+        <p>Rain that fell — or is about to — skips the run. Heatwaves and
+           long-unwatered zones raise it. Moist soil above your threshold
+           stops it outright. Optionally, thirst is rated by real
+           evapotranspiration (ET₀, Hargreaves) from sun angle + forecast —
+           no extra sensors.</p></div>
+      <div class="card"><div class="ic">🪴</div><h3>Pots are different — treated differently</h3>
+        <p>Potted plants dry out in hours, not days. Pot zones get small daytime
+           doses that hold soil in a target band, with a midday-sun lock and a
+           daily dose limit.</p></div>
+      <div class="card"><div class="ic">♾️</div><h3>As many zones as you have</h3>
+        <p>Add, edit and remove zones in the UI — each with its own valves,
+           sensors, limits and thresholds. Two valves can share one zone and
+           run back to back.</p></div>
+      <div class="card"><div class="ic">📊</div><h3>Know what it costs</h3>
+        <p>With a flow sensor per zone you get liters per session, day and month —
+           and a monthly cost figure from your water tariff.</p></div>
+      <div class="card"><div class="ic">🎛️</div><h3>Your rules, adjustable</h3>
+        <p>Skip today, vacation mode, boost mode, per-zone pause. Every threshold
+           and weight is a dial in the UI — sensible defaults, no YAML required.</p></div>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Hardware ================= -->
+<section id="hardware" style="background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <span class="kicker">Compatibility</span>
+    <h2>Works with the hardware you already have.</h2>
+    <p class="sub">No proprietary controller, no hub to buy. If Home Assistant can
+       switch it, this can water with it.</p>
+    <div class="tablebox">
+    <table>
+      <tr><th>You have</th><th>What’s needed</th></tr>
+      <tr><td>Irrigation valves</td><td>Any valve that appears as a <b>switch</b> — Zigbee, Wi-Fi, Z-Wave, relay boards. (<code>valve.</code>/<code>light.</code> entities: one-line wrapper recipe in the <a href="https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/FAQ.md">FAQ</a>.)</td></tr>
+      <tr><td>Weather</td><td>Any weather integration with a forecast — Met.no (built-in), AccuWeather, DWD, … That’s the only hard requirement.</td></tr>
+      <tr><td>Soil-moisture sensors</td><td><b>Optional.</b> Any %-sensor, any brand, several per zone. Without them the score uses weather and thirst-days alone.</td></tr>
+      <tr><td>Rain gauge, solar radiation, flow meter</td><td><b>Optional.</b> A rain sensor sharpens the rain veto, radiation enables the midday-sun lock for pots, a flow meter unlocks liters &amp; costs.</td></tr>
+    </table>
+    </div>
+  </div>
+</section>
+
+<!-- ================= Timeline ================= -->
+<section id="day">
+  <div class="wrap">
+    <span class="kicker">A day in the life</span>
+    <h2>From morning report to evening run.</h2>
+    <p class="sub">A dryness report with your coffee, a plan notification before the run,
+       the run itself at your chosen time — and pot top-ups in between.</p>
+    <svg class="tl-svg" viewBox="0 0 1000 190" role="img" aria-label="Timeline of a day">
+      <line x1="30" y1="120" x2="970" y2="120" stroke="var(--line)" stroke-width="2"/>
+      <g font-family="var(--mono)" font-size="11" fill="var(--muted)" text-anchor="middle">
+        <g id="ticks"></g>
+        <text x="30" y="145">0h</text><text x="265" y="145">6h</text>
+        <text x="500" y="145">12h</text><text x="735" y="145">18h</text><text x="970" y="145">24h</text>
+      </g>
+      <g font-size="12" fill="var(--text)">
+        <g><circle cx="69" cy="120" r="6" fill="var(--blue)"/>
+           <text x="69" y="98" text-anchor="middle" fill="var(--blue)" font-family="var(--mono)" font-size="11">00:01</text>
+           <text x="69" y="82" text-anchor="middle" fill="var(--muted)" font-size="11">daily reset</text></g>
+        <g><circle cx="343" cy="120" r="6" fill="var(--amber)"/>
+           <text x="343" y="98" text-anchor="middle" fill="var(--amber)" font-family="var(--mono)" font-size="11">08:00</text>
+           <text x="343" y="82" text-anchor="middle" fill="var(--muted)" font-size="11">dryness report</text></g>
+        <g><rect x="420" y="112" width="180" height="16" rx="8" fill="rgba(61,220,132,.18)" stroke="rgba(61,220,132,.4)"/>
+           <text x="510" y="98" text-anchor="middle" fill="var(--green)" font-size="11">pot top-up doses</text></g>
+        <g><circle cx="830" cy="120" r="6" fill="var(--teal)"/>
+           <text x="830" y="98" text-anchor="middle" fill="var(--teal)" font-family="var(--mono)" font-size="11">20:30</text>
+           <text x="830" y="82" text-anchor="middle" fill="var(--muted)" font-size="11">plan notification</text></g>
+        <g><circle cx="850" cy="120" r="8" fill="var(--green)"/>
+           <text x="884" y="60 " text-anchor="middle" fill="var(--green)" font-family="var(--mono)" font-size="11">21:00</text>
+           <text x="905" y="44" text-anchor="middle" fill="var(--muted)" font-size="11">run: zone by zone,</text>
+           <text x="905" y="30" text-anchor="middle" fill="var(--muted)" font-size="11">parallel where allowed</text>
+           <line x1="850" y1="112" x2="884" y2="68" stroke="var(--line)"/></g>
+        <text x="500" y="176" text-anchor="middle" fill="var(--muted)" font-size="11.5">
+          ▲ plan recalculated every half hour — your dashboard always shows what tonight will do, and why</text>
+      </g>
+    </svg>
+  </div>
+</section>
+
+<!-- ================= Safety ================= -->
+<section id="safety" style="background:var(--bg2);border-top:1px solid var(--line);border-bottom:1px solid var(--line)">
+  <div class="wrap">
+    <span class="kicker">Safety first</span>
+    <h2>Five layers between you and a flooded garden.</h2>
+    <p class="sub">Wireless valves fail in creative ways. Every layer below exists because
+       of a real incident in the garden this was built in.</p>
+    <div class="layers">
+      <div class="layer"><div><h3>Closing is a loop, not a command</h3>
+        <p>Every close is retried until the valve actually reports “off” —
+           a radio hiccup at the wrong moment can’t leave water running.</p></div></div>
+      <div class="layer"><div><h3>Sweep after every run</h3>
+        <p>When a run ends — normally, cancelled or crashed — one final close goes
+           to <i>all</i> valves. If one still reports open, your phone knows.</p></div></div>
+      <div class="layer"><div><h3>Backstop for hand-opened valves</h3>
+        <p>Opened a valve from the dashboard and got distracted? It closes itself
+           after your standard duration. A hard watchdog force-closes anything
+           open longer than the emergency limit — no matter who opened it.</p></div></div>
+      <div class="layer"><div><h3>Restart recovery</h3>
+        <p>Home Assistant restarted mid-watering? Orphaned valves are found as soon
+           as the radio network is back — and closed immediately.</p></div></div>
+      <div class="layer"><div><h3>Emergency stop</h3>
+        <p>One button cancels everything and closes every valve with retries.
+           A valve that can’t confirm counts as open — you get told, not reassured.</p></div></div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ================= Herkunft ================= -->
+<section id="origin">
+  <div class="wrap origin">
+    <span class="kicker">Where it comes from</span>
+    <h2>Built in a real garden, not a whiteboard.</h2>
+    <p>This started as one household’s automation: two lawn zones, a berry drip line
+       and a tomato pot, running through full seasons. The defaults are the values
+       that ended up working there — and the safety layers exist because valves
+       really did hang, radios really did drop out, and Home Assistant really did
+       restart mid-watering. It was then rebuilt for anyone’s hardware, in the open,
+       under MIT.</p>
+  </div>
+</section>
+
+<footer>
+  <div class="wrap">
+    <div>MIT licensed · German-language entities by design · no cloud, no account, no telemetry · <a href="de/">Deutsch</a></div>
+    <div>
+      <a href="https://github.com/philipp-builder/ha-garten-bewaesserung-integration">Integration</a> ·
+      <a href="https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/INSTALLATION.md">Installation</a> ·
+      <a href="https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/FAQ.md">FAQ</a>
+    </div>
+  </div>
+</footer>
+
+<script>
+// Exakt die Integrations-Formel (score.py): Gewichte 60/20/20, Anker 15/15,
+// Sättigung 7 d, Skip-Schwelle 25, Veto-verankerte Trockenheit, Regen-Veto 3 mm.
+(function(){
+  const $ = id => document.getElementById(id);
+  const VETO=70, MIN=5, MAX=20, SKIP=25, RAIN_T=3;
+  function halfUp(x){ return Math.floor(x + 0.5); }
+  function update(){
+    const soil=+$('soil').value, tmax=+$('tmax').value, days=+$('days').value, rain=+$('rain').value;
+    $('v-soil').textContent=soil; $('v-tmax').textContent=tmax;
+    $('v-days').textContent=days; $('v-rain').textContent=rain;
+
+    const fSoil=Math.max((VETO-soil)*2,0);
+    const fTemp=Math.min(Math.max((tmax-15)/15*100,0),100);
+    const fDays=Math.min(days/7*100,100);
+    let score=halfUp((fSoil*60+fTemp*20+fDays*20)/100);
+    score=Math.min(Math.max(score,0),100);
+
+    const vetoRain = rain>=RAIN_T, vetoSoil = soil>VETO;
+    let dur=0, why='';
+    if(vetoRain){ score=0; why='☔ Rain veto: '+rain.toFixed(1)+' mm measured (threshold '+RAIN_T+' mm) → <b>0 min</b>'; }
+    else if(vetoSoil){ score=0; why='💧 Soil moist enough: '+soil+' % is above the veto threshold '+VETO+' % → <b>0 min</b>'; }
+    else if(score<SKIP){ why='Score <b>'+score+'</b> is below the skip threshold '+SKIP+' → <b>0 min</b> today'; }
+    else { dur=halfUp(MIN+(MAX-MIN)*score/100);
+           why='Score <b>'+score+'</b> → <b>'+dur+' min</b> tonight (soil '+soil+' %, Tmax '+tmax+' °C, '+
+               (days>=14?'14+':days)+' days since watering)'; }
+
+    $('score-n').textContent=score;
+    $('dur-n').textContent='→ '+dur+' min';
+    $('arc').style.strokeDashoffset = 578 - 578*score/100;
+    $('verdict').innerHTML=why;
+
+    const set=(bar,val,label,max)=>{ $(bar).style.width=Math.min(val/max*100,100)+'%'; $(label).textContent=halfUp(val); };
+    set('fb-soil',fSoil,'fv-soil',140);
+    set('fb-temp',fTemp,'fv-temp',100);
+    set('fb-days',fDays,'fv-days',100);
+  }
+  ['soil','tmax','days','rain'].forEach(id=>$(id).addEventListener('input',update));
+  update();
+})();
+</script>
+</body>
+</html>
