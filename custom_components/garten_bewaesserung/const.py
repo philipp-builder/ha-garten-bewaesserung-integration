@@ -89,9 +89,11 @@ TOPF_DEFAULTS = {
 }
 KREIS_TYP_DEFAULTS = {
     # veto, min, max, ziel_unten, ziel_oben (Kit-Seed-Tabelle)
-    "rasen": {"veto_schwelle": 70, "min_dauer": 5, "max_dauer": 20},
+    "rasen": {"veto_schwelle": 70, "min_dauer": 5, "max_dauer": 20,
+              "temp_quelle": "global"},
     "topf": {"veto_schwelle": 65, "min_dauer": 1, "max_dauer": 4,
-             "ziel_unten": 45, "ziel_oben": 65, "k_faktor": 2.0},
+             "ziel_unten": 45, "ziel_oben": 65, "k_faktor": 2.0,
+             "temp_quelle": "global"},
 }
 
 # Fallbacks (B1-Parität — bewusst KEINE Options: greifen nur bei kaputten Quellen)

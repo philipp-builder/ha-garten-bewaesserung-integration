@@ -57,8 +57,9 @@ eingestellten Zeit automatisch aus. Regen — gemessen oder vorhergesagt — set
   auf **ET₀ nach Hargreaves** umgestellt werden: Referenz-Verdunstung aus
   Sonnenstand (Breitengrad + Kalendertag) und Tmax/Tmin der Vorhersage, ohne
   zusätzliche Sensoren. Fällt bei fehlenden Daten automatisch auf Tmax zurück —
-  besonders für Rasenkreise ohne Bodensensor interessant. Der Tuning-Dialog ist
-  dafür in Sektionen mit Erklärtext unter jedem Feld gegliedert.
+  besonders für Rasenkreise ohne Bodensensor interessant — und pro Kreis
+  übersteuerbar (z. B. nur der Rasen auf ET₀). Der Tuning-Dialog ist dafür in
+  Sektionen mit Erklärtext unter jedem Feld gegliedert.
 
 ## Installation
 

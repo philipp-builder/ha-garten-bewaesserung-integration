@@ -141,7 +141,7 @@
           "ventile": "Ventil-Schalter (mehrere = nacheinander bewässert)",
           "bodensensoren": "Bodenfeuchte-Sensoren (optional, mehrere = Minimum zählt)",
           "parallel": "Parallel zu anderen Kreisen laufen",
-          "gruppe_reihenfolge": "Reihenfolge im Lauf"
+          "gruppe_reihenfolge": "Reihenfolge im Lauf (nur sequenzielle Kreise)"
         },
         "data_description": {
           "gruppe_reihenfolge": "Sortiergewicht, kein exklusiver Platz: gleiche Nummern sind erlaubt (dann alphabetisch). Gilt nur für sequenzielle Kreise — parallele starten alle gleichzeitig. Lücken (10/20/30) lassen später Platz zum Einschieben.",
@@ -160,7 +160,11 @@
           "flow_sensor": "Durchfluss-Sensor m³/h (optional, aktiviert Liter/Kosten)",
           "leck_sensoren": "Leck-Sensoren (optional)",
           "versorgung_sensor": "Wasserversorgung-ok-Sensor (optional)",
-          "batterie_sensoren": "Batterie-Sensoren (optional)"
+          "batterie_sensoren": "Batterie-Sensoren (optional)",
+          "temp_quelle": "Temperatur-Quelle dieses Kreises"
+        },
+        "data_description": {
+          "temp_quelle": "Überschreibt die globale Tuning-Einstellung nur für diesen Kreis — z. B. ET₀ für einen Rasenkreis ohne Bodensensor, während der Rest bei Tmax bleibt."
         }
       },
       "kreis_bearbeiten": {
@@ -177,7 +181,7 @@
           "ventile": "Ventil-Schalter (mehrere = nacheinander bewässert)",
           "bodensensoren": "Bodenfeuchte-Sensoren (optional, mehrere = Minimum zählt)",
           "parallel": "Parallel zu anderen Kreisen laufen",
-          "gruppe_reihenfolge": "Reihenfolge im Lauf"
+          "gruppe_reihenfolge": "Reihenfolge im Lauf (nur sequenzielle Kreise)"
         },
         "data_description": {
           "gruppe_reihenfolge": "Sortiergewicht, kein exklusiver Platz: gleiche Nummern sind erlaubt (dann alphabetisch). Gilt nur für sequenzielle Kreise — parallele starten alle gleichzeitig. Lücken (10/20/30) lassen später Platz zum Einschieben.",
@@ -202,6 +206,13 @@
     "temp_quelle": {
       "options": {
         "tmax": "Tmax (Maximaltemperatur, Standard)",
+        "et0": "ET₀ — Verdunstung nach Hargreaves"
+      }
+    },
+    "temp_quelle_kreis": {
+      "options": {
+        "global": "Wie global eingestellt (Standard)",
+        "tmax": "Tmax (Maximaltemperatur)",
         "et0": "ET₀ — Verdunstung nach Hargreaves"
       }
     }

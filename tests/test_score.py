@@ -219,6 +219,20 @@ def test_score_mit_et0_quelle():
     assert erg2.faktoren["temp_quelle"] == "tmax" and erg2.score == 76
 
 
+def test_temp_quelle_pro_kreis_override():
+    p_tmax = score.ScoreParameter()  # global tmax
+    p_et = score.ScoreParameter(temp_quelle="et0")
+    # Kreis-Override et0 schlägt globales tmax
+    erg = score.berechne_score(_e(et0=4.5, temp_quelle_kreis="et0"), p_tmax)
+    assert erg.faktoren["temp_quelle"] == "et0" and erg.score == 66
+    # Kreis-Override tmax schlägt globales et0
+    erg2 = score.berechne_score(_e(et0=4.5, temp_quelle_kreis="tmax"), p_et)
+    assert erg2.faktoren["temp_quelle"] == "tmax" and erg2.score == 76
+    # "global" (Default) folgt der globalen Einstellung
+    erg3 = score.berechne_score(_e(et0=4.5, temp_quelle_kreis="global"), p_et)
+    assert erg3.faktoren["temp_quelle"] == "et0" and erg3.score == 66
+
+
 if __name__ == "__main__":
     fehler = 0
     for name, fn in sorted(globals().items()):

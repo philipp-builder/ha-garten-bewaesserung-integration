@@ -541,7 +541,42 @@ def main():
     plan3 = st3["sensor.garten_plan_heute"]
     assert "ET₀" in plan3["state"], plan3["state"]
     assert plan3["attributes"]["temp_quelle"] == "et0" and plan3["attributes"]["et0_mm"] > 0
+    assert plan3["attributes"]["forecast_typ"] == "daily", plan3["attributes"]
     print("ET₀-Modus (Tuning-Sektionen):", plan3["state"])
+
+    # ===== Temperatur-Quelle pro Kreis (v1.2.0): Tomaten-Override auf Tmax ====
+    f = options_flow2(
+        [
+            {"next_step_id": "kreis_bearbeiten"},
+            {"kreis": "tomaten"},
+            {
+                "name": "Tomaten",
+                "typ": "topf",
+                "ventile": ["switch.testventil_3"],
+                "bodensensoren": ["sensor.testboden_2"],
+                "parallel": True,
+                "gruppe_reihenfolge": 2,
+            },
+            {
+                "veto_schwelle": 55, "min_dauer": 1, "max_dauer": 3,
+                "temp_quelle": "tmax",
+                "ziel_unten": 50, "ziel_oben": 70, "k_faktor": 3.7,
+                "flow_sensor": "sensor.testflow",
+                "leck_sensoren": [], "batterie_sensoren": [],
+            },
+        ]
+    )
+    assert f.get("type") == "create_entry", f
+    time.sleep(8)
+    req("/api/services/button/press", {"entity_id": "button.garten_plan_neu_berechnen"})
+    time.sleep(4)
+    st4 = {s["entity_id"]: s for s in req("/api/states")}
+    assert st4["sensor.garten_rasen_score"]["attributes"]["temp_quelle"] == "et0"
+    assert st4["sensor.garten_tomaten_score"]["attributes"]["temp_quelle"] == "tmax", (
+        st4["sensor.garten_tomaten_score"]["attributes"]
+    )
+    assert "Tmax" in st4["sensor.garten_tomaten_status"]["state"]
+    print("Per-Kreis-Quelle: Rasen=ET₀ (global), Tomaten=Tmax (Override)")
 
     print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten und Typwechsel (v1.0.1) OK")
 

@@ -441,6 +441,7 @@ class GartenOptionsFlow(OptionsFlowWithReload):
             k[CONF_VETO] = user_input[CONF_VETO]
             k[CONF_MIN_DAUER] = user_input[CONF_MIN_DAUER]
             k[CONF_MAX_DAUER] = user_input[CONF_MAX_DAUER]
+            k["temp_quelle"] = user_input["temp_quelle"]
             if ist_topf:
                 k[CONF_ZIEL_UNTEN] = user_input[CONF_ZIEL_UNTEN]
                 k[CONF_ZIEL_OBEN] = user_input[CONF_ZIEL_OBEN]
@@ -468,6 +469,14 @@ class GartenOptionsFlow(OptionsFlowWithReload):
             ),
             vol.Required(CONF_MAX_DAUER, default=k.get(CONF_MAX_DAUER)): selector.NumberSelector(
                 selector.NumberSelectorConfig(min=1, max=90, step=1, unit_of_measurement="min")
+            ),
+            vol.Required(
+                "temp_quelle", default=k.get("temp_quelle", "global")
+            ): selector.SelectSelector(
+                selector.SelectSelectorConfig(
+                    options=["global", "tmax", "et0"],
+                    translation_key="temp_quelle_kreis",
+                )
             ),
         }
         if ist_topf:

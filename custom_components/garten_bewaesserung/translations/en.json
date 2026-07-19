@@ -141,7 +141,7 @@
           "ventile": "Valve switches (several = watered in sequence)",
           "bodensensoren": "Soil moisture sensors (optional, several = minimum wins)",
           "parallel": "Run in parallel with other circuits",
-          "gruppe_reihenfolge": "Order within the run"
+          "gruppe_reihenfolge": "Order in the run (sequential circuits only)"
         },
         "data_description": {
           "gruppe_reihenfolge": "Sort weight, not an exclusive slot: duplicate numbers are fine (ties break alphabetically). Only affects sequential circuits — parallel ones all start together. Gaps (10/20/30) leave room to insert later.",
@@ -160,7 +160,11 @@
           "flow_sensor": "Flow sensor m³/h (optional, enables litres/costs)",
           "leck_sensoren": "Leak sensors (optional)",
           "versorgung_sensor": "Water-supply-ok sensor (optional)",
-          "batterie_sensoren": "Battery sensors (optional)"
+          "batterie_sensoren": "Battery sensors (optional)",
+          "temp_quelle": "Temperature source for this circuit"
+        },
+        "data_description": {
+          "temp_quelle": "Overrides the global tuning setting for this circuit only — e.g. ET₀ for a lawn zone without a soil sensor while the rest stays on Tmax."
         }
       },
       "kreis_bearbeiten": {
@@ -177,7 +181,7 @@
           "ventile": "Valve switches",
           "bodensensoren": "Soil moisture sensors",
           "parallel": "Run in parallel with other circuits",
-          "gruppe_reihenfolge": "Order within the run"
+          "gruppe_reihenfolge": "Order in the run (sequential circuits only)"
         },
         "data_description": {
           "gruppe_reihenfolge": "Sort weight, not an exclusive slot: duplicate numbers are fine (ties break alphabetically). Only affects sequential circuits — parallel ones all start together. Gaps (10/20/30) leave room to insert later.",
@@ -202,6 +206,13 @@
     "temp_quelle": {
       "options": {
         "tmax": "Tmax (maximum temperature, default)",
+        "et0": "ET₀ — Hargreaves evapotranspiration"
+      }
+    },
+    "temp_quelle_kreis": {
+      "options": {
+        "global": "As set globally (default)",
+        "tmax": "Tmax (maximum temperature)",
         "et0": "ET₀ — Hargreaves evapotranspiration"
       }
     }

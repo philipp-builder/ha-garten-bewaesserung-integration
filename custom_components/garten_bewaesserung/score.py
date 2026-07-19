@@ -76,6 +76,7 @@ class ScoreEingabe:
     regen_forecast: float = 0.0
     regen_forecast_schwelle: float = 1.5
     et0: float | None = None  # mm/Tag (Hargreaves); None = nicht ermittelbar
+    temp_quelle_kreis: str = "global"  # "global" | "tmax" | "et0" (Kreis-Override)
 
 
 @dataclass(frozen=True)
@@ -182,8 +183,14 @@ def berechne_score(e: ScoreEingabe, p: ScoreParameter) -> ScoreErgebnis:
     boden = e.boden if boden_konfiguriert else FALLBACK_BODEN
 
     # ET₀-Modus nur mit gültigem Wetter + berechenbarem Wert — sonst
-    # fällt der Faktor auf den bewährten Tmax-Pfad zurück.
-    et_aktiv = p.temp_quelle == "et0" and e.et0 is not None and e.wetter_ok
+    # fällt der Faktor auf den bewährten Tmax-Pfad zurück. Ein Kreis kann
+    # die globale Quelle übersteuern (z. B. ET₀ nur für den Rasen).
+    quelle = (
+        e.temp_quelle_kreis
+        if e.temp_quelle_kreis in ("tmax", "et0")
+        else p.temp_quelle
+    )
+    et_aktiv = quelle == "et0" and e.et0 is not None and e.wetter_ok
     if et_aktiv:
         temp_faktor = min(max((e.et0 - p.et0_anker) / p.et0_spanne * 100, 0), 100)
     else:

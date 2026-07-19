@@ -367,6 +367,7 @@ class GartenController:
                     regen_forecast=regen_forecast,
                     regen_forecast_schwelle=regen_fc_schwelle,
                     et0=et0,
+                    temp_quelle_kreis=kreis.get("temp_quelle", "global"),
                 ),
                 params,
             )
@@ -380,9 +381,13 @@ class GartenController:
             )
 
         zeit_str = dt_util.now().strftime("%H:%M")
+        # ET₀ in der Zeile zeigen, sobald irgendein Kreis (oder global) ihn nutzt
+        et0_aktiv = params.temp_quelle == "et0" or any(
+            k.get("temp_quelle") == "et0" for k in self._kreise()
+        )
         self.daten.hub.plan_heute = baue_plan_uebersicht(
             tmax, wetter_ok, regen_beobachtet, regen_forecast, uebersicht, zeit_str,
-            et0=et0 if params.temp_quelle == "et0" else None,
+            et0=et0 if et0_aktiv else None,
         )
         self.daten.hub.plan_details = {
             "tmax_3d": tmax,
@@ -391,6 +396,7 @@ class GartenController:
             "regen_forecast_mm": regen_forecast,
             "et0_mm": round(et0, 2) if et0 is not None else None,
             "temp_quelle": params.temp_quelle,
+            "forecast_typ": forecast_typ,
             "berechnet_um": dt_util.now().isoformat(),
             "kreise": details_kreise,
         }

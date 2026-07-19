@@ -165,6 +165,11 @@ Vorhersagetag (daily: `templow`; hourly: 24-h-Blöcke), gemittelt über bis zu
 Tmax-Paar. Ohne `templow`/Wetter fällt der Faktor still auf den Tmax-Pfad
 zurück (`faktoren.temp_quelle` zeigt den aktiven Pfad); der berechnete
 ET₀-Wert ist immer in `sensor.garten_plan_heute` (`et0_mm`) sichtbar.
+Seit v1.2.0 kann jeder Kreis die globale Quelle übersteuern
+(Kreis-Key `temp_quelle: global|tmax|et0`, Default `global`) — gedacht für
+„nur der Rasen auf ET₀"; `plan_heute` trägt zudem `forecast_typ` als
+Attribut, damit FC-Regen-Fragen (daily = heutiger Tageswert vs. hourly =
+Summe nächste 24 h) sofort diagnostizierbar sind.
 
 ## Dateien
 
