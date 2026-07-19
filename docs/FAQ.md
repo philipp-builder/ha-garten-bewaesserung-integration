@@ -248,7 +248,10 @@ Stellschrauben:
   nur den heutigen Tageswert, hourly die Summe der nächsten 24 h** (rollt
   über Mitternacht) — für einen Abendlauf ist hourly meist das ehrlichere
   Fenster. Welcher Modus aktiv war, steht als `forecast_typ` in den
-  Attributen von `sensor.garten_plan_heute`.
+  Attributen von `sensor.garten_plan_heute` — und das Attribut
+  `regen_fc_datenbasis` listet die exakt summierten Forecast-Zeilen
+  (Zeitstempel + mm), sodass du jede FC-Zahl direkt gegen
+  „Entwicklerwerkzeuge → Aktionen“ vergleichen kannst.
 - **Kein `precipitation`-Feld im Forecast:** Fehlende Werte werden als 0
   gelesen — das Regen-**Vorhersage**-Veto feuert dann einfach nie.
   Kompensiere mit dem Regen-**beobachtet**-Veto: baue den Regen-24h-Sensor

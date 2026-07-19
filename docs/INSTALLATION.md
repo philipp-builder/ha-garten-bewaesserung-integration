@@ -69,7 +69,7 @@ Hub-Gerät **„Garten"**:
 | `button.garten_sofort_start` / `button.garten_not_aus` / `button.garten_plan_neu_berechnen` | Manuell-Start · alles zu · sofort neu rechnen |
 | `number.garten_standard_dauer_auto_aus`, `number.garten_regen_veto_*`, `number.garten_peak_sonnen_sperre`, `number.garten_wassertarif_pro_m3` | globale Regler |
 | `sensor.garten_nachster_lauf` / `sensor.garten_letzter_lauf` | nächster geplanter Lauf · Bericht des letzten Laufs |
-| `sensor.garten_plan_heute` | kompakte Tageszeile: `Tmax3d 26 °C · Regen 24h 0.4 mm + FC 1.5 mm · Rasen 42 % · Tomaten 38 % — berechnet 15:00` — Rohwerte (Wetter, Regen, pro Kreis Boden/Score/Dauer, Zeitstempel) als Attribute für eigene Dashboard-Karten |
+| `sensor.garten_plan_heute` | kompakte Tageszeile: `Tmax3d 26 °C · Regen 24h 0.4 mm + FC 1.5 mm · Rasen 42 % · Tomaten 38 % — berechnet 15:00` — Rohwerte (Wetter, Regen, pro Kreis Boden/Score/Dauer, Zeitstempel, verwendete `wetter_entity`) als Attribute — inkl. Glass-Box `regen_fc_datenbasis`: die exakt summierten Forecast-Zeilen hinter dem FC-Regenwert (hourly: 24 Stundenwerte, daily: der Tageseintrag) für Sekunden-Diagnose von Regen-Fragen |
 
 Pro Kreis-Gerät **„Garten \<Name\>"** (Beispiel `rasen`):
 

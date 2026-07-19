@@ -255,6 +255,9 @@ def main():
     assert pa["tmax_3d"] == 29.0 and pa["wetter_ok"] is True, pa
     assert pa["regen_24h_mm"] is None and pa["regen_forecast_mm"] == 0.0, pa
     assert [k["name"] for k in pa["kreise"]] == ["Rasen", "Tomaten"], pa
+    assert pa["wetter_entity"] == wetter, pa
+    basis = pa["regen_fc_datenbasis"]
+    assert isinstance(basis, list) and len(basis) == 1 and basis[0]["mm"] == 0.0, basis
     assert pa["kreise"][0]["score"] == 72 and pa["kreise"][0]["dauer"] == 16, pa
 
     # Kreis deaktivieren -> Score 0, Status "deaktiviert"

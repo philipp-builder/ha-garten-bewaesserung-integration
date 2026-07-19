@@ -89,6 +89,7 @@ from .score import (
     baue_plan_push,
     baue_plan_uebersicht,
     berechne_score,
+    extrahiere_regen_datenbasis,
     extrahiere_tagestemperaturen,
     extrahiere_wetter,
     mittlere_et0,
@@ -398,6 +399,8 @@ class GartenController:
             "et0_mm": round(et0, 2) if et0 is not None else None,
             "temp_quelle": params.temp_quelle,
             "forecast_typ": forecast_typ,
+            "wetter_entity": wetter,
+            "regen_fc_datenbasis": extrahiere_regen_datenbasis(forecast, forecast_typ),
             "berechnet_um": dt_util.now().isoformat(),
             "kreise": details_kreise,
         }

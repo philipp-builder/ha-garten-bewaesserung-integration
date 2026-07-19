@@ -233,6 +233,21 @@ def test_temp_quelle_pro_kreis_override():
     assert erg3.faktoren["temp_quelle"] == "et0" and erg3.score == 66
 
 
+def test_regen_datenbasis_glass_box():
+    hourly = [
+        {"datetime": f"2026-07-19T{h:02d}:00", "temperature": 15, "precipitation": 0.1 * (h % 3)}
+        for h in range(30)
+    ]
+    basis = score.extrahiere_regen_datenbasis(hourly, "hourly")
+    assert len(basis) == 24 and basis[0]["t"] == "2026-07-19T00:00"
+    _t, regen, _ok = score.extrahiere_wetter(hourly, "hourly")
+    assert abs(sum(z["mm"] for z in basis) - regen) < 1e-9  # Glass-Box == Veto-Wert
+    daily = [{"datetime": "2026-07-19", "temperature": 27, "templow": 15, "precipitation": 2.5}]
+    assert score.extrahiere_regen_datenbasis(daily, "daily") == [{"t": "2026-07-19", "mm": 2.5}]
+    assert score.extrahiere_regen_datenbasis(None, "daily") is None
+    assert score.extrahiere_regen_datenbasis([{"datetime": "x"}], "daily") == [{"t": "x", "mm": 0.0}]
+
+
 if __name__ == "__main__":
     fehler = 0
     for name, fn in sorted(globals().items()):

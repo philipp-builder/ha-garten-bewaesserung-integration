@@ -106,6 +106,28 @@ def extrahiere_wetter(
     return (tmax, regen, True)
 
 
+def extrahiere_regen_datenbasis(
+    forecast: list[dict[str, Any]] | None, typ: str
+) -> list[dict[str, Any]] | None:
+    """Die exakten Forecast-Zeilen hinter `regen_forecast` — Glass-Box.
+
+    Gleiche Slice- und Float-Semantik wie extrahiere_wetter (hourly: erste
+    24 Einträge, daily: erster Eintrag), damit die Summe der `mm`-Werte
+    konstruktionsbedingt dem Veto-Wert entspricht. Fürs Debugging als
+    Attribut von sensor.garten_plan_heute gedacht.
+    """
+    if not forecast:
+        return None
+    zeilen = forecast[:24] if typ == "hourly" else forecast[:1]
+    return [
+        {
+            "t": str(f.get("datetime", "?")),
+            "mm": sicher_float(f.get("precipitation"), 0.0),
+        }
+        for f in zeilen
+    ]
+
+
 def extrahiere_tagestemperaturen(
     forecast: list[dict[str, Any]] | None, typ: str
 ) -> list[tuple[float, float]]:
