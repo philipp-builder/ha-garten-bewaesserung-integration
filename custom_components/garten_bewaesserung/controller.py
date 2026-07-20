@@ -738,8 +738,27 @@ class GartenController:
                 kid = kreis[CONF_KREIS_ID]
                 if unsub := self._volumen_settle.pop(kid, None):
                     unsub()
+                # Geteilter Zähler (z. B. Hauswasserzähler): Hängt noch die
+                # Settle-Abrechnung eines ANDEREN Kreises mit demselben
+                # Sensor, jetzt sofort abschließen — der aktuelle Stand ist
+                # die exakte Schnittkante. Sonst zählt dessen 30-s-Fenster
+                # unser Wasser mit (Doppelzählung bei nahtlosen Ketten).
+                flow = kreis[CONF_FLOW_SENSOR]
+                for anderer in list(self._volumen_settle):
+                    a_kreis = next(
+                        (k for k in self._kreise() if k[CONF_KREIS_ID] == anderer),
+                        None,
+                    )
+                    if a_kreis and a_kreis.get(CONF_FLOW_SENSOR) == flow:
+                        if unsub := self._volumen_settle.pop(anderer, None):
+                            unsub()
+                        self.entry.async_create_background_task(
+                            self.hass,
+                            self._volumen_abschluss(anderer),
+                            f"{DOMAIN}_volumen_schnitt_{anderer}",
+                        )
                 if kid not in self._volumen_baseline:
-                    roh = self._zustand(kreis[CONF_FLOW_SENSOR])
+                    roh = self._zustand(flow)
                     if roh not in UNGUELTIG:
                         self._volumen_baseline[kid] = sicher_float(roh, 0.0)
             # Watchdog armieren: ein Timer PRO Öffnung (B5-A ohne for:-Falle).

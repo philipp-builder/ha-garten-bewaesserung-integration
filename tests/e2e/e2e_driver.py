@@ -672,6 +672,53 @@ def main():
         "m³-Einheit: " + zustand("sensor.garten_tomaten_liter_heute")
     )
     print("Volumen-Einheiten: Rasen Zwei 5.0 L (L-Zähler), Tomaten 25.0 L (m³-Zähler)")
+
+    # ===== Geteilter Zähler (v1.3.7): Schnittkante beim Start des Nachfolgers =
+    # Tomaten auf denselben L-Zähler wie Rasen Zwei umstellen
+    f = options_flow2(
+        [
+            {"next_step_id": "kreis_bearbeiten"},
+            {"kreis": "tomaten"},
+            {
+                "name": "Tomaten",
+                "typ": "topf",
+                "ventile": ["switch.testventil_3"],
+                "bodensensoren": ["sensor.testboden_2"],
+                "ausfuehrung": "parallel_gruppe",
+                "gruppe_reihenfolge": 2,
+            },
+            {
+                "veto_schwelle": 55, "min_dauer": 1, "max_dauer": 3,
+                "temp_quelle": "tmax",
+                "ziel_unten": 50, "ziel_oben": 70, "k_faktor": 3.7,
+                "flow_sensor": "sensor.testflow_liter",
+                "leck_sensoren": [], "batterie_sensoren": [],
+            },
+        ]
+    )
+    assert f.get("type") == "create_entry", f
+    time.sleep(8)
+    # Sitzung Tomaten: +3 L, schliessen -> Settle haengt; Rasen Zwei startet
+    # SOFORT am selben Zaehler -> Tomaten muss augenblicklich abgerechnet sein
+    req("/api/services/switch/turn_on", {"entity_id": "switch.testventil_3"})
+    time.sleep(2)
+    req("/api/services/input_number/set_value", {"entity_id": "input_number.flow", "value": 1.028})
+    time.sleep(1)
+    req("/api/services/switch/turn_off", {"entity_id": "switch.testventil_3"})
+    time.sleep(2)
+    req("/api/services/switch/turn_on", {"entity_id": "switch.testventil_4"})
+    time.sleep(4)  # weit unter den 30 s Settle — Schnitt muss schon gebucht sein
+    assert zustand("sensor.garten_tomaten_liter_heute") == "28.0", (
+        "Schnittkante: " + zustand("sensor.garten_tomaten_liter_heute")
+    )
+    req("/api/services/input_number/set_value", {"entity_id": "input_number.flow", "value": 1.03})
+    time.sleep(1)
+    req("/api/services/switch/turn_off", {"entity_id": "switch.testventil_4"})
+    time.sleep(35)
+    assert zustand("sensor.garten_rasen_zwei_liter_heute") == "7.0", (
+        "Nachfolger: " + zustand("sensor.garten_rasen_zwei_liter_heute")
+    )
+    print("Geteilter Zähler: Tomaten sofort an Schnittkante abgerechnet (28.0), Rasen Zwei sauber 7.0 — keine Doppelzählung")
     ids5 = {s["entity_id"] for s in req("/api/states")}
     assert "sensor.garten_rasen_zwei_bodenfeuchte" not in ids5, (
         "Bodenfeuchte-Feld darf ohne Sensoren nicht existieren"
