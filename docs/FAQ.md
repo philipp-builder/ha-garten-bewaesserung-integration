@@ -37,6 +37,7 @@ Copy-Paste-Rezepte, Fehlersuche.
 14. [Topf-Frequenzbewässerung: Wer setzt den Dosen-Zähler zurück?](#14-topf-frequenzbewässerung-wer-setzt-den-dosen-zähler-zurück)
 15. [Trocken-Report: Ich will eine strenge 23-h-Persistenz-Prüfung (history_stats-Rezept)](#15-trocken-report-ich-will-eine-strenge-23-h-persistenz-prüfung-history_stats-rezept)
 16. [Kann ich kurz vor Mitternacht bewässern?](#16-kann-ich-kurz-vor-mitternacht-bewässern)
+17. [Liter/Kosten bleiben leer — welcher Sensor gehört ins Wasserzähler-Feld?](#17-literkosten-bleiben-leer--welcher-sensor-gehört-ins-wasserzähler-feld)
 
 ---
 
@@ -579,3 +580,39 @@ Randnotizen: Die Tages-Zähler (Liter heute, Dosen heute) wechseln um 00:01
 auf den neuen Tag, auch wenn gerade gewässert wird; und die
 Watchdog-Invariante aus [Frage 10](#10-die-notaus-schwelle-und-die-max-dauern--welche-regel-gilt-invariante)
 gilt natürlich unabhängig von der Uhrzeit.
+
+## 17. Liter/Kosten bleiben leer — welcher Sensor gehört ins Wasserzähler-Feld?
+
+Das Feld braucht einen **kumulativen Zählerstand** (steigender Wert in m³
+oder Litern — die Einheit wird ab v1.3.6 automatisch erkannt), **nicht die
+Momentan-Durchflussrate** (m³/h, L/min). Die Sitzungs-Liter entstehen aus
+„Zählerstand beim Schließen minus Zählerstand beim Öffnen“ — eine Rate steht
+vor und nach der Bewässerung auf ~0, das Delta ist damit immer 0.
+
+**Woran du den Fehlgriff erkennst:** Nach einer Bewässerung zeigt
+`sensor.garten_<kreis>_liter_heute` **0.0** (ab v1.3.6; davor blieb er auf
+„Unbekannt“).
+
+**So kommst du von einer Rate zu einem Zähler — Integral-Helfer (ohne YAML):**
+
+1. Einstellungen → Geräte & Dienste → **Helfer** → Helfer erstellen →
+   **Integral** („Riemannsumme“).
+2. Quelle: dein Raten-Sensor (z. B. die Durchflussrate deines
+   Hauswasser-Geräts). **Integrationsmethode: „links“ (left)** — die
+   Trapez-Methode überzählt bei seltenen Messwerten massiv.
+3. Metrische Einheit passend zur Quelle: bei m³/h ergibt sich m³, bei L/min
+   Liter — beides versteht die Integration.
+4. Den neuen Helfer im Kreis-Dialog als Wasserzähler-Sensor wählen.
+
+Liefert dein Gerät ohnehin einen Gesamtverbrauchs-Zähler („Total“,
+„Gesamtwasser“), nimm direkt den — genauer als jedes Integral.
+
+**Zwei Betriebs-Hinweise:**
+
+- Der Zähler darf gern der **Hauswasserzähler** sein, solange während der
+  Bewässerung nicht parallel groß anderes Wasser läuft (Waschmaschine,
+  Dusche) — das würde mitgezählt.
+- Die Sitzung wird beim Ventil-Öffnen begonnen und ~30 s nach dem Schließen
+  abgerechnet. Ein **Options-Speichern mitten in der Bewässerung** startet
+  die Integration neu und verwirft die laufende Sitzung — einmalig „keine
+  Liter“ nach Konfig-Änderungen während des Gießens ist also normal.

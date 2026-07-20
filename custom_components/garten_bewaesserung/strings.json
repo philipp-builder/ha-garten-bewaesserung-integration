@@ -157,14 +157,15 @@
           "ziel_unten": "Pot target band: lower bound",
           "ziel_oben": "Pot target band: upper bound",
           "k_faktor": "Dose response k (%-points per minute at 50 % soil)",
-          "flow_sensor": "Flow sensor m³/h (optional, enables litres/costs)",
+          "flow_sensor": "Water meter sensor (cumulative — enables liters/costs)",
           "leck_sensoren": "Leak sensors (optional)",
           "versorgung_sensor": "Water-supply-ok sensor (optional)",
           "batterie_sensoren": "Battery sensors (optional)",
           "temp_quelle": "Temperature source for this circuit"
         },
         "data_description": {
-          "temp_quelle": "Overrides the global tuning setting for this circuit only — e.g. ET₀ for a lawn zone without a soil sensor while the rest stays on Tmax."
+          "temp_quelle": "Overrides the global tuning setting for this circuit only — e.g. ET₀ for a lawn zone without a soil sensor while the rest stays on Tmax.",
+          "flow_sensor": "Needs an INCREASING meter reading in m³ or liters (unit auto-detected) — NOT the instantaneous flow rate (m³/h, L/min). Turn a rate into a meter with an Integral helper: Settings → Devices & Services → Helpers → Integral, method “left” — recipe in the FAQ. A wrong sensor type shows up as 0.0 L after watering."
         }
       },
       "kreis_bearbeiten": {

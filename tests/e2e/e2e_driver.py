@@ -610,7 +610,8 @@ def main():
                 "gruppe_reihenfolge": 2,
             },
             {"veto_schwelle": 70, "min_dauer": 1, "max_dauer": 5,
-             "temp_quelle": "global", "leck_sensoren": [], "batterie_sensoren": []},
+             "temp_quelle": "global", "flow_sensor": "sensor.testflow_liter",
+             "leck_sensoren": [], "batterie_sensoren": []},
         ]
     )
     assert f.get("type") == "create_entry", f
@@ -655,10 +656,22 @@ def main():
     )
     assert zustand("switch.testventil_4") == "on", "Rasen Zwei nicht gestartet"
     assert zustand("switch.testventil_3") == "on", "Tomaten nicht an Position 2 angekoppelt"
+    # Während beide offen sind: +0.005 m3 = +5 L "fliessen" — prüft beide
+    # Einheiten-Pfade (Rasen Zwei zählt in L, Tomaten in m³)
+    req("/api/services/input_number/set_value", {"entity_id": "input_number.flow", "value": 1.025})
+    time.sleep(1)
     req("/api/services/button/press", {"entity_id": "button.garten_not_aus"})
     time.sleep(3)
     for v in ("switch.testventil_3", "switch.testventil_4"):
         assert zustand(v) == "off", f"{v} nach Not-Aus offen"
+    time.sleep(35)  # Volumen-Settle
+    assert zustand("sensor.garten_rasen_zwei_liter_heute") == "5.0", (
+        "L-Einheit: " + zustand("sensor.garten_rasen_zwei_liter_heute")
+    )
+    assert zustand("sensor.garten_tomaten_liter_heute") == "25.0", (
+        "m³-Einheit: " + zustand("sensor.garten_tomaten_liter_heute")
+    )
+    print("Volumen-Einheiten: Rasen Zwei 5.0 L (L-Zähler), Tomaten 25.0 L (m³-Zähler)")
     ids5 = {s["entity_id"] for s in req("/api/states")}
     assert "sensor.garten_rasen_zwei_bodenfeuchte" not in ids5, (
         "Bodenfeuchte-Feld darf ohne Sensoren nicht existieren"

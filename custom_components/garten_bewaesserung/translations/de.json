@@ -157,14 +157,15 @@
           "ziel_unten": "Topf-Sollband: untere Grenze",
           "ziel_oben": "Topf-Sollband: obere Grenze",
           "k_faktor": "Dosis-Antwort k (%-Punkte pro Minute bei 50 % Boden)",
-          "flow_sensor": "Durchfluss-Sensor m³/h (optional, aktiviert Liter/Kosten)",
+          "flow_sensor": "Wasserzähler-Sensor (kumulativ — aktiviert Liter/Kosten)",
           "leck_sensoren": "Leck-Sensoren (optional)",
           "versorgung_sensor": "Wasserversorgung-ok-Sensor (optional)",
           "batterie_sensoren": "Batterie-Sensoren (optional)",
           "temp_quelle": "Temperatur-Quelle dieses Kreises"
         },
         "data_description": {
-          "temp_quelle": "Überschreibt die globale Tuning-Einstellung nur für diesen Kreis — z. B. ET₀ für einen Rasenkreis ohne Bodensensor, während der Rest bei Tmax bleibt."
+          "temp_quelle": "Überschreibt die globale Tuning-Einstellung nur für diesen Kreis — z. B. ET₀ für einen Rasenkreis ohne Bodensensor, während der Rest bei Tmax bleibt.",
+          "flow_sensor": "Braucht einen STEIGENDEN Zählerstand in m³ oder Litern (Einheit wird erkannt) — NICHT die Momentan-Durchflussrate (m³/h, L/min). Aus einer Rate machst du per Integral-Helfer einen Zähler: Einstellungen → Geräte & Dienste → Helfer → Integral, Methode „links“ — Rezept in der FAQ. Falsche Sensor-Art zeigt sich als 0.0 L nach der Bewässerung."
         }
       },
       "kreis_bearbeiten": {

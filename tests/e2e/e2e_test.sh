@@ -39,6 +39,9 @@ template:
       - name: testflow
         unit_of_measurement: "m³"
         state: "{{ states('input_number.flow') }}"
+      - name: testflow_liter
+        unit_of_measurement: "L"
+        state: "{{ (states('input_number.flow') | float(0)) * 1000 }}"
   - switch:
       - name: testventil_1
         state: "{{ is_state('input_boolean.v1','on') }}"

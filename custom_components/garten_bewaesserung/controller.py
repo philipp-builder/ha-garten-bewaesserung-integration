@@ -1205,9 +1205,29 @@ class GartenController:
             return
         flow = kreis.get(CONF_FLOW_SENSOR)
         aktuell = sicher_float(self._zustand(flow), baseline)
-        liter = max(aktuell - baseline, 0.0) * 1000
-        if liter <= 0:
-            return
+        # Einheiten-Erkennung: Zähler in Litern zählen 1:1, m³ (Default) x1000.
+        einheit = ""
+        if flow and (st := self.hass.states.get(flow)):
+            einheit = (st.attributes.get("unit_of_measurement") or "").strip().lower()
+        if "/" in einheit:
+            # RATE statt Zählerstand (L/min, m³/h …): Delta ist physikalisch
+            # sinnlos — im Feld-Test ergab das 19'200 Phantom-Liter, weil zum
+            # Settle-Zeitpunkt zufällig Wasser lief. Sichtbar 0 verbuchen +
+            # deutliche Warnung (Rezept: FAQ 17, Integral-Helfer).
+            _LOGGER.warning(
+                "Wasserzähler-Sensor %s liefert eine Durchfluss-RATE (%s) statt "
+                "eines kumulativen Zählerstands — Sitzungs-Liter können so nicht "
+                "gemessen werden (0 L verbucht). Abhilfe: Integral-Helfer, siehe "
+                "FAQ Frage 17.",
+                flow, einheit,
+            )
+            liter = 0.0
+        else:
+            faktor = 1.0 if einheit in ("l", "liter", "ltr") else 1000.0
+            liter = max(aktuell - baseline, 0.0) * faktor
+        # Auch 0-L-Sitzungen verbuchen: ein falsch gewählter Sensor (z. B.
+        # Momentan-Rate statt Zählerstand) zeigt dann sichtbar 0.0 statt
+        # für immer "Unbekannt" — wichtigster Diagnose-Hinweis für Nutzer.
         laufzeit = self.daten.kreis(kid)
         laufzeit.letzte_sitzung_liter = round(liter, 1)
         laufzeit.liter_heute = round((laufzeit.liter_heute or 0.0) + liter, 1)
