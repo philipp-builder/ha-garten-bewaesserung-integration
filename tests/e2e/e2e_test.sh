@@ -42,6 +42,9 @@ template:
       - name: testflow_liter
         unit_of_measurement: "L"
         state: "{{ (states('input_number.flow') | float(0)) * 1000 }}"
+      - name: testflow_rate
+        unit_of_measurement: "L/min"
+        state: "15.7"
   - switch:
       - name: testventil_1
         state: "{{ is_state('input_boolean.v1','on') }}"

@@ -248,5 +248,11 @@
         }
       }
     }
+  },
+  "issues": {
+    "raten_sensor": {
+      "title": "Water meter sensor for “{kreis}” is a flow RATE",
+      "description": "The configured water meter sensor `{sensor}` reports a flow rate ({einheit}) instead of a cumulative meter reading. Session liters cannot be measured this way — 0 L is recorded per session.\n\nFix: select a cumulative water meter sensor, or create an Integral helper on top of your rate sensor (Settings → Devices & services → Helpers → Integral) and select that helper as the water meter sensor. See FAQ question 17 for the step-by-step recipe."
+    }
   }
 }

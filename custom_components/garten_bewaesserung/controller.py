@@ -23,7 +23,7 @@ from typing import Any
 
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers import entity_registry as er, issue_registry as ir
 from homeassistant.helpers.event import (
     async_call_later,
     async_track_point_in_time,
@@ -72,6 +72,7 @@ from .const import (
     EVENT_LAUF_BEENDET,
     EVENT_LAUF_GESTARTET,
     EVENT_NOTAUS,
+    LAUF_HISTORIE_MAX,
     REPORT_DAEMPFER_H,
     REPORT_STUNDE,
     SCORE_DEFAULTS,
@@ -132,6 +133,19 @@ class GartenController:
 
     async def start(self) -> None:
         await self._store_laden()
+        # Verwaiste Raten-Sensor-Repairs löschen (Kreis entfernt oder
+        # Flow-Sensor aus der Konfiguration genommen).
+        gueltig = {
+            k[CONF_KREIS_ID] for k in self._kreise() if k.get(CONF_FLOW_SENSOR)
+        }
+        reg = ir.async_get(self.hass)
+        for domaene, issue_id in list(reg.issues):
+            if (
+                domaene == DOMAIN
+                and issue_id.startswith("raten_sensor_")
+                and issue_id.removeprefix("raten_sensor_") not in gueltig
+            ):
+                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
         self._unsubs.append(
             async_track_time_change(self.hass, self._recompute_geplant, minute=[0, 30], second=0)
         )
@@ -573,6 +587,7 @@ class GartenController:
         self, plan: list[tuple[dict[str, Any], int]], quelle: str
     ) -> None:
         self.daten.hub.lauf_aktiv = True
+        self.daten.hub.lauf_start = dt_util.now()
         self.daten.broadcast()
         await self._store_sichern()
         self.hass.bus.async_fire(
@@ -686,6 +701,21 @@ class GartenController:
         if abgebrochen:
             bericht += " — abgebrochen (Not-Aus)"
         self.daten.hub.letzter_lauf_bericht = bericht
+        # Kalender-Historie: nur echte Läufe (Dauer > 0) — „nichts zu
+        # bewässern“-Läufe würden den Kalender mit Null-Terminen fluten.
+        start = self.daten.hub.lauf_start
+        self.daten.hub.lauf_start = None
+        if start is not None and gegossen:
+            self.daten.hub.lauf_historie.append(
+                {
+                    "start": start.isoformat(),
+                    "ende": dt_util.now().isoformat(),
+                    "titel": "Bewässerung"
+                    + (" (abgebrochen)" if abgebrochen else ""),
+                    "beschreibung": " · ".join(gegossen) + f" — {quelle}",
+                }
+            )
+            del self.daten.hub.lauf_historie[:-LAUF_HISTORIE_MAX]
         self.daten.broadcast()
         await self._store_sichern()
         self.hass.bus.async_fire(
@@ -906,6 +936,10 @@ class GartenController:
                 "dosen": {kid: self.daten.kreis(kid).dosen_heute for kid in kids},
                 "liter_heute": {kid: self.daten.kreis(kid).liter_heute for kid in kids},
                 "liter_monat": {kid: self.daten.kreis(kid).liter_monat for kid in kids},
+                "liter_gesamt": {
+                    kid: self.daten.kreis(kid).liter_gesamt for kid in kids
+                },
+                "lauf_historie": self.daten.hub.lauf_historie,
                 # Mindestabstand-Gate (B6 ⑤) muss Neustarts überleben — im Kit
                 # tut das last_triggered automatisch, hier der Store.
                 "letzte_dose": {
@@ -932,6 +966,11 @@ class GartenController:
             for kid, wert in (g.get("liter_monat") or {}).items():
                 if wert is not None:
                     self.daten.kreis(kid).liter_monat = float(wert)
+        # Lebenszeit-Zähler + Kalender-Historie: bewusst OHNE Datums-Gate.
+        for kid, wert in (g.get("liter_gesamt") or {}).items():
+            if wert is not None:
+                self.daten.kreis(kid).liter_gesamt = float(wert)
+        self.daten.hub.lauf_historie = list(g.get("lauf_historie") or [])
         for kid, iso in (g.get("letzte_dose") or {}).items():
             if iso and (dt := dt_util.parse_datetime(iso)):
                 self._letzte_dose[kid] = dt
@@ -1232,7 +1271,9 @@ class GartenController:
             # RATE statt Zählerstand (L/min, m³/h …): Delta ist physikalisch
             # sinnlos — im Feld-Test ergab das 19'200 Phantom-Liter, weil zum
             # Settle-Zeitpunkt zufällig Wasser lief. Sichtbar 0 verbuchen +
-            # deutliche Warnung (Rezept: FAQ 17, Integral-Helfer).
+            # deutliche Warnung (Rezept: FAQ 17, Integral-Helfer) — und als
+            # Repair-Karte, damit die Fehlkonfiguration in der UI auffällt
+            # (die Log-Warnung hat im Beta-Test niemand gesehen).
             _LOGGER.warning(
                 "Wasserzähler-Sensor %s liefert eine Durchfluss-RATE (%s) statt "
                 "eines kumulativen Zählerstands — Sitzungs-Liter können so nicht "
@@ -1240,10 +1281,31 @@ class GartenController:
                 "FAQ Frage 17.",
                 flow, einheit,
             )
+            ir.async_create_issue(
+                self.hass,
+                DOMAIN,
+                f"raten_sensor_{kid}",
+                is_fixable=False,
+                is_persistent=True,  # Fehlkonfiguration überdauert Neustarts
+                severity=ir.IssueSeverity.WARNING,
+                learn_more_url=(
+                    "https://github.com/philipp-builder/"
+                    "ha-garten-bewaesserung-integration/blob/main/docs/FAQ.md"
+                ),
+                translation_key="raten_sensor",
+                translation_placeholders={
+                    "kreis": kreis.get(CONF_KREIS_NAME, kid),
+                    "sensor": flow or "?",
+                    "einheit": einheit,
+                },
+            )
             liter = 0.0
         else:
             faktor = 1.0 if einheit in ("l", "liter", "ltr") else 1000.0
             liter = max(aktuell - baseline, 0.0) * faktor
+            # Gültiger Zählerstand ⇒ eine evtl. frühere Raten-Repair-Karte
+            # dieses Kreises ist erledigt.
+            ir.async_delete_issue(self.hass, DOMAIN, f"raten_sensor_{kid}")
         # Auch 0-L-Sitzungen verbuchen: ein falsch gewählter Sensor (z. B.
         # Momentan-Rate statt Zählerstand) zeigt dann sichtbar 0.0 statt
         # für immer "Unbekannt" — wichtigster Diagnose-Hinweis für Nutzer.
@@ -1251,6 +1313,7 @@ class GartenController:
         laufzeit.letzte_sitzung_liter = round(liter, 1)
         laufzeit.liter_heute = round((laufzeit.liter_heute or 0.0) + liter, 1)
         laufzeit.liter_monat = round((laufzeit.liter_monat or 0.0) + liter, 1)
+        laufzeit.liter_gesamt = round((laufzeit.liter_gesamt or 0.0) + liter, 1)
         self.daten.broadcast()
         await self._store_sichern()
 

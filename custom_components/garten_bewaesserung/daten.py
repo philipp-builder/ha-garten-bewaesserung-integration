@@ -35,6 +35,7 @@ class KreisLaufzeit:
     dosen_heute: int = 0
     liter_heute: float | None = None
     liter_monat: float | None = None
+    liter_gesamt: float | None = None  # kumulativ, nie zurückgesetzt (Energy-Dashboard)
     letzte_sitzung_liter: float | None = None
     faktoren: dict[str, Any] = field(default_factory=dict)  # Score-Anatomie fürs Attribut
 
@@ -46,8 +47,11 @@ class HubLaufzeit:
     naechster_lauf: datetime | None = None
     letzter_lauf_bericht: str | None = None
     lauf_aktiv: bool = False
+    lauf_start: datetime | None = None  # Beginn des aktiven Laufs (Kalender)
     plan_heute: str | None = None  # kompakte Tageszeile (Wetter · Böden · Zeit)
     plan_details: dict[str, Any] = field(default_factory=dict)  # Rohwerte als Attribute
+    # Abgeschlossene Läufe für den Kalender: {start, ende, titel, beschreibung}
+    lauf_historie: list[dict[str, str]] = field(default_factory=list)
 
 
 class GartenDaten:

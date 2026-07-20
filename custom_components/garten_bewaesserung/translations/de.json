@@ -248,5 +248,11 @@
         }
       }
     }
+  },
+  "issues": {
+    "raten_sensor": {
+      "title": "Wasserzähler-Sensor für „{kreis}“ ist eine Durchfluss-RATE",
+      "description": "Der konfigurierte Wasserzähler-Sensor `{sensor}` liefert eine Durchflussrate ({einheit}) statt eines kumulativen Zählerstands. Sitzungs-Liter können so nicht gemessen werden — pro Sitzung werden 0 L verbucht.\n\nAbhilfe: einen kumulativen Zähler-Sensor wählen oder auf die Rate einen Integral-Helfer setzen (Einstellungen → Geräte & Dienste → Helfer → Integral) und diesen Helfer als Wasserzähler-Sensor eintragen. Schritt-für-Schritt-Rezept: FAQ Frage 17."
+    }
   }
 }

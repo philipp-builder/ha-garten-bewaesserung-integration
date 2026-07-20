@@ -616,3 +616,29 @@ Liefert dein Gerät ohnehin einen Gesamtverbrauchs-Zähler („Total“,
   abgerechnet. Ein **Options-Speichern mitten in der Bewässerung** startet
   die Integration neu und verwirft die laufende Sitzung — einmalig „keine
   Liter“ nach Konfig-Änderungen während des Gießens ist also normal.
+
+Seit v1.4.0 musst du diese Falle übrigens nicht mehr selbst entdecken:
+Steht im Wasserzähler-Feld eine Rate, erscheint automatisch eine Karte unter
+**Einstellungen → Reparaturen**, die genau hierher verweist. Sie löscht sich
+selbst, sobald die erste Sitzung mit einem echten Zähler verbucht wurde.
+
+## 18. Wasser-Balken im Energie-Dashboard + Bewässerungskalender
+
+Zwei native HA-Ansichten, die die Integration seit v1.4.0 füttert — beide
+ohne eine einzige selbstgebaute Karte:
+
+**Energie-Dashboard (Wasser-Sektion).** Jeder Kreis mit Wasserzähler-Sensor
+bekommt einen Lebenszeit-Zähler `sensor.garten_<kreis>_liter_gesamt`
+(`device_class: water`, `state_class: total_increasing`). Den trägst du unter
+**Einstellungen → Dashboards → Energie → Wasserquelle hinzufügen** ein — HA
+zeichnet ab dann Tages-/Wochen-/Monats-Balken deines Gartenwassers, mit
+allen Vergleichs- und Drilldown-Funktionen des Energie-Dashboards. Mehrere
+Kreise ⇒ mehrere Quellen, HA stapelt sie automatisch.
+
+**Bewässerungskalender.** `calendar.garten_kalender` führt den nächsten
+geplanten Lauf (mit den heutigen Kreis-Dauern als Termindauer und -beschreibung)
+plus die Historie der letzten 200 Läufe. Eine **Kalender-Karte** im Dashboard
+darauf zeigen lassen — fertig ist die Wochen-/Monatsansicht „wann lief was,
+wie lange“. Abgebrochene Läufe (Not-Aus) sind als solche markiert. Die
+Historie überlebt Neustarts; Läufe, bei denen nichts zu bewässern war,
+erzeugen bewusst keinen Termin.

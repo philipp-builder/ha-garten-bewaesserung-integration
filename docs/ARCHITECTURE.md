@@ -105,6 +105,13 @@ Pro Kreis-Device „Garten <Name>":
 - `sensor.garten_<id>_zuletzt_bewassert` (timestamp; Stempel bei JEDEM Ventil on→off — B9-Semantik)
 - `switch.garten_<id>_aktiv` (Kreis pausieren, neu ggü. Kit)
 - flow konfiguriert: `sensor.garten_<id>_liter_heute` / `_liter_monat` / `_kosten_monat`
+- flow konfiguriert (v1.4.0): `sensor.garten_<id>_liter_gesamt` — Lebenszeit-Zähler,
+  `device_class: water` + `total_increasing` ⇒ direkt als Wasserquelle im
+  Energie-Dashboard eintragbar (native Balken statt eigener Karten)
+- Hub (v1.4.0): `calendar.garten_kalender` — geplanter Lauf (Dauer = Summe der
+  dauer_heute-Numbers, dieselbe Wahrheit wie der Executor-Snapshot) + Historie der
+  letzten 200 Läufe aus dem Store; Repairs-Karte `raten_sensor_<id>` (persistent)
+  bei Durchfluss-Rate im Wasserzähler-Feld, gelöscht nach erster gültiger Sitzung
 
 **Umsetzungs-Entscheidungen (nach E2E, verbindlich):**
 1. `OptionsFlowWithReload` statt update_listener — der Listener-Pfad verlor im
@@ -150,9 +157,11 @@ GartenController
 │              Batterie (< Schwelle 30 min, 1 Push/Tag), Trocken-Report (Zeit,
 │              Dämpfer via zuletzt_bewaessert) — B7/B8/B10/B12.
 └─ store:      Store('garten_bewaesserung/<entry>.json'):
-               {lauf_aktiv, dosen, liter_heute, liter_monat, letzte_dose,
-               datum, monat} → Restart-Recovery beim Start: lauf_aktiv==true
-               (oder echter HA-Boot) ⇒ offene Ventile retry-schließen + Push.
+               {lauf_aktiv, dosen, liter_heute, liter_monat, liter_gesamt,
+               lauf_historie, letzte_dose, datum, monat} → Restart-Recovery
+               beim Start: lauf_aktiv==true (oder echter HA-Boot) ⇒ offene
+               Ventile retry-schließen + Push. liter_gesamt + lauf_historie
+               werden bewusst OHNE Datums-Gate restauriert (Lebenszeit-Daten).
 ```
 
 **Score-Formel: 1:1 aus B1** inkl. aller Fallbacks (Sensor unavailable ⇒ 50 %,

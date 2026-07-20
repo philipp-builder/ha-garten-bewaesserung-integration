@@ -107,6 +107,7 @@ HUB_SCHLUESSEL = {
     "bewaesserungszeit", "heute_ueberspringen", "urlaubsmodus",
     "aggressiv_modus", "topf_steuerung", "not_aus", "sofort_start",
     "plan_neu", "naechster_lauf", "letzter_lauf_bericht", "plan_heute",
+    "kalender",
     CONF_STANDARD_DAUER, CONF_REGEN_BEOBACHTET, CONF_REGEN_FORECAST,
     CONF_STRAHLUNG_SCHWELLE, CONF_TARIF,
 }
@@ -115,12 +116,15 @@ HUB_SCHLUESSEL = {
 # existieren nur bei erfüllter Bedingung. Das Registry-Aufräumen entfernt sie,
 # wenn die Bedingung wegfällt (Typwechsel Topf→Rasen bzw. Flow-Sensor entfernt).
 TOPF_KREIS_SCHLUESSEL = {CONF_ZIEL_UNTEN, CONF_ZIEL_OBEN, CONF_K_FAKTOR, "dosen_heute"}
-FLOW_KREIS_SCHLUESSEL = {"liter_heute", "liter_monat", "kosten_monat"}
+FLOW_KREIS_SCHLUESSEL = {"liter_heute", "liter_monat", "liter_gesamt", "kosten_monat"}
 BODEN_KREIS_SCHLUESSEL = {"bodenfeuchte"}  # nur mit konfigurierten Bodensensoren
+
+# Lauf-Historie (Kalender): so viele abgeschlossene Läufe behalten
+LAUF_HISTORIE_MAX = 200
 
 STORE_VERSION = 1
 EVENT_LAUF_GESTARTET = f"{DOMAIN}_lauf_gestartet"
 EVENT_LAUF_BEENDET = f"{DOMAIN}_lauf_beendet"
 EVENT_NOTAUS = f"{DOMAIN}_notaus"
 
-PLATTFORMEN = ["sensor", "number", "switch", "button", "time"]
+PLATTFORMEN = ["sensor", "number", "switch", "button", "time", "calendar"]

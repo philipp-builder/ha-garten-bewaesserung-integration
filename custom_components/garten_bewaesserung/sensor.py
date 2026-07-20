@@ -52,6 +52,7 @@ async def async_setup_entry(
             entities += [
                 LiterHeuteSensor(entry, daten, "liter_heute", kreis),
                 LiterMonatSensor(entry, daten, "liter_monat", kreis),
+                LiterGesamtSensor(entry, daten, "liter_gesamt", kreis),
                 KostenMonatSensor(entry, daten, "kosten_monat", kreis),
             ]
     async_add_entities(entities)
@@ -88,12 +89,32 @@ class BodenfeuchteSensor(GartenEntity, SensorEntity):
 
 class StatusSensor(GartenEntity, SensorEntity):
     _attr_name = "Status"
-    _attr_icon = "mdi:text-long"
 
     @property
     def native_value(self) -> str | None:
         s = self.kreis_laufzeit.status
         return s[:255] if s else None
+
+    @property
+    def icon(self) -> str:
+        """Zustandsabhängig — der Status-Text trägt sein Emoji als
+        stabiles Präfix, das Icon spiegelt es für Tile-/Entities-Karten."""
+        s = self.kreis_laufzeit.status or ""
+        if s.startswith("⏭"):
+            return "mdi:debug-step-over"
+        if s.startswith("⏸"):
+            return "mdi:pause-circle-outline"
+        if s.startswith("⚡"):
+            return "mdi:flash"
+        if s.startswith("☔"):
+            return "mdi:weather-pouring"
+        if s.startswith("💧"):
+            return "mdi:water-check"
+        if "→ 0 min" in s or "unter Schwelle" in s:
+            return "mdi:water-off-outline"
+        if s:
+            return "mdi:sprinkler-variant"
+        return "mdi:text-long"
 
 
 class ZuletztSensor(GartenEntity, RestoreSensor):
@@ -147,7 +168,6 @@ class PlanHeuteSensor(GartenEntity, SensorEntity):
     Berechnungszeitpunkt — Rohwerte als Attribute für eigene Karten."""
 
     _attr_name = "Plan heute"
-    _attr_icon = "mdi:calendar-check"
 
     @property
     def native_value(self) -> str | None:
@@ -156,6 +176,17 @@ class PlanHeuteSensor(GartenEntity, SensorEntity):
     @property
     def extra_state_attributes(self):
         return self._daten.hub.plan_details
+
+    @property
+    def icon(self) -> str:
+        if self._daten.hub.lauf_aktiv:
+            return "mdi:sprinkler"
+        kreise = self._daten.hub.plan_details.get("kreise") or []
+        if kreise and all(not k.get("dauer") for k in kreise):
+            return "mdi:water-off"
+        if any(k.get("dauer") for k in kreise):
+            return "mdi:sprinkler-variant"
+        return "mdi:calendar-check"
 
 
 class LiterHeuteSensor(GartenEntity, SensorEntity):
@@ -180,6 +211,21 @@ class LiterMonatSensor(GartenEntity, SensorEntity):
     @property
     def native_value(self) -> float | None:
         return self.kreis_laufzeit.liter_monat
+
+
+class LiterGesamtSensor(GartenEntity, SensorEntity):
+    """Lebenszeit-Wasserzähler des Kreises — device_class water +
+    total_increasing macht ihn im Energie-Dashboard (Wasser-Sektion)
+    eintragbar: native Tages-/Monats-Balken ohne eigene Karten."""
+
+    _attr_name = "Liter gesamt"
+    _attr_native_unit_of_measurement = "L"
+    _attr_device_class = SensorDeviceClass.WATER
+    _attr_state_class = SensorStateClass.TOTAL_INCREASING
+
+    @property
+    def native_value(self) -> float | None:
+        return self.kreis_laufzeit.liter_gesamt
 
 
 class KostenMonatSensor(GartenEntity, SensorEntity):

@@ -181,6 +181,7 @@ def main():
         "number.garten_wassertarif_pro_m3",
         "sensor.garten_nachster_lauf",
         "sensor.garten_letzter_lauf",
+        "calendar.garten_kalender",
         "sensor.garten_rasen_score",
         "sensor.garten_rasen_status",
         "sensor.garten_rasen_zuletzt_bewassert",
@@ -726,7 +727,100 @@ def main():
     print("Parallel-Kopplung: Tomaten startete mit Kettenposition 2 (Rasen Zwei)")
     print("Bodenfeuchte-Infofeld: Rasen 42.0, Rasen Zwei (ohne Sensor) korrekt ohne Feld")
 
-    print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten und Typwechsel (v1.0.1) OK")
+    # ===== v1.4.0-A: Lebenszeit-Zaehler (Energy-Dashboard) + Kalender =====
+    st5 = {s["entity_id"]: s for s in req("/api/states")}
+    lg = st5["sensor.garten_tomaten_liter_gesamt"]
+    assert lg["state"] == "28.0", "liter_gesamt: " + lg["state"]
+    assert lg["attributes"].get("device_class") == "water", lg["attributes"]
+    assert lg["attributes"].get("state_class") == "total_increasing", lg["attributes"]
+    assert st5["sensor.garten_rasen_zwei_liter_gesamt"]["state"] == "7.0", (
+        st5["sensor.garten_rasen_zwei_liter_gesamt"]["state"]
+    )
+    kal = st5.get("calendar.garten_kalender")
+    assert kal is not None and kal["state"] in ("on", "off"), kal
+    assert kal["attributes"].get("message") == "Bewässerung geplant", kal["attributes"]
+    events = req(
+        "/api/calendars/calendar.garten_kalender"
+        "?start=2020-01-01T00:00:00Z&end=2030-01-01T00:00:00Z"
+    )
+    assert len(events) >= 3, events  # 2 abgebrochene Laeufe + geplanter Termin
+    assert sum("abgebrochen" in e.get("summary", "") for e in events) >= 2, events
+    assert any(e.get("summary") == "Bewässerung geplant" for e in events), events
+    print(f"Kalender: {len(events)} Termine (Historie + Plan), Gesamt-Zaehler Energy-tauglich")
+
+    # ===== v1.4.0-B: Raten-Sensor -> Repair-Karte erscheint und verschwindet ==
+    tomaten_basis = [
+        {"next_step_id": "kreis_bearbeiten"},
+        {"kreis": "tomaten"},
+        {
+            "name": "Tomaten",
+            "typ": "topf",
+            "ventile": ["switch.testventil_3"],
+            "bodensensoren": ["sensor.testboden_2"],
+            "ausfuehrung": "parallel_gruppe",
+            "gruppe_reihenfolge": 2,
+        },
+    ]
+    tomaten_details = {
+        "veto_schwelle": 55, "min_dauer": 1, "max_dauer": 3,
+        "temp_quelle": "tmax",
+        "ziel_unten": 50, "ziel_oben": 70, "k_faktor": 3.7,
+        "leck_sensoren": [], "batterie_sensoren": [],
+    }
+    f = options_flow2(
+        tomaten_basis + [{**tomaten_details, "flow_sensor": "sensor.testflow_rate"}]
+    )
+    assert f.get("type") == "create_entry", f
+    time.sleep(8)
+    req("/api/services/switch/turn_on", {"entity_id": "switch.testventil_3"})
+    time.sleep(2)
+    req("/api/services/switch/turn_off", {"entity_id": "switch.testventil_3"})
+    time.sleep(40)  # Settle + Abrechnung
+    assert zustand("sensor.garten_tomaten_liter_heute") == "28.0", (
+        "Rate haette 0 L verbuchen muessen: " + zustand("sensor.garten_tomaten_liter_heute")
+    )
+
+    def repairs_registry():
+        return subprocess.run(
+            ["docker", "exec", "int-test", "cat", "/config/.storage/repairs.issue_registry"],
+            capture_output=True, text=True,
+        ).stdout
+
+    ende4 = time.time() + 40
+    while time.time() < ende4 and "raten_sensor_tomaten" not in repairs_registry():
+        time.sleep(5)
+    assert "raten_sensor_tomaten" in repairs_registry(), (
+        "Repair-Karte fuer den Raten-Sensor fehlt"
+    )
+    print("Repairs: Raten-Sensor-Fehlkonfiguration erscheint als Reparatur-Karte")
+
+    # Zurueck auf den kumulativen Zaehler + gueltige Sitzung -> Karte weg
+    f = options_flow2(
+        tomaten_basis + [{**tomaten_details, "flow_sensor": "sensor.testflow_liter"}]
+    )
+    assert f.get("type") == "create_entry", f
+    time.sleep(8)
+    req("/api/services/switch/turn_on", {"entity_id": "switch.testventil_3"})
+    time.sleep(2)
+    req("/api/services/input_number/set_value", {"entity_id": "input_number.flow", "value": 1.031})
+    time.sleep(1)
+    req("/api/services/switch/turn_off", {"entity_id": "switch.testventil_3"})
+    time.sleep(40)
+    assert zustand("sensor.garten_tomaten_liter_heute") == "29.0", (
+        zustand("sensor.garten_tomaten_liter_heute")
+    )
+    assert zustand("sensor.garten_tomaten_liter_gesamt") == "29.0", (
+        "gesamt != heute: " + zustand("sensor.garten_tomaten_liter_gesamt")
+    )
+    ende5 = time.time() + 40
+    while time.time() < ende5 and "raten_sensor_tomaten" in repairs_registry():
+        time.sleep(5)
+    assert "raten_sensor_tomaten" not in repairs_registry(), (
+        "Repair-Karte nach gueltiger Sitzung nicht geloescht"
+    )
+    print("Repairs: Karte nach Wechsel auf kumulativen Zaehler + gueltiger Sitzung geloescht")
+
+    print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten, Typwechsel (v1.0.1), Kalender + Energy-Zaehler + Repairs (v1.4.0) OK")
 
 
 if __name__ == "__main__":
