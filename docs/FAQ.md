@@ -38,6 +38,9 @@ Copy-Paste-Rezepte, Fehlersuche.
 15. [Trocken-Report: Ich will eine strenge 23-h-Persistenz-Prüfung (history_stats-Rezept)](#15-trocken-report-ich-will-eine-strenge-23-h-persistenz-prüfung-history_stats-rezept)
 16. [Kann ich kurz vor Mitternacht bewässern?](#16-kann-ich-kurz-vor-mitternacht-bewässern)
 17. [Liter/Kosten bleiben leer — welcher Sensor gehört ins Wasserzähler-Feld?](#17-literkosten-bleiben-leer--welcher-sensor-gehört-ins-wasserzähler-feld)
+18. [Wasser-Balken im Energie-Dashboard + Bewässerungskalender](#18-wasser-balken-im-energie-dashboard--bewässerungskalender)
+19. [Der Rasen bekommt Risse, obwohl täglich bewässert wird](#19-der-rasen-bekommt-risse-obwohl-täglich-bewässert-wird)
+20. [Intervall-Bewässerung: große Gaben, die auch ankommen](#20-intervall-bewässerung-große-gaben-die-auch-ankommen)
 
 ---
 
@@ -407,6 +410,11 @@ ab dessen Einschalt-Moment, nicht ab Laufbeginn. Achtung Sonderfall
 Kreis-Dauer — pro Ventil gilt trotzdem die eigene Uhr, die Invariante bleibt
 also einfach „Notaus > Max-Dauer“.
 
+**Seit v1.5.0 zusätzlich:** Mit Intervall-Bewässerung zählt der Watchdog
+pro **Block**, nicht pro Gabe — die Invariante lautet dann
+`Notaus-Schwelle > Max. Minuten pro Block`. Eine 75-Minuten-Gabe in drei
+25-Minuten-Blöcken ist mit Notaus 40 also unproblematisch.
+
 ## 11. Wie aktualisiere oder deinstalliere ich die Integration?
 
 **Update:** HACS zeigt neue Versionen automatisch an (Repo öffnen →
@@ -621,6 +629,121 @@ Seit v1.4.0 musst du diese Falle übrigens nicht mehr selbst entdecken:
 Steht im Wasserzähler-Feld eine Rate, erscheint automatisch eine Karte unter
 **Einstellungen → Reparaturen**, die genau hierher verweist. Sie löscht sich
 selbst, sobald die erste Sitzung mit einem echten Zähler verbucht wurde.
+
+## 19. Der Rasen bekommt Risse, obwohl täglich bewässert wird
+
+Das ist der häufigste Fehler überhaupt — und meist ist die *Menge* gar nicht
+das Problem, sondern die **Portionierung**.
+
+Eine kleine Gabe durchfeuchtet nur die obersten Zentimeter. Davon verdunstet
+an einem heißen Tag der Großteil, bevor er die Wurzeln erreicht, und die
+Pflanze gewöhnt sich an flaches Wurzeln — womit sie die nächste Hitzewelle
+noch schlechter übersteht. Faustzahlen für Rasen:
+
+| Gabe | Wirkung |
+|---|---|
+| 2–4 mm | nur die obersten Zentimeter, verdunstet größtenteils |
+| 10–15 mm | gute Erhaltungsbewässerung im Sommer |
+| 15–20 mm | durchdringend bis in den Wurzelbereich |
+
+Richtig ist also **tief und selten** statt täglich ein bisschen: ein bis zwei
+Gaben pro Woche, im Hochsommer alle zwei bis drei Tage — aber jedes Mal so
+viel, dass es 15–20 cm tief ankommt.
+
+**Fingerbreite Risse** sind ein Tonboden-Phänomen und bedeuten, dass er tief
+ausgetrocknet ist. Heikel daran: Die Risse wirken anschließend als Bypass —
+das nächste Wasser läuft daran hinunter und verfehlt den Wurzelraum komplett.
+Auf gerissenem Boden deshalb zuerst eine kleine Gabe, damit der Ton quillt und
+die Risse sich schließen, und erst danach die eigentliche Menge.
+
+Damit eine solche große Gabe überhaupt einsickern kann statt oberflächlich
+abzulaufen, gibt es seit v1.5.0 die **Intervall-Bewässerung** — siehe Frage 20.
+
+## 20. Intervall-Bewässerung: große Gaben, die auch ankommen
+
+**Zuerst das Wichtigste: Diese Funktion ändert, WIE das Wasser ausgebracht
+wird — nicht, WIE VIEL.** Wer nur die Blöcke einschaltet, bekommt dieselbe zu
+kleine Menge, nur in Portionen. Die Menge steckt in **Max-Dauer** des Kreises
+(Standard 20 min). Beides gehört zusammen: erst die Menge richtig einstellen,
+dann dafür sorgen, dass sie einsickern kann.
+
+### Warum überhaupt Blöcke?
+
+Jeder Boden nimmt Wasser nur mit einer bestimmten Rate auf. Bringt der Regner
+mehr aus, staut es sich und läuft ab — auf Ton und im Hang praktisch immer.
+Anhaltspunkte: Sand nimmt 25–50 mm/h auf, Lehm 10–20, Ton 3–8; im Hang etwa
+die Hälfte.
+
+### In drei Schritten einstellen
+
+**1. Ausbringungsrate bestimmen.** Wie viele Millimeter pro Stunde liefert dein
+Regner? Entweder aus Wasserzähler und Fläche, oder mit dem Bechertest (sechs
+geradwandige Gefäße verteilen, 15 min laufen lassen, Füllhöhen mitteln, × 4).
+
+```
+mm/h  =  Liter pro Gang ÷ Fläche in m² ÷ Minuten × 60
+```
+
+**2. Gesamtmenge festlegen → Max-Dauer setzen.** Für Rasen sind 15–20 mm pro
+Gabe das Ziel (durchdringend bis in den Wurzelbereich).
+
+```
+Gesamtdauer in min  =  Zielmenge in mm ÷ mm/h × 60
+```
+
+Jetzt kommt der Punkt, den man leicht falsch macht: Die Engine interpoliert
+zwischen **Min-Dauer** und **Max-Dauer** nach Score — Max allein reicht also
+nicht. Bei Max 90 und Min 5 käme ein realistischer Score von 70 nur auf
+64 Minuten. Für „selten, aber dann richtig" setzt du deshalb **beide**:
+Min-Dauer auf etwa zwei Drittel der Zielzeit, Max-Dauer etwas darüber — im
+Beispiel Min 50, Max 90. Dann liegt jede Gabe zwischen 10 und 18 mm, und der
+Score entscheidet nur noch, **ob** überhaupt gegossen wird (unterhalb der
+Skip-Schwelle bleibt es bei 0 Minuten).
+
+**3. Blockgröße bestimmen.** Pro Block sollen höchstens 5–8 mm fallen (Ton),
+8–12 mm (Lehm); auf Sand brauchst du keine Blöcke.
+
+```
+Minuten pro Block  =  mm pro Block ÷ mm/h × 60
+```
+
+### Durchgerechnetes Beispiel
+
+Ein Rasen von 70 m², der Regner liefert 204 Liter in 14 Minuten:
+
+| Schritt | Rechnung | Ergebnis |
+|---|---|---|
+| Rate | 204 ÷ 70 ÷ 14 × 60 | **12,4 mm/h** |
+| Gesamtdauer für 15 mm | 15 ÷ 12,4 × 60 | **≈ 75 min** → Max-Dauer 75 |
+| Block für 6 mm (Ton) | 6 ÷ 12,4 × 60 | **≈ 29 min** → Block-Max 25 |
+
+Ergebnis: dreimal 25 Minuten mit zwei Pausen à 30 Minuten. Gesamtmenge
+15 mm — statt der 2,9 mm, die 14 Minuten am Stück gebracht hätten.
+
+### Drei Dinge, die man leicht übersieht
+
+**Die Pausen verlängern den Lauf erheblich.** Im Beispiel 75 Minuten Gießzeit,
+aber 135 Minuten von Anfang bis Ende. Bei mehreren Kreisen nacheinander kann
+das die Nacht sprengen — dann die Bewässerungszeit vorziehen oder Kreise
+parallel schalten. Der Kalendertermin rechnet die Pausen mit ein, dort siehst
+du die echte Gesamtdauer.
+
+**Block-Max muss unter der Notaus-Schwelle liegen.** Der Watchdog schließt
+jedes Ventil, das länger als diese Zeit am Stück offen ist — er zählt pro
+Öffnung, also pro Block. Bei Notaus 40 sind Blöcke bis 39 Minuten sicher.
+
+**Topf-Dosen bleiben unberührt.** Die tagsüber verteilten Kleingaben der
+Topf-Frequenzbewässerung sind ohnehin nur ein bis vier Minuten lang; die
+Blockung greift ausschließlich beim abendlichen Hauptlauf.
+
+### Auf gerissenem Boden
+
+Fingerbreite Risse bedeuten tief ausgetrockneten Ton — und sie wirken als
+Bypass: Das Wasser läuft daran hinunter und verfehlt den Wurzelraum. Gib
+deshalb beim ersten Mal eine kleine Gabe (ein Block genügt), lass den Ton
+quellen und die Risse schließen, und fahre erst am Folgetag die volle Menge.
+Die Blockung erledigt das anschließend von selbst, weil jeder Block klein
+genug bleibt.
 
 ## 18. Wasser-Balken im Energie-Dashboard + Bewässerungskalender
 

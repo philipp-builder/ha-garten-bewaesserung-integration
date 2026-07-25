@@ -41,6 +41,8 @@ CONF_ZIEL_UNTEN = "ziel_unten"
 CONF_ZIEL_OBEN = "ziel_oben"
 CONF_K_FAKTOR = "k_faktor"
 CONF_FLOW_SENSOR = "flow_sensor"
+CONF_BLOCK_MAX = "block_max_min"      # max. Minuten am Stück (0 = aus)
+CONF_BLOCK_PAUSE = "block_pause_min"  # Versickerungspause zwischen Blöcken
 CONF_LECK = "leck_sensoren"
 CONF_VERSORGUNG = "versorgung_sensor"
 CONF_BATTERIE = "batterie_sensoren"
@@ -56,6 +58,7 @@ DEFAULT_NOTAUS_MIN = 40
 DEFAULT_RETRY_ANZAHL = 5
 DEFAULT_RETRY_ABSTAND_S = 3
 DEFAULT_PAUSE_S = 5  # Pause zwischen zwei Ventilen einer Sequenz (B3)
+DEFAULT_BLOCK_PAUSE = 30  # Standard-Versickerungspause (min)
 
 # Feste Engine-Parameter (B6/B8/B9/B10/B12-Defaults; bewusst keine Options)
 TOPF_UNTERSCHREITUNG_MIN = 10  # Entprellung unter Sollband-Unterkante (B6)
@@ -91,10 +94,12 @@ TOPF_DEFAULTS = {
 KREIS_TYP_DEFAULTS = {
     # veto, min, max, ziel_unten, ziel_oben (Kit-Seed-Tabelle)
     "rasen": {"veto_schwelle": 70, "min_dauer": 5, "max_dauer": 20,
-              "temp_quelle": "global"},
+              "temp_quelle": "global",
+              "block_max_min": 0, "block_pause_min": 30},
     "topf": {"veto_schwelle": 65, "min_dauer": 1, "max_dauer": 4,
              "ziel_unten": 45, "ziel_oben": 65, "k_faktor": 2.0,
-             "temp_quelle": "global"},
+             "temp_quelle": "global",
+             "block_max_min": 0, "block_pause_min": 30},
 }
 
 # Fallbacks (B1-Parität — bewusst KEINE Options: greifen nur bei kaputten Quellen)

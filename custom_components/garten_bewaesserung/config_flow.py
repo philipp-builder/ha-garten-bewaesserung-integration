@@ -37,6 +37,8 @@ from .const import (
     CONF_KREIS_TYP,
     CONF_KREISE,
     CONF_LECK,
+    CONF_BLOCK_MAX,
+    CONF_BLOCK_PAUSE,
     CONF_MAX_DAUER,
     CONF_MIN_DAUER,
     CONF_NOTAUS_MIN,
@@ -456,6 +458,8 @@ class GartenOptionsFlow(OptionsFlowWithReload):
                 k[CONF_ZIEL_UNTEN] = user_input[CONF_ZIEL_UNTEN]
                 k[CONF_ZIEL_OBEN] = user_input[CONF_ZIEL_OBEN]
                 k[CONF_K_FAKTOR] = user_input[CONF_K_FAKTOR]
+            k[CONF_BLOCK_MAX] = user_input.get(CONF_BLOCK_MAX, 0)
+            k[CONF_BLOCK_PAUSE] = user_input.get(CONF_BLOCK_PAUSE, 30)
             k[CONF_FLOW_SENSOR] = user_input.get(CONF_FLOW_SENSOR) or ""
             k[CONF_LECK] = user_input.get(CONF_LECK, [])
             k[CONF_VERSORGUNG] = user_input.get(CONF_VERSORGUNG) or ""
@@ -486,6 +490,21 @@ class GartenOptionsFlow(OptionsFlowWithReload):
                 selector.SelectSelectorConfig(
                     options=["global", "tmax", "et0"],
                     translation_key="temp_quelle_kreis",
+                )
+            ),
+            # Intervall-Bewaesserung: 0 = aus (eine Gabe am Stueck)
+            vol.Optional(
+                CONF_BLOCK_MAX, default=k.get(CONF_BLOCK_MAX, 0)
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=0, max=60, step=1, unit_of_measurement="min"
+                )
+            ),
+            vol.Optional(
+                CONF_BLOCK_PAUSE, default=k.get(CONF_BLOCK_PAUSE, 30)
+            ): selector.NumberSelector(
+                selector.NumberSelectorConfig(
+                    min=1, max=120, step=1, unit_of_measurement="min"
                 )
             ),
         }

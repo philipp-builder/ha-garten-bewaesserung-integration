@@ -105,6 +105,12 @@ Pro Kreis-Device „Garten <Name>":
 - `sensor.garten_<id>_zuletzt_bewassert` (timestamp; Stempel bei JEDEM Ventil on→off — B9-Semantik)
 - `switch.garten_<id>_aktiv` (Kreis pausieren, neu ggü. Kit)
 - flow konfiguriert: `sensor.garten_<id>_liter_heute` / `_liter_monat` / `_kosten_monat`
+- Intervall-Bewässerung (v1.5.0): `block_max_min` / `block_pause_min` je Kreis —
+  der Executor zerlegt eine Gabe in ⌈dauer/block_max⌉ gleich große Blöcke mit
+  Versickerungspause. Wichtig: während der Pausen markiert `_zyklus_aktiv` den
+  Kreis, damit der 30-s-Volumen-Settle NICHT auslöst — sonst würde jeder Block
+  als eigene Sitzung abgerechnet. Der Notaus-Watchdog bleibt pro ÖFFNUNG scharf
+  (nicht pro Lauf), ist also von der Blockung unberührt.
 - flow konfiguriert (v1.4.0): `sensor.garten_<id>_liter_gesamt` — Lebenszeit-Zähler,
   `device_class: water` + `total_increasing` ⇒ direkt als Wasserquelle im
   Energie-Dashboard eintragbar (native Balken statt eigener Karten)

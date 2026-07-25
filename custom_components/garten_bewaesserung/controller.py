@@ -38,6 +38,8 @@ from .const import (
     BATTERIE_DEBOUNCE_MIN,
     BATTERIE_SCHWELLE,
     CONF_BATTERIE,
+    CONF_BLOCK_MAX,
+    CONF_BLOCK_PAUSE,
     CONF_BODENSENSOREN,
     CONF_DASHBOARD_PFAD,
     CONF_FLOW_SENSOR,
@@ -59,6 +61,7 @@ from .const import (
     CONF_VERSORGUNG,
     CONF_VORLAUF,
     CONF_WETTER,
+    DEFAULT_BLOCK_PAUSE,
     DEFAULT_NOTAUS_MIN,
     DEFAULT_PAUSE_S,
     DEFAULT_REGEN_BEOBACHTET,
@@ -128,6 +131,7 @@ class GartenController:
         self._volumen_baseline: dict[str, float] = {}  # kid -> m³ bei Sitzungsbeginn
         self._wetter_retry_unsub = None  # one-shot Kurz-Retry bei Wetter n/v
         self._volumen_settle: dict[str, Any] = {}  # kid -> Settle-Timer-unsub
+        self._zyklus_aktiv: set[str] = set()  # Kreise in einer Blockpause
 
     # ------------------------------------------------------------ Lebenszyklus
 
@@ -219,6 +223,7 @@ class GartenController:
     @callback
     def stop(self) -> None:
         self._gestoppt = True  # F5: keine Ghost-Timer aus in-flight-Tasks
+        self._zyklus_aktiv.clear()
         for unsub in self._unsubs:
             unsub()
         self._unsubs.clear()
@@ -661,21 +666,82 @@ class GartenController:
             except Exception:
                 _LOGGER.exception("Fehler beim Lauf-Abschluss")
 
+    def _bloecke(self, kreis: dict[str, Any], dauer_min: int) -> tuple[list[float], float]:
+        """Gabe in Versickerungs-Blöcke teilen (Intervall-Bewässerung).
+
+        Übersteigt die Ausbringungsrate die Infiltrationsrate des Bodens,
+        läuft eine lange Gabe oberflächlich ab statt einzusickern — auf Ton
+        und im Hang der Regelfall, und der Grund, warum tiefe Gaben dort
+        scheitern. Mit `block_max_min` wird die Dauer in gleich große Blöcke
+        zerlegt, zwischen denen das Wasser einsickern kann.
+        Blockzahl = aufgerundet, damit kein Block länger als das Maximum ist.
+        """
+        block_max = sicher_float(kreis.get(CONF_BLOCK_MAX), 0.0)
+        pause = sicher_float(kreis.get(CONF_BLOCK_PAUSE), DEFAULT_BLOCK_PAUSE)
+        if block_max <= 0 or dauer_min <= block_max:
+            return [float(dauer_min)], pause
+        anzahl = math.ceil(dauer_min / block_max)
+        return [dauer_min / anzahl] * anzahl, pause
+
     async def _kreis_ausfuehren(self, kreis: dict[str, Any], dauer_min: int) -> None:
         """Ein Kreis: jedes Ventil nacheinander volle Dauer (Kit: geteilte
-        Slots laufen gleich lang, nacheinander). AUF → warten → Retry-Close."""
+        Slots laufen gleich lang, nacheinander). AUF → warten → Retry-Close.
+        Mit konfigurierter Blockdauer wird jeder Slot zusätzlich in
+        Versickerungs-Blöcke mit Pause zerlegt."""
         if dauer_min <= 0:
             return
-        for ventil in kreis.get(CONF_VENTILE, []):
-            if not self.daten.hub.lauf_aktiv:  # Not-Aus zwischen Ventilen
-                return
-            if self._zustand(ventil) in NICHT_ERREICHBAR:
-                _LOGGER.warning("Ventil %s nicht erreichbar — Slot übersprungen", ventil)
-                continue
-            await self._ventil_befehl(ventil, "turn_on")
-            await asyncio.sleep(dauer_min * 60)
-            await self._retry_close(ventil)
-            await asyncio.sleep(DEFAULT_PAUSE_S)
+        kid = kreis[CONF_KREIS_ID]
+        bloecke, pause_min = self._bloecke(kreis, dauer_min)
+        if len(bloecke) > 1:
+            _LOGGER.info(
+                "Kreis %s: %d min in %d Blöcken à %.1f min mit %.0f min Pause",
+                kid, dauer_min, len(bloecke), bloecke[0], pause_min,
+            )
+        # Während der Blockpausen ist die Sitzung NICHT zu Ende: sonst würde
+        # der 30-s-Settle mitten in der Pause die Liter abrechnen und jeder
+        # Block als eigene Sitzung erscheinen. Die Markierung umfasst den
+        # GESAMTEN Kreis (alle Ventile, alle Blöcke) — bei mehreren Ventilen
+        # ist die Sitzung erst nach dem letzten Slot zu Ende.
+        geblockt = len(bloecke) > 1
+        if geblockt:
+            self._zyklus_aktiv.add(kid)
+        try:
+            for ventil in kreis.get(CONF_VENTILE, []):
+                if not self.daten.hub.lauf_aktiv:  # Not-Aus zwischen Ventilen
+                    return
+                if self._zustand(ventil) in NICHT_ERREICHBAR:
+                    _LOGGER.warning(
+                        "Ventil %s nicht erreichbar — Slot übersprungen", ventil
+                    )
+                    continue
+                for i, block in enumerate(bloecke):
+                    if not self.daten.hub.lauf_aktiv:
+                        break
+                    await self._ventil_befehl(ventil, "turn_on")
+                    await asyncio.sleep(block * 60)
+                    await self._retry_close(ventil)
+                    if i < len(bloecke) - 1:
+                        await asyncio.sleep(pause_min * 60)  # einsickern lassen
+                await asyncio.sleep(DEFAULT_PAUSE_S)
+        finally:
+            if geblockt:
+                self._zyklus_aktiv.discard(kid)
+                # Sitzung jetzt regulär abschließen (das während der Blöcke
+                # unterdrückte Settle nachholen) — auch nach einem Not-Aus,
+                # denn geflossenes Wasser gehört verbucht.
+                if (
+                    kreis.get(CONF_FLOW_SENSOR)
+                    and kid in self._volumen_baseline
+                    and all(
+                        self._zustand(v) != "on" for v in kreis.get(CONF_VENTILE, [])
+                    )
+                ):
+                    if unsub := self._volumen_settle.pop(kid, None):
+                        unsub()
+                    self._volumen_settle[kid] = async_call_later(
+                        self.hass, VOLUMEN_SETTLE_S,
+                        partial(self._volumen_abschluss, kid),
+                    )
 
     async def _lauf_abschliessen(
         self, plan: list[tuple[dict[str, Any], int]], quelle: str, abgebrochen: bool
@@ -814,6 +880,8 @@ class GartenController:
                 if (
                     kreis.get(CONF_FLOW_SENSOR)
                     and kid in self._volumen_baseline
+                    # Blockpause der Intervall-Bewässerung ist KEIN Sitzungsende
+                    and kid not in self._zyklus_aktiv
                     and all(
                         self._zustand(v) != "on"
                         for v in kreis.get(CONF_VENTILE, [])

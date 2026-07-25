@@ -820,7 +820,140 @@ def main():
     )
     print("Repairs: Karte nach Wechsel auf kumulativen Zaehler + gueltiger Sitzung geloescht")
 
-    print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten, Typwechsel (v1.0.1), Kalender + Energy-Zaehler + Repairs (v1.4.0) OK")
+    # ===== v1.5.0: Intervall-Bewaesserung (cycle & soak) =====
+    # Rasen Zwei auf 3 Bloecke a 1 min mit 1 min Pause; ein Lauf ueber 3 min
+    # muss dann AUF-ZU-AUF-ZU-AUF-ZU zeigen statt einmal 3 min am Stueck.
+    f = options_flow2(
+        [
+            {"next_step_id": "kreis_bearbeiten"},
+            {"kreis": "rasen_zwei"},
+            {
+                "name": "Rasen Zwei",
+                "typ": "rasen",
+                "ventile": ["switch.testventil_4"],
+                "bodensensoren": [],
+                "ausfuehrung": "sequenziell",
+                "gruppe_reihenfolge": 2,
+            },
+            {"veto_schwelle": 70, "min_dauer": 1, "max_dauer": 5,
+             "temp_quelle": "global", "flow_sensor": "sensor.testflow_liter",
+             "block_max_min": 1, "block_pause_min": 1,
+             "leck_sensoren": [], "batterie_sensoren": []},
+        ]
+    )
+    assert f.get("type") == "create_entry", f
+    time.sleep(8)
+    for eid, wert3 in (
+        ("number.garten_rasen_dauer_heute", 0),
+        ("number.garten_tomaten_dauer_heute", 0),
+        ("number.garten_rasen_zwei_dauer_heute", 3),
+    ):
+        req("/api/services/number/set_value", {"entity_id": eid, "value": wert3})
+    time.sleep(1)
+    basis_liter = float(zustand("sensor.garten_rasen_zwei_liter_heute"))
+    req("/api/services/input_number/set_value", {"entity_id": "input_number.flow", "value": 2.0})
+    time.sleep(1)
+    # Ausgangszustand VOR dem Start erfassen — sonst ist das Ventil beim
+    # ersten Sample schon offen und die erste AN-Flanke fehlt.
+    flanken, vorher = [], zustand("switch.testventil_4")
+    req("/api/services/button/press", {"entity_id": "button.garten_sofort_start"})
+    # 3 Bloecke a 1 min + 2 Pausen a 1 min = ~5 min; alle 10 s abtasten
+    wasser_gelaufen = False
+    ende6 = time.time() + 480
+    while time.time() < ende6:
+        time.sleep(10)
+        jetzt2 = zustand("switch.testventil_4")
+        if jetzt2 != vorher:
+            flanken.append(jetzt2)
+            vorher = jetzt2
+        # Waehrend der Gabe "fliesst" Wasser: Zaehlerstand 2.0 -> 3.0 m3
+        # (= +1000 L am L-Zaehler). Erst nach dem ersten Block, damit die
+        # Baseline sauber bei 2000 L steht.
+        if not wasser_gelaufen and flanken.count("off") >= 1:
+            req("/api/services/input_number/set_value",
+                {"entity_id": "input_number.flow", "value": 3.0})
+            wasser_gelaufen = True
+        if flanken.count("off") >= 3:
+            break
+    assert wasser_gelaufen, "Zaehler wurde nie erhoeht — Test misst nichts"
+    # Ein abgeschlossener Block = eine AUS-Flanke (robust gegen den Fall,
+    # dass das Sampling die allererste AN-Flanke verpasst).
+    bloecke_gelaufen = flanken.count("off")
+    assert bloecke_gelaufen >= 3, (
+        f"Intervall-Bewaesserung: nur {bloecke_gelaufen} Bloecke ({flanken})"
+    )
+    print(f"Intervall-Bewaesserung: {bloecke_gelaufen} Bloecke statt einer Dauergabe {flanken}")
+    # Waehrend der Pausen darf KEINE Teil-Sitzung abgerechnet werden:
+    # am Ende genau EIN Zuwachs (2.0 - 1.031 m3 = 969 L, hier L-Zaehler)
+    time.sleep(40)
+    neu_liter = float(zustand("sensor.garten_rasen_zwei_liter_heute"))
+    zuwachs = round(neu_liter - basis_liter, 1)
+    assert zuwachs > 900, f"Volumen der Blockgabe fehlt: {zuwachs} L"
+    letzte = json.loads(json.dumps(
+        req("/api/states/sensor.garten_rasen_zwei_liter_heute")["attributes"]
+    ))
+    assert abs(letzte["letzte_sitzung_liter"] - zuwachs) < 1, (
+        f"Blockpausen wurden als Teil-Sitzungen abgerechnet: "
+        f"letzte Sitzung {letzte['letzte_sitzung_liter']} vs Zuwachs {zuwachs}"
+    )
+    print(f"Blockpausen bleiben EINE Sitzung: {letzte['letzte_sitzung_liter']} L")
+
+    # --- Bloecke bei MEHREREN Ventilen im Kreis ---
+    # Regression: die Sitzungs-Markierung muss den GANZEN Kreis umfassen
+    # (alle Ventile, alle Bloecke). Lag sie nur um ein Ventil, wurde die
+    # Sitzung nach dem ersten Slot abgerechnet und Ventil 2 buchte separat.
+    f = options_flow2(
+        [
+            {"next_step_id": "kreis_bearbeiten"},
+            {"kreis": "rasen"},
+            {**rasen_basis, "typ": "rasen"},
+            {"veto_schwelle": 70, "min_dauer": 1, "max_dauer": 20,
+             "temp_quelle": "global", "flow_sensor": "sensor.testflow",
+             "block_max_min": 1, "block_pause_min": 1,
+             "leck_sensoren": [], "batterie_sensoren": []},
+        ]
+    )
+    assert f.get("type") == "create_entry", f
+    time.sleep(8)
+    for eid, wert4 in (
+        ("number.garten_rasen_dauer_heute", 2),
+        ("number.garten_rasen_zwei_dauer_heute", 0),
+    ):
+        req("/api/services/number/set_value", {"entity_id": eid, "value": wert4})
+    req("/api/services/input_number/set_value", {"entity_id": "input_number.flow", "value": 5.0})
+    time.sleep(2)
+    flanken1, flanken2 = [], []
+    v1, v2 = zustand("switch.testventil_1"), zustand("switch.testventil_2")
+    req("/api/services/button/press", {"entity_id": "button.garten_sofort_start"})
+    erhoeht = False
+    ende7 = time.time() + 560
+    while time.time() < ende7:
+        time.sleep(10)
+        n1, n2 = zustand("switch.testventil_1"), zustand("switch.testventil_2")
+        if n1 != v1:
+            flanken1.append(n1); v1 = n1
+        if n2 != v2:
+            flanken2.append(n2); v2 = n2
+        if not erhoeht and flanken1.count("off") >= 1:
+            req("/api/services/input_number/set_value",
+                {"entity_id": "input_number.flow", "value": 5.5})
+            erhoeht = True
+        if flanken2.count("off") >= 2:
+            break
+    assert flanken1.count("off") >= 2, f"Ventil 1 nicht geblockt: {flanken1}"
+    assert flanken2.count("off") >= 2, f"Ventil 2 nicht geblockt: {flanken2}"
+    print(f"Mehr-Ventil-Bloecke: V1 {flanken1.count('off')}x, V2 {flanken2.count('off')}x")
+    time.sleep(40)
+    rl = req("/api/states/sensor.garten_rasen_liter_heute")
+    sitzung = rl["attributes"]["letzte_sitzung_liter"]
+    # 5.0 -> 5.5 m3 = 500 L, in EINER Sitzung ueber beide Ventile
+    assert abs(sitzung - 500) < 5, (
+        f"Sitzung ueber beide Ventile falsch abgerechnet: {sitzung} L (erwartet 500)"
+    )
+    assert abs(float(rl["state"]) - 500) < 5, rl["state"]
+    print(f"Mehr-Ventil-Sitzung korrekt als EINE Gabe verbucht: {sitzung} L")
+
+    print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten, Typwechsel (v1.0.1), Kalender + Energy-Zaehler + Repairs (v1.4.0), Intervall-Bewaesserung (v1.5.0) OK")
 
 
 if __name__ == "__main__":

@@ -80,6 +80,7 @@ Pro Kreis-Gerät **„Garten \<Name\>"** (Beispiel `rasen`):
 | `sensor.garten_rasen_status` | der erklärende Satz („Warum (nicht)?") |
 | `number.garten_rasen_dauer_heute` | heutige Dauer — Engine schreibt, du darfst überschreiben |
 | `number.garten_rasen_veto_schwelle_boden` / `_min_dauer` / `_max_dauer` | Kreis-Regler |
+| Kreis-Dialog: *Max. Minuten pro Block* / *Versickerungspause* | Intervall-Bewässerung (cycle & soak) — teilt lange Gaben in versickerungsfähige Blöcke, siehe FAQ 20 |
 | `sensor.garten_rasen_zuletzt_bewassert` | Stempel bei JEDEM Ventil-Schließen |
 | `sensor.garten_rasen_bodenfeuchte` | Engine-Sicht der Bodenfeuchte (Minimum über die Kreis-Sensoren) — nur bei konfigurierten Bodensensoren |
 | `switch.garten_rasen_aktiv` | Kreis pausieren |
