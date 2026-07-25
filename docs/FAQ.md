@@ -736,6 +736,28 @@ jedes Ventil, das länger als diese Zeit am Stück offen ist — er zählt pro
 Topf-Frequenzbewässerung sind ohnehin nur ein bis vier Minuten lang; die
 Blockung greift ausschließlich beim abendlichen Hauptlauf.
 
+### Nicht abrupt umstellen — sonst stirbt der Rasen beim Umstieg
+
+Wer bisher täglich flach gegossen hat, dessen Rasen hat **Wurzeln in den
+obersten 2–3 cm** — nur dort kam ja Wasser an. Stellt man von heute auf
+morgen auf „alle 3 Tage" um, trocknet genau diese Schicht zwischen zwei Gaben
+komplett aus, und die Wurzeln sterben, bevor tiefere nachgewachsen sind. Der
+Rasen wird beim *Umstieg* braun, obwohl das Ziel richtig ist.
+
+Tiefes Wurzelwachstum braucht Wochen. Geh deshalb in Stufen und **nie während
+einer Hitzewelle** — der schlechteste denkbare Zeitpunkt:
+
+| Stufe | Frequenz | Menge | Dauer |
+|---|---|---|---|
+| 1 (Start) | täglich wie bisher | ~8 mm | 1–2 Wochen |
+| 2 | alle 2 Tage | ~12 mm | 1–2 Wochen |
+| 3 (Ziel) | alle 2–3 Tage | 15–20 mm | dauerhaft |
+
+Die erste Stufe erhöht also nur die **Menge**, nicht den Abstand — sie füllt
+den ausgetrockneten Boden wieder auf, während die Wurzeln noch flach sind.
+Die Intervall-Bewässerung brauchst du schon ab Stufe 1, sonst läuft dir auch
+die größere Gabe oberflächlich weg.
+
 ### Auf gerissenem Boden
 
 Fingerbreite Risse bedeuten tief ausgetrockneten Ton — und sie wirken als
