@@ -23,6 +23,11 @@ input_boolean:
   v3: {name: V3}
   v4: {name: V4}
 input_number:
+  batt:
+    name: Batt
+    min: 0
+    max: 100
+    step: 1
   flow:
     name: Flow
     min: 0
@@ -45,6 +50,10 @@ template:
       - name: testflow_rate
         unit_of_measurement: "L/min"
         state: "15.7"
+      - name: testbatterie
+        unit_of_measurement: "%"
+        device_class: battery
+        state: "{{ states('input_number.batt') }}"
   - switch:
       - name: testventil_1
         state: "{{ is_state('input_boolean.v1','on') }}"

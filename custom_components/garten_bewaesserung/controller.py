@@ -1081,6 +1081,24 @@ class GartenController:
             if kreis.get(CONF_KREIS_TYP) == "topf":
                 self.hass.async_create_task(self._topf_pruefen(kreis[CONF_KREIS_ID]))
 
+    def _im_dosierfenster(self, t: dict[str, Any]) -> bool:
+        """Nachtruhe-Gate: liegt JETZT im erlaubten Dosier-Zeitfenster?
+
+        Nötig, weil die Peak-Sonnen-Sperre (Gate ③) nur gegen pralle Sonne
+        schützt — nachts ist die Globalstrahlung 0 und das Gate damit offen.
+        Ein Fenster über Mitternacht (von > bis) wird unterstützt; eine
+        kaputte Konfiguration blockiert bewusst nicht.
+        """
+        try:
+            von = time_t.fromisoformat(str(t.get("dosen_von", "07:00:00")))
+            bis = time_t.fromisoformat(str(t.get("dosen_bis", "21:00:00")))
+        except (TypeError, ValueError):
+            return True
+        jetzt = dt_util.now().time()
+        if von <= bis:
+            return von <= jetzt < bis
+        return jetzt >= von or jetzt < bis
+
     def _topf_boden(self, kreis: dict[str, Any]) -> float | None:
         """Minimum über die Sensoren; nicht-numerisch ⇒ -1 (B6-float(-1)-
         Semantik: blockiert über die Glitch-Grenze — nie blind dosieren)."""
@@ -1135,6 +1153,11 @@ class GartenController:
             )
             and all(  # ⑨ Ventil(e) zu
                 self._zustand(v) == "off" for v in kreis.get(CONF_VENTILE, [])
+            )
+            and self._im_dosierfenster(t)  # ⑩ Nachtruhe
+            and all(  # ⑪ Sensor-Plausibilität (leere Batterie -> nicht dosieren)
+                sicher_float(self._zustand(b), 100.0) > float(t["batterie_min"])
+                for b in (kreis.get(CONF_BATTERIE) or [])
             )
         )
         if not gates_ok:

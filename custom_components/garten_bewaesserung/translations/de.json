@@ -113,13 +113,19 @@
               "topf_max_dosen": "Max. Dosen pro Tag",
               "topf_dosis_max_min": "Max. Minuten pro Dosis",
               "topf_min_intervall_min": "Mindestabstand zwischen Dosen",
-              "topf_glitch_grenze": "Sensor-Glitch-Untergrenze"
+              "topf_glitch_grenze": "Sensor-Glitch-Untergrenze",
+              "topf_dosen_von": "Topf-Dosen erst ab",
+              "topf_dosen_bis": "Topf-Dosen nur bis",
+              "topf_batterie_min": "Topf-Dosen aussetzen unter Sensorbatterie"
             },
             "data_description": {
               "topf_max_dosen": "Obergrenze je Topf-Kreis und Tag — begrenzt zugleich die maximale Tages-Wassermenge.",
               "topf_dosis_max_min": "Länger läuft eine einzelne Dose nie, egal wie trocken der Sensor misst.",
               "topf_min_intervall_min": "Wartezeit, bis der Boden die vorige Dose aufgenommen hat und der Sensor nachgezogen ist.",
-              "topf_glitch_grenze": "Messwerte darunter gelten als Sensor-Aussetzer (z. B. 0 % bei Funkabriss) und lösen keine Dose aus."
+              "topf_glitch_grenze": "Messwerte darunter gelten als Sensor-Aussetzer (z. B. 0 % bei Funkabriss) und lösen keine Dose aus.",
+              "topf_dosen_von": "Nachtruhe für die Topf-Dosen. Die Peak-Sonnen-Sperre schützt nur gegen pralle Sonne — nachts ist die Globalstrahlung 0 und damit offen, sodass ohne Zeitfenster auch um 03:00 gegossen wird, wenn die Bodenfeuchte es sagt. Der abendliche Hauptlauf ist davon nicht betroffen.",
+              "topf_dosen_bis": "Ende des Dosier-Fensters. Ein Fenster über Mitternacht (Ende vor Beginn) ist erlaubt.",
+              "topf_batterie_min": "Fällt eine am Kreis hinterlegte Batterie unter diesen Wert, werden keine Dosen mehr gegeben. Grund: Ein Bodensensor mit leerer Batterie liefert nicht „nichts\", sondern einen nach unten driftenden Messwert — die Regelung hielte den Topf für ausgetrocknet und wässerte dauerhaft am Anschlag. 0 schaltet die Prüfung ab."
             }
           },
           "kosten": {

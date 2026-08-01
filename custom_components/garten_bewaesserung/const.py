@@ -90,6 +90,15 @@ TOPF_DEFAULTS = {
     "dosis_max_min": 4,
     "min_intervall_min": 90,
     "glitch_grenze": 5,
+    # Nachtruhe: Dosen nur in diesem Fenster. Die Peak-Sonnen-Sperre schützt
+    # nur gegen pralle Sonne und ist nachts per Definition offen — ohne
+    # Zeitfenster dosiert die Regelung um 03:00, wenn der Boden es sagt.
+    "dosen_von": "07:00:00",
+    "dosen_bis": "22:00:00",
+    # Einem Bodensensor mit leerer Batterie nicht mehr glauben: sein Messwert
+    # driftet nach unten weg, die Regelung hielte den Topf für ausgetrocknet
+    # und wässerte dauerhaft am Anschlag.
+    "batterie_min": 10,
 }
 KREIS_TYP_DEFAULTS = {
     # veto, min, max, ziel_unten, ziel_oben (Kit-Seed-Tabelle)

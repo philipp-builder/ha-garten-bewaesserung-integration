@@ -113,13 +113,19 @@
               "topf_max_dosen": "Max doses per day",
               "topf_dosis_max_min": "Max minutes per dose",
               "topf_min_intervall_min": "Minimum gap between doses",
-              "topf_glitch_grenze": "Sensor glitch floor"
+              "topf_glitch_grenze": "Sensor glitch floor",
+              "topf_dosen_von": "Pot doses not before",
+              "topf_dosen_bis": "Pot doses only until",
+              "topf_batterie_min": "Pause pot doses below sensor battery"
             },
             "data_description": {
               "topf_max_dosen": "Upper limit per pot circuit and day — also caps the daily water volume.",
               "topf_dosis_max_min": "A single dose never runs longer, however dry the sensor reads.",
               "topf_min_intervall_min": "Wait until the soil has absorbed the previous dose and the sensor has caught up.",
-              "topf_glitch_grenze": "Readings below this count as sensor glitches (e.g. 0% on a radio dropout) and never trigger a dose."
+              "topf_glitch_grenze": "Readings below this count as sensor glitches (e.g. 0% on a radio dropout) and never trigger a dose.",
+              "topf_dosen_von": "Quiet hours for pot doses. The peak-sun lockout only guards against blazing sun — at night solar radiation is 0 and the gate is wide open, so without a time window the controller waters at 3 a.m. if soil moisture says so. The main evening run is unaffected.",
+              "topf_dosen_bis": "End of the dosing window. A window across midnight (end before start) is allowed.",
+              "topf_batterie_min": "If a battery configured on the circuit drops below this, no more doses are given. Reason: a soil sensor with an empty battery does not report nothing — it reports a downward-drifting value, so the controller would think the pot is bone dry and water at full tilt forever. 0 disables the check."
             }
           },
           "kosten": {

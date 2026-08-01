@@ -365,6 +365,9 @@ class GartenOptionsFlow(OptionsFlowWithReload):
                             vol.Required("topf_dosis_max_min", default=topf["dosis_max_min"]): _num(1, 30, 1, "min"),
                             vol.Required("topf_min_intervall_min", default=topf["min_intervall_min"]): _num(10, 360, 5, "min"),
                             vol.Required("topf_glitch_grenze", default=topf["glitch_grenze"]): _num(0, 30, 1, "%"),
+                            vol.Required("topf_dosen_von", default=topf["dosen_von"]): selector.TimeSelector(),
+                            vol.Required("topf_dosen_bis", default=topf["dosen_bis"]): selector.TimeSelector(),
+                            vol.Required("topf_batterie_min", default=topf["batterie_min"]): _num(0, 100, 1, "%"),
                         }
                     ),
                     {"collapsed": True},

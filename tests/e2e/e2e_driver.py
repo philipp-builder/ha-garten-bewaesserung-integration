@@ -367,7 +367,7 @@ def main():
                 "k_faktor": 3.7,
                 "flow_sensor": "sensor.testflow",
                 "leck_sensoren": [],
-                "batterie_sensoren": [],
+                "batterie_sensoren": ["sensor.testbatterie"],
             },
         ]
     )
@@ -379,8 +379,51 @@ def main():
     )
     print("F3: Kreis-Edit (Veto 70→55) erreicht die Number nach dem Reload")
     req("/api/services/input_number/set_value", {"entity_id": "input_number.flow", "value": 1.0})
+    req("/api/services/input_number/set_value", {"entity_id": "input_number.batt", "value": 100})
     req("/api/services/switch/turn_on", {"entity_id": "switch.garten_topf_frequenzbewasserung"})
     time.sleep(1)
+
+    # ===== v1.6.0: Nachtruhe + Batterie-Plausibilitaet (Negativtests ZUERST) =====
+    # Zuerst, weil jede erfolgreiche Dose die 90-min-Sperre setzt und danach
+    # ohnehin alles blockiert waere — ein Negativtest bewiese dann nichts.
+    def tuning_toepfe(**werte):
+        f2 = req("/api/config/config_entries/options/flow", {"handler": entry_id2})
+        f2 = req(f"/api/config/config_entries/options/flow/{f2['flow_id']}",
+                 {"next_step_id": "tuning"})
+        f2 = req(f"/api/config/config_entries/options/flow/{f2['flow_id']}",
+                 {"gewichte": {}, "temperatur": {}, "regen_sonne": {},
+                  "toepfe": werte, "kosten": {}})
+        assert f2.get("type") == "create_entry", f2
+        time.sleep(8)
+
+    # Die Test-HA laeuft ohne time_zone, also UTC — Fenster relativ zu jetzt bauen
+    from datetime import datetime, timedelta, timezone as _tz
+    jetzt_utc = datetime.now(_tz.utc)
+    spaeter = (jetzt_utc + timedelta(hours=2)).strftime("%H:%M:00")
+    noch_spaeter = (jetzt_utc + timedelta(hours=3)).strftime("%H:%M:00")
+
+    # (a) Fenster schliesst JETZT aus -> keine Dose
+    tuning_toepfe(topf_dosen_von=spaeter, topf_dosen_bis=noch_spaeter)
+    req("/api/services/button/press", {"entity_id": "button.garten_plan_neu_berechnen"})
+    time.sleep(5)
+    assert zustand("switch.testventil_3") == "off", "Nachtruhe ignoriert — Ventil offen"
+    assert zustand("sensor.garten_tomaten_dosen_heute") == "0", (
+        "Nachtruhe ignoriert — Dose gezaehlt: " + zustand("sensor.garten_tomaten_dosen_heute"))
+    print(f"Nachtruhe: ausserhalb {spaeter}-{noch_spaeter} keine Dose")
+
+    # (b) Fenster offen, aber Sensorbatterie leer -> keine Dose
+    tuning_toepfe(topf_dosen_von="00:00:00", topf_dosen_bis="23:59:00")
+    req("/api/services/input_number/set_value", {"entity_id": "input_number.batt", "value": 5})
+    time.sleep(2)
+    req("/api/services/button/press", {"entity_id": "button.garten_plan_neu_berechnen"})
+    time.sleep(5)
+    assert zustand("switch.testventil_3") == "off", "Leere Batterie ignoriert — Ventil offen"
+    assert zustand("sensor.garten_tomaten_dosen_heute") == "0", "Leere Batterie ignoriert"
+    print("Batterie-Plausibilitaet: bei 5 % keine Dose")
+
+    # (c) Batterie wieder voll -> der bestehende Dosis-Test unten muss greifen
+    req("/api/services/input_number/set_value", {"entity_id": "input_number.batt", "value": 100})
+    time.sleep(2)
 
     # Zuletzt-Stempel ist frisch → 24-h-Dämpfer… betrifft nur den Report.
     # Topf-Gates: Master an (Default), Boden 38 < Sollband-Unterkante 50,
@@ -953,7 +996,7 @@ def main():
     assert abs(float(rl["state"]) - 500) < 5, rl["state"]
     print(f"Mehr-Ventil-Sitzung korrekt als EINE Gabe verbucht: {sitzung} L")
 
-    print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten, Typwechsel (v1.0.1), Kalender + Energy-Zaehler + Repairs (v1.4.0), Intervall-Bewaesserung (v1.5.0) OK")
+    print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten, Typwechsel (v1.0.1), Kalender + Energy-Zaehler + Repairs (v1.4.0), Intervall-Bewaesserung (v1.5.0), Nachtruhe + Batterie-Gate (v1.6.0) OK")
 
 
 if __name__ == "__main__":
