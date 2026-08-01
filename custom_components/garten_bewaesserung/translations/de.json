@@ -36,6 +36,9 @@
           "vorlauf_min": "Vorlauf der Plan-Benachrichtigung",
           "standard_dauer": "Auto-Aus-Dauer für manuelles Gießen",
           "notaus_minuten": "Notaus-Schwelle (muss über jeder Max-Dauer liegen)"
+        },
+        "data_description": {
+          "regen_sensor": "Muss die Summe der letzten 24 Stunden ROLLEND liefern, nicht die Tagessumme: Eine Tagessumme springt um Mitternacht auf 0, dann fehlt morgens der Regen vom Vorabend — also genau dann, wenn das Veto entscheidet. Liefert dein Sensor etwas anderes (mm pro Messintervall, kumulativer Zähler oder Rate in mm/h), baust du dir den rollenden Wert mit einem statistics-Helfer und max_age 24 h: FAQ Frage 4 hat für alle drei Formen ein fertiges Rezept. Leer lassen ist auch in Ordnung — dann zählt nur der Regen aus der Wettervorhersage."
         }
       },
       "benachrichtigungen": {

@@ -36,6 +36,9 @@
           "vorlauf_min": "Plan notification lead time",
           "standard_dauer": "Auto-off duration for manual watering",
           "notaus_minuten": "Emergency-stop threshold (must exceed every max duration)"
+        },
+        "data_description": {
+          "regen_sensor": "Must provide a ROLLING 24-hour sum, not a daily total: a daily total resets to 0 at midnight, so in the morning yesterday evening's rain is missing — exactly when the veto decides. If your sensor delivers something else (mm per measurement interval, a cumulative counter or a rate in mm/h), build the rolling value with a statistics helper and max_age 24 h; FAQ question 4 has a ready-made recipe for all three shapes. Leaving it empty is fine too — then only forecast rain counts."
         }
       },
       "benachrichtigungen": {
