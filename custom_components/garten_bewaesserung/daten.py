@@ -33,6 +33,11 @@ class KreisLaufzeit:
     dauer_heute: int | None = None  # von Engine geschrieben; number zeigt/überschreibt
     zuletzt_bewaessert: datetime | None = None
     dosen_heute: int = 0
+    # Glass-Box der Topfregelung: welches Gate gerade blockiert (None = es
+    # darf dosiert werden) und die Rohwerte dahinter. Bewusst NICHT
+    # persistiert — wird bei jeder Prüfung neu bestimmt.
+    dosis_grund: str | None = None
+    dosis_details: dict[str, Any] = field(default_factory=dict)
     liter_heute: float | None = None
     liter_monat: float | None = None
     liter_gesamt: float | None = None  # kumulativ, nie zurückgesetzt (Energy-Dashboard)

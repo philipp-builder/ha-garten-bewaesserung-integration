@@ -18,6 +18,7 @@ from homeassistant.util import dt as dt_util
 from .const import (
     CONF_FLOW_SENSOR,
     CONF_BODENSENSOREN,
+    CONF_KREIS_ID,
     CONF_KREIS_TYP,
     CONF_KREISE,
     CONF_TARIF,
@@ -142,6 +143,36 @@ class DosenSensor(GartenEntity, SensorEntity):
     @property
     def native_value(self) -> int:
         return self.kreis_laufzeit.dosen_heute
+
+    @property
+    def extra_state_attributes(self) -> dict[str, Any]:
+        """Wann heute dosiert wurde — und warum gerade nicht.
+
+        Der nackte Zähler beantwortet „wie oft gießt der eigentlich?“ nicht:
+        er springt um Mitternacht auf 0 und nennt keine Uhrzeiten. Die Zeiten
+        kommen aus derselben Historie, die auch der Kalender liest — sie ist
+        Store-persistiert und übersteht damit Neustarts, ohne dass dafür
+        zusätzlicher Laufzeit-Zustand nötig wäre.
+        """
+        laufzeit = self.kreis_laufzeit
+        heute = dt_util.now().date()
+        kid = self._kreis[CONF_KREIS_ID] if self._kreis else None
+        zeiten: list[str] = []
+        for eintrag in self._daten.hub.lauf_historie:
+            if eintrag.get("art") != "dose" or eintrag.get("kreis") != kid:
+                continue
+            start = dt_util.parse_datetime(eintrag.get("start") or "")
+            if start is None:
+                continue
+            lokal = dt_util.as_local(start)
+            if lokal.date() != heute:
+                continue
+            zeiten.append(f"{lokal:%H:%M} · {eintrag.get('minuten', '?')} min")
+        attribute: dict[str, Any] = {"zeiten": zeiten}
+        if laufzeit.dosis_grund:
+            attribute["warum_gerade_nicht"] = laufzeit.dosis_grund
+        attribute.update(laufzeit.dosis_details or {})
+        return attribute
 
 
 class NaechsterLaufSensor(GartenEntity, SensorEntity):

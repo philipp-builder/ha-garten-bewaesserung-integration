@@ -158,7 +158,11 @@ GartenController
 ├─ sitzung:    state-Listener auf alle Ventile: on→off stempelt
 │              zuletzt_bewaessert + Volumen-Delta (30 s Settle) — B9.
 ├─ topf:       pro Topf-Kreis Soll-Band-Loop (alle 30 min + Unterschreitungs-
-│              Listener), 9 Gates exakt wie B6, Dosis geklemmt.
+│              Listener), 11 Gates exakt wie B6 (+ Nachtruhe, Batterie),
+│              Dosis geklemmt. Gates werden AUSGEWERTET statt kurz-
+│              geschlossen: der erste nicht erfüllte Punkt landet als
+│              dosis_grund am Dosen-Sensor („warum gerade nicht"), jede
+│              Dose als eigener Eintrag in lauf_historie (Kalender).
 ├─ alarme:     Leck (to on), Versorgung (off ≥1 min + Ventil an + HA-Kontext),
 │              Batterie (< Schwelle 30 min, 1 Push/Tag), Trocken-Report (Zeit,
 │              Dämpfer via zuletzt_bewaessert) — B7/B8/B10/B12.

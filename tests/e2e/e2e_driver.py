@@ -278,6 +278,11 @@ def main():
     def zustand(eid):
         return next(s["state"] for s in req("/api/states") if s["entity_id"] == eid)
 
+    def attribute(eid):
+        return next(
+            s["attributes"] for s in req("/api/states") if s["entity_id"] == eid
+        )
+
     req("/api/services/switch/turn_on", {"entity_id": "switch.garten_rasen_aktiv"})
     req("/api/services/button/press", {"entity_id": "button.garten_plan_neu_berechnen"})
     time.sleep(3)
@@ -410,6 +415,12 @@ def main():
     assert zustand("sensor.garten_tomaten_dosen_heute") == "0", (
         "Nachtruhe ignoriert — Dose gezaehlt: " + zustand("sensor.garten_tomaten_dosen_heute"))
     print(f"Nachtruhe: ausserhalb {spaeter}-{noch_spaeter} keine Dose")
+    # v1.7.0 Glass-Box: der Sperrgrund muss benannt sein — "die Regelung
+    # tut nichts" war von aussen nicht von "sie darf gerade nicht" zu
+    # unterscheiden (Beta-Rueckfrage).
+    grund_a = attribute("sensor.garten_tomaten_dosen_heute").get("warum_gerade_nicht", "")
+    assert "Dosierfenster" in grund_a, grund_a
+    print("   Sperrgrund sichtbar:", grund_a)
 
     # (b) Fenster offen, aber Sensorbatterie leer -> keine Dose
     tuning_toepfe(topf_dosen_von="00:00:00", topf_dosen_bis="23:59:00")
@@ -420,6 +431,9 @@ def main():
     assert zustand("switch.testventil_3") == "off", "Leere Batterie ignoriert — Ventil offen"
     assert zustand("sensor.garten_tomaten_dosen_heute") == "0", "Leere Batterie ignoriert"
     print("Batterie-Plausibilitaet: bei 5 % keine Dose")
+    grund_b = attribute("sensor.garten_tomaten_dosen_heute").get("warum_gerade_nicht", "")
+    assert "Sensorbatterie" in grund_b, grund_b
+    print("   Sperrgrund sichtbar:", grund_b)
 
     # (c) Batterie wieder voll -> der bestehende Dosis-Test unten muss greifen
     req("/api/services/input_number/set_value", {"entity_id": "input_number.batt", "value": 100})
@@ -454,6 +468,27 @@ def main():
     assert zustand("switch.testventil_3") == "off", "Intervall-Gate versagt (2. Dose)"
     assert zustand("sensor.garten_tomaten_dosen_heute") == "1"
     print("Mindestabstand-Gate (⑤): zweite Dose korrekt verweigert")
+    grund_c = attribute("sensor.garten_tomaten_dosen_heute").get("warum_gerade_nicht", "")
+    assert "Mindestabstand" in grund_c, grund_c
+    print("   Sperrgrund sichtbar:", grund_c)
+
+    # Dose muss eine Spur hinterlassen: Uhrzeit am Sensor UND ein
+    # Kalendertermin. Vorher war der Topfkreis der einzige, der gar
+    # keine Historie erzeugte — "wie oft giesst der?" war unbeantwortbar.
+    zeiten = attribute("sensor.garten_tomaten_dosen_heute").get("zeiten") or []
+    assert len(zeiten) == 1, zeiten
+    assert "min" in zeiten[0], zeiten
+    print("   Dosen-Zeiten:", zeiten)
+    # Weites Fenster im Z-Format wie weiter unten: isoformat() liefert
+    # "+00:00", und das "+" wird im Querystring als Leerzeichen gelesen -> 400.
+    termine = req(
+        "/api/calendars/calendar.garten_kalender"
+        "?start=2020-01-01T00:00:00Z&end=2030-01-01T00:00:00Z"
+    )
+    dosen_termine = [t for t in termine if t.get("summary", "").startswith("Dose ")]
+    assert len(dosen_termine) == 1, [t.get("summary") for t in termine]
+    print("   Kalender-Termin:", dosen_termine[0]["summary"],
+          "|", dosen_termine[0].get("description"))
 
     # Volumen-Settle (30 s) abwarten → 20,0 L / 0,06 EUR
     time.sleep(35)
@@ -996,7 +1031,7 @@ def main():
     assert abs(float(rl["state"]) - 500) < 5, rl["state"]
     print(f"Mehr-Ventil-Sitzung korrekt als EINE Gabe verbucht: {sitzung} L")
 
-    print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten, Typwechsel (v1.0.1), Kalender + Energy-Zaehler + Repairs (v1.4.0), Intervall-Bewaesserung (v1.5.0), Nachtruhe + Batterie-Gate (v1.6.0) OK")
+    print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten, Typwechsel (v1.0.1), Kalender + Energy-Zaehler + Repairs (v1.4.0), Intervall-Bewaesserung (v1.5.0), Nachtruhe + Batterie-Gate (v1.6.0), Dosen-Sichtbarkeit: Sperrgrund + Zeiten + Kalender (v1.7.0) OK")
 
 
 if __name__ == "__main__":

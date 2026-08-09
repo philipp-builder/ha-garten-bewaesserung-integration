@@ -787,3 +787,86 @@ darauf zeigen lassen — fertig ist die Wochen-/Monatsansicht „wann lief was,
 wie lange“. Abgebrochene Läufe (Not-Aus) sind als solche markiert. Die
 Historie überlebt Neustarts; Läufe, bei denen nichts zu bewässern war,
 erzeugen bewusst keinen Termin.
+
+## 21. Was ist die Dosis-Antwort k — und wie sehe ich, wie oft der Topf gegossen wurde?
+
+### k in einem Satz
+
+k sagt, **wie stark ein Topf auf eine Minute Wasser reagiert**: um wie viele
+Prozentpunkte die Bodenfeuchte pro Gießminute steigt, gemessen bei 50 %
+Bodenfeuchte. Daraus berechnet die Regelung, wie lang eine Dose sein muss, um
+vom aktuellen Wert bis an die obere Kante deines Sollbands zu kommen.
+
+### Die einzige Regel, die du wirklich brauchst
+
+Du musst k nicht herleiten — nur in die richtige Richtung schieben:
+
+- **Dosen zu kurz, der Topf bleibt trocken** → k **senken**.
+- **Der Topf schießt über das Sollband hinaus, es tropft unten raus** → k
+  **erhöhen**.
+
+Standard ist 2,0. Nach zwei, drei Beobachtungstagen sitzt der Wert meistens.
+
+### Wenn du es genau willst: einmal messen
+
+1. Bodenwert notieren (nennen wir ihn `vorher`).
+2. Eine bekannte Zeit gießen, z. B. 3 Minuten.
+3. Den **Höchstwert** 1–2 Stunden danach notieren (`nachher`) — nicht sofort,
+   das Wasser braucht Zeit bis zum Sensor.
+4. Rechnen:
+
+```
+k = (nachher − vorher) ÷ ( Minuten × (100 − vorher) ÷ 100 )
+```
+
+Der hintere Term ist der **Kopfraum**: Ein fast gesättigter Topf nimmt pro
+Minute weniger auf als ein trockener. Deshalb steckt er in der Formel — und
+deshalb steht im Feldnamen „bei 50 % Boden", das ist der Bezugspunkt.
+
+**Beispiel:** vorher 40 %, 3 Minuten gegossen, danach 62 %.
+k = 22 ÷ (3 × 0,6) = **12,2**.
+
+### Was ein plausibler Wert ist
+
+Die Spannweite ist riesig und hängt an Topfgröße *und* Tropferleistung:
+
+| Situation | k grob |
+|---|---|
+| Großer Kübel, schwacher Tropfer | 1–3 |
+| Mittlerer Topf | 5–15 |
+| Kleiner Topf, kräftiger Tropfer | 20 und mehr |
+
+k ist außerdem **nicht konstant**: Mit wachsender Pflanze und im Hochsommer
+kann sich der Wert über die Saison mehrfach ändern. Wenn die Dosen plötzlich
+daneben liegen, ist das der erste Verdächtige.
+
+### Wie oft und wann wurde gegossen?
+
+Der Topfkreis gießt am häufigsten von allen — seit **v1.7.0** hinterlässt er
+auch die entsprechende Spur:
+
+- **`sensor.garten_<kreis>_dosen_heute`** — der Zähler (springt um Mitternacht
+  auf 0). Neu im Attribut **`zeiten`**: die Uhrzeiten und Längen der heutigen
+  Dosen, z. B. `09:12 · 2,4 min`.
+- **Bewässerungskalender** — jede Dose ist jetzt ein eigener Termin („Dose
+  Tomaten", mit Länge und Bodenwert in der Beschreibung), rückwirkend über
+  Wochen. Siehe Frage 18.
+- **`sensor.garten_<kreis>_zuletzt_bewaessert`** — Zeitpunkt der letzten
+  Öffnung, egal ob Plan, Dose oder Handbetrieb.
+
+### „Er gießt gar nicht" — warum eigentlich nicht?
+
+Häufigste Verwechslung: Die Regelung tut *absichtlich* nichts, aber von außen
+sieht das aus wie ein Defekt. Deshalb nennt derselbe Sensor im Attribut
+**`warum_gerade_nicht`** den ersten blockierenden Punkt im Klartext, etwa:
+
+- `Boden 58 % liegt über dem Zielband (50 %) — keine Dose nötig` ← der Normalfall
+- `pralle Sonne (780 ≥ 600) — wird aufgeschoben, bis die Sonne nachlässt`
+- `Mindestabstand läuft noch (noch 47 min, der Boden braucht Zeit zum Nachziehen)`
+- `außerhalb des Dosierfensters (07:00–22:00)`
+- `Tageslimit erreicht (4/4)`
+- `Sensorbatterie unter 10 % — dem Messwert ist nicht zu trauen`
+
+Ist ein Globalstrahlungs-Sensor konfiguriert, stehen sein aktueller Wert und
+die Schwelle zusätzlich als Attribute daneben — so ist die Peak-Sonnen-Sperre
+nachvollziehbar, ohne den Sensor selbst suchen zu müssen.

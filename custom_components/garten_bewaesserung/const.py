@@ -134,7 +134,11 @@ FLOW_KREIS_SCHLUESSEL = {"liter_heute", "liter_monat", "liter_gesamt", "kosten_m
 BODEN_KREIS_SCHLUESSEL = {"bodenfeuchte"}  # nur mit konfigurierten Bodensensoren
 
 # Lauf-Historie (Kalender): so viele abgeschlossene Läufe behalten
-LAUF_HISTORIE_MAX = 200
+# Kalender-Historie. Seit v1.7.0 landen auch Topf-Dosen hier — bei zwei
+# Töpfen à 4 Dosen plus dem Abendlauf sind das ~9 Einträge/Tag statt einem,
+# 200 hätten also nur noch gut drei Wochen abgedeckt. 500 ≈ zwei Monate,
+# rund 75 kB im Store.
+LAUF_HISTORIE_MAX = 500
 
 STORE_VERSION = 1
 EVENT_LAUF_GESTARTET = f"{DOMAIN}_lauf_gestartet"

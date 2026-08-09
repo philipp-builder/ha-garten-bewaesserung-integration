@@ -776,6 +776,7 @@ class GartenController:
                 {
                     "start": start.isoformat(),
                     "ende": dt_util.now().isoformat(),
+                    "art": "lauf",  # unterscheidet Läufe von Topf-Dosen
                     "titel": "Bewässerung"
                     + (" (abgebrochen)" if abgebrochen else ""),
                     "beschreibung": " · ".join(gegossen) + f" — {quelle}",
@@ -1099,6 +1100,31 @@ class GartenController:
             return von <= jetzt < bis
         return jetzt >= von or jetzt < bis
 
+    @callback
+    def _dosis_status(
+        self,
+        kid: str,
+        grund: str | None,
+        strahlung: float | None = None,
+        strahlung_schwelle: float | None = None,
+    ) -> None:
+        """Warum gerade nicht dosiert wird — als Attribut sichtbar machen.
+
+        Der nackte Zähler „Dosen heute“ beantwortet nicht, WARUM gerade
+        nichts passiert. Gerade die Peak-Sonnen-Sperre und der Mindestabstand
+        sehen von außen wie „die Regelung tut nichts“ aus. Broadcast nur bei
+        echter Änderung, damit die 30-Minuten-Runde keine Zustandsflut auslöst.
+        """
+        laufzeit = self.daten.kreis(kid)
+        details: dict[str, Any] = {}
+        if strahlung is not None:
+            details["strahlung"] = strahlung
+            details["strahlung_schwelle"] = strahlung_schwelle
+        if laufzeit.dosis_grund != grund or laufzeit.dosis_details != details:
+            laufzeit.dosis_grund = grund
+            laufzeit.dosis_details = details
+            self.daten.broadcast()
+
     def _topf_boden(self, kreis: dict[str, Any]) -> float | None:
         """Minimum über die Sensoren; nicht-numerisch ⇒ -1 (B6-float(-1)-
         Semantik: blockiert über die Glitch-Grenze — nie blind dosieren)."""
@@ -1115,6 +1141,7 @@ class GartenController:
         if self._gestoppt or kreis is None or kreis.get(CONF_KREIS_TYP) != "topf":
             return
         if self._dose_tasks.get(kid) and not self._dose_tasks[kid].done():
+            self._dosis_status(kid, "Dose läuft gerade")
             return  # Dose läuft bereits
         t = {**TOPF_DEFAULTS, **self.entry.options.get("topf", {})}
         laufzeit = self.daten.kreis(kid)
@@ -1124,43 +1151,87 @@ class GartenController:
         strahlung_sensor = self.entry.options.get(CONF_STRAHLUNG_SENSOR) or None
         regen_sensor = self.entry.options.get(CONF_REGEN_SENSOR) or None
         lt = self._letzte_dose.get(kid)
-        gates_ok = (
-            self._an("topf_steuerung")  # ① Master (Anzeigename: Topf-Frequenzbewässerung)
-            and self._an("aktiv", kid)  # Kreis nicht pausiert (Integration)
-            and soil is not None
-            and float(t["glitch_grenze"]) < soil < low  # ② gültiges Fenster
-            and (  # ③ Peak-Sonnen-Sperre
-                strahlung_sensor is None
-                or sicher_float(self._zustand(strahlung_sensor), 0.0)
-                < self._zahl(
-                    "number", "strahlung_schwelle", None, DEFAULT_STRAHLUNG_SCHWELLE
-                )
-            )
-            and laufzeit.dosen_heute < int(t["max_dosen"])  # ④ Tageslimit
-            and (  # ⑤ Mindestabstand
-                lt is None
-                or (dt_util.utcnow() - lt).total_seconds()
-                > float(t["min_intervall_min"]) * 60
-            )
-            and not self._an("heute_ueberspringen")  # ⑥
-            and not self._an("urlaubsmodus")  # ⑦
-            and (  # ⑧ Regen-Veto
-                regen_sensor is None
-                or sicher_float(self._zustand(regen_sensor), 0.0)
-                < self._zahl(
-                    "number", "regen_beobachtet_mm", None, DEFAULT_REGEN_BEOBACHTET
-                )
-            )
-            and all(  # ⑨ Ventil(e) zu
-                self._zustand(v) == "off" for v in kreis.get(CONF_VENTILE, [])
-            )
-            and self._im_dosierfenster(t)  # ⑩ Nachtruhe
-            and all(  # ⑪ Sensor-Plausibilität (leere Batterie -> nicht dosieren)
-                sicher_float(self._zustand(b), 100.0) > float(t["batterie_min"])
-                for b in (kreis.get(CONF_BATTERIE) or [])
-            )
+        # Seit v1.7.0 werden alle Gates AUSGEWERTET statt kurzgeschlossen,
+        # damit der blockierende Grund benannt werden kann („warum hat er
+        # gerade nicht gegossen?“). Jede Prüfung ist ein reiner Lesezugriff —
+        # das Verhalten ändert sich nicht, nur die Sichtbarkeit. Reihenfolge
+        # zählt: der ERSTE nicht erfüllte Punkt wird gemeldet, deshalb stehen
+        # die Voraussetzungen (Sensor vorhanden, plausibel) vor den Vetos.
+        strahlung = (
+            sicher_float(self._zustand(strahlung_sensor), 0.0)
+            if strahlung_sensor
+            else None
         )
-        if not gates_ok:
+        strahlung_schwelle = self._zahl(
+            "number", "strahlung_schwelle", None, DEFAULT_STRAHLUNG_SCHWELLE
+        )
+        regen = (
+            sicher_float(self._zustand(regen_sensor), 0.0) if regen_sensor else None
+        )
+        regen_schwelle = self._zahl(
+            "number", "regen_beobachtet_mm", None, DEFAULT_REGEN_BEOBACHTET
+        )
+        max_dosen = int(t["max_dosen"])
+        intervall_s = float(t["min_intervall_min"]) * 60
+        seit_dose = None if lt is None else (dt_util.utcnow() - lt).total_seconds()
+        batterie_min = float(t["batterie_min"])
+        glitch = float(t["glitch_grenze"])
+        pruefungen: list[tuple[bool, str]] = [
+            (self._an("topf_steuerung"), "Topf-Frequenzbewässerung ist aus"),  # ①
+            (self._an("aktiv", kid), "Kreis ist pausiert"),
+            (soil is not None, "kein Bodensensor konfiguriert"),  # ②
+            (
+                soil is None or soil > glitch,
+                f"Bodenwert {soil} unplausibel (≤ {glitch:.0f}) — "
+                "es wird nie blind dosiert",
+            ),
+            (
+                soil is None or soil < low,
+                f"Boden {soil} % liegt über dem Zielband ({low:.0f} %) — "
+                "keine Dose nötig",
+            ),
+            (  # ③
+                strahlung is None or strahlung < strahlung_schwelle,
+                f"pralle Sonne ({strahlung} ≥ {strahlung_schwelle:.0f}) — "
+                "wird aufgeschoben, bis die Sonne nachlässt",
+            ),
+            (  # ④
+                laufzeit.dosen_heute < max_dosen,
+                f"Tageslimit erreicht ({laufzeit.dosen_heute}/{max_dosen})",
+            ),
+            (  # ⑤
+                seit_dose is None or seit_dose > intervall_s,
+                "Mindestabstand läuft noch (noch "
+                f"{max(0, round((intervall_s - (seit_dose or 0)) / 60))} min, "
+                "der Boden braucht Zeit zum Nachziehen)",
+            ),
+            (not self._an("heute_ueberspringen"), "„Heute überspringen“ ist an"),  # ⑥
+            (not self._an("urlaubsmodus"), "Urlaubsmodus ist an"),  # ⑦
+            (  # ⑧
+                regen is None or regen < regen_schwelle,
+                f"Regen in den letzten 24 h ({regen} ≥ {regen_schwelle} mm)",
+            ),
+            (  # ⑨
+                all(self._zustand(v) == "off" for v in kreis.get(CONF_VENTILE, [])),
+                "Ventil ist gerade offen",
+            ),
+            (  # ⑩
+                self._im_dosierfenster(t),
+                "außerhalb des Dosierfensters "
+                f"({str(t.get('dosen_von', ''))[:5]}–{str(t.get('dosen_bis', ''))[:5]})",
+            ),
+            (  # ⑪
+                all(
+                    sicher_float(self._zustand(b), 100.0) > batterie_min
+                    for b in (kreis.get(CONF_BATTERIE) or [])
+                ),
+                f"Sensorbatterie unter {batterie_min:.0f} % — "
+                "dem Messwert ist nicht zu trauen",
+            ),
+        ]
+        grund = next((text for ok, text in pruefungen if not ok), None)
+        self._dosis_status(kid, grund, strahlung, strahlung_schwelle)
+        if grund is not None:
             return
         # Dosis-Formel (B6): needed / (k × headroom), geklemmt [1, dosis_max]
         k_wert = self._zahl("number", "k_faktor", kid, 2.0)
@@ -1174,20 +1245,29 @@ class GartenController:
         self.daten.broadcast()
         await self._store_sichern()
         self._dose_tasks[kid] = self.entry.async_create_background_task(
-            self.hass, self._dose_ausfuehren(kreis, dose_min), f"{DOMAIN}_dose_{kid}"
+            self.hass,
+            self._dose_ausfuehren(kreis, dose_min, soil, high),
+            f"{DOMAIN}_dose_{kid}",
         )
 
-    async def _dose_ausfuehren(self, kreis: dict[str, Any], dose_min: float) -> None:
+    async def _dose_ausfuehren(
+        self,
+        kreis: dict[str, Any],
+        dose_min: float,
+        soil: float | None = None,
+        ziel: float | None = None,
+    ) -> None:
         ventile = kreis.get(CONF_VENTILE, [])
-        _LOGGER.info(
-            "Topf-Dose %s: %.1f min auf %s", kreis[CONF_KREIS_ID], dose_min, ventile
-        )
+        kid = kreis[CONF_KREIS_ID]
+        start = dt_util.now()
+        _LOGGER.info("Topf-Dose %s: %.1f min auf %s", kid, dose_min, ventile)
+        abgebrochen = False
         try:
             for ventil in ventile:
                 await self._ventil_befehl(ventil, "turn_on")
             await asyncio.sleep(dose_min * 60)
         except asyncio.CancelledError:
-            pass
+            abgebrochen = True
         finally:
             try:
                 await asyncio.shield(
@@ -1197,6 +1277,37 @@ class GartenController:
                 pass  # innerer Schließ-Task läuft geschützt weiter
             except Exception:
                 _LOGGER.exception("Fehler beim Schließen der Topf-Dose")
+            # Dosen gehören in die Historie (v1.7.0): der Topfkreis gießt am
+            # häufigsten und hinterließ bisher als einziger keine Spur — „wie
+            # oft und wann?“ war aus dem Tageszähler nicht zu beantworten.
+            # Dieselbe Liste, die auch der Kalender liest.
+            self.daten.hub.lauf_historie.append(
+                {
+                    "start": start.isoformat(),
+                    "ende": dt_util.now().isoformat(),
+                    "art": "dose",
+                    "kreis": kid,
+                    "minuten": f"{dose_min:.1f}",
+                    "titel": f"Dose {kreis.get(CONF_KREIS_NAME, kid)}"
+                    + (" (abgebrochen)" if abgebrochen else ""),
+                    "beschreibung": (
+                        f"{dose_min:.1f} min"
+                        + (
+                            f" · Boden {soil:.0f} % → Ziel {ziel:.0f} %"
+                            if soil is not None and ziel is not None
+                            else ""
+                        )
+                    ),
+                }
+            )
+            del self.daten.hub.lauf_historie[:-LAUF_HISTORIE_MAX]
+            self.daten.broadcast()
+            try:
+                await asyncio.shield(
+                    self.hass.async_create_task(self._store_sichern())
+                )
+            except asyncio.CancelledError:
+                pass
 
     async def _ventile_schliessen(self, ventile: list[str]) -> None:
         for ventil in ventile:

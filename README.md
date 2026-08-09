@@ -37,8 +37,12 @@ eingestellten Zeit automatisch aus. Regen — gemessen oder vorhergesagt — set
   und Veto-Schwelle.
 - **Topf-Frequenzbewässerung** — Topf-Kreise erhalten tagsüber kleine Dosen, die
   die Bodenfeuchte in einem Soll-Band halten; Dosisgröße aus einer einstellbaren
-  Dosis-Antwort-Konstante, abgesichert durch neun Gates (u. a. Peak-Sonnen-Sperre,
-  Tageslimit, Mindestabstand, Regen-Veto).
+  Dosis-Antwort-Konstante, abgesichert durch elf Gates (u. a. Peak-Sonnen-Sperre,
+  Nachtruhe, Tageslimit, Mindestabstand, Regen-Veto, Sensorbatterie).
+  **Nachvollziehbar:** jede Dose landet als Termin im Bewässerungskalender, die
+  heutigen Uhrzeiten stehen am Dosen-Zähler — und wenn gerade *nicht* dosiert
+  wird, nennt das Attribut `warum_gerade_nicht` den Grund im Klartext
+  („pralle Sonne (780 ≥ 600) — wird aufgeschoben"). Siehe FAQ 21.
 - **Sicherheitsnetz** — jeder Schließbefehl mit Wiederhol-Versuchen; Safety-Sweep
   nach jedem Lauf; Auto-Aus-Backstop für von Hand geöffnete Ventile; Watchdog
   schließt jedes Ventil, das länger als die Notaus-Zeit offen ist; nach einem
