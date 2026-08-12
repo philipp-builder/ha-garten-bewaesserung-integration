@@ -1069,7 +1069,7 @@ def main():
     assert abs(float(rl["state"]) - 500) < 5, rl["state"]
     print(f"Mehr-Ventil-Sitzung korrekt als EINE Gabe verbucht: {sitzung} L")
 
-    print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten, Typwechsel (v1.0.1), Kalender + Energy-Zaehler + Repairs (v1.4.0), Intervall-Bewaesserung (v1.5.0), Nachtruhe + Batterie-Gate (v1.6.0), Dosen-Sichtbarkeit: Sperrgrund + Zeiten + Kalender (v1.7.0) OK")
+    print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten, Typwechsel (v1.0.1), Kalender + Energy-Zaehler + Repairs (v1.4.0), Intervall-Bewaesserung (v1.5.0), Nachtruhe + Batterie-Gate (v1.6.0), Dosen-Sichtbarkeit: Sperrgrund + Zeiten + Kalender (v1.7.0), Notify: Repair-Karte + Praefix-Ergaenzung (v1.8.0) OK")
 
 
 if __name__ == "__main__":
