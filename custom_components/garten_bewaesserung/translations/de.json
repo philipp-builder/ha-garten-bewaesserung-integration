@@ -43,11 +43,14 @@
       },
       "benachrichtigungen": {
         "title": "Benachrichtigungen",
-        "description": "Komma-getrennte notify-Dienste, z. B. `notify.mobile_app_handy1, notify.mobile_app_handy2`. Leer = keine Pushes.",
+        "description": "Wähle die Dienste, an die Tagesplan, Alarme und Reports gehen. Eigene Einträge sind möglich, falls ein Dienst gerade nicht geladen ist.",
         "data": {
-          "notify_text": "Notify-Dienste (Komma-getrennt)",
           "push_kritisch_alarme": "Sicherheits-Alarme als zeitkritisch senden (iOS)",
-          "dashboard_pfad": "Dashboard-Pfad für Push-Deep-Links (optional)"
+          "dashboard_pfad": "Dashboard-Pfad für Push-Deep-Links (optional)",
+          "notify_dienste": "Benachrichtigungsdienste"
+        },
+        "data_description": {
+          "notify_dienste": "Auswahl der auf diesem System registrierten notify-Dienste — meist `notify.mobile_app_<dein-handy>`. Leer = bewusst keine Pushes. Nach dem Speichern den Knopf „Test-Benachrichtigung“ drücken: er meldet das Ergebnis als Notiz in Home Assistant, auch wenn gar nichts eingetragen ist."
         }
       },
       "tuning": {
@@ -267,6 +270,10 @@
     "raten_sensor": {
       "title": "Wasserzähler-Sensor für „{kreis}“ ist eine Durchfluss-RATE",
       "description": "Der konfigurierte Wasserzähler-Sensor `{sensor}` liefert eine Durchflussrate ({einheit}) statt eines kumulativen Zählerstands. Sitzungs-Liter können so nicht gemessen werden — pro Sitzung werden 0 L verbucht.\n\nAbhilfe: einen kumulativen Zähler-Sensor wählen oder auf die Rate einen Integral-Helfer setzen (Einstellungen → Geräte & Dienste → Helfer → Integral) und diesen Helfer als Wasserzähler-Sensor eintragen. Schritt-für-Schritt-Rezept: FAQ Frage 17."
+    },
+    "notify_dienst_fehlt": {
+      "title": "Benachrichtigungsdienst „{dienst}“ existiert nicht",
+      "description": "Die Bewässerung soll über `{dienst}` benachrichtigen, diesen Dienst gibt es auf diesem System aber nicht — es wird deshalb **kein Push verschickt**.\n\nHäufigste Ursachen: Tippfehler, oder das Handy wurde neu eingerichtet und die Companion-App heißt jetzt anders. Den richtigen Namen findest du unter Entwicklerwerkzeuge → Aktionen (nach „notify“ suchen) und trägst ihn unter Konfigurieren → Benachrichtigungen ein. Der Knopf „Test-Benachrichtigung“ prüft es sofort."
     }
   }
 }

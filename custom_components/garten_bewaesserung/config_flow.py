@@ -97,13 +97,27 @@ def _eindeutige_id(name: str, vorhandene: list[dict[str, Any]]) -> str:
     return kandidat
 
 
-def _notify_liste(rohtext: str) -> list[str]:
-    """Komma-Liste → validierte notify-Dienste (Kit-Konvention)."""
-    return [
-        t.strip()
-        for t in rohtext.split(",")
-        if t.strip().startswith("notify.")
-    ]
+def _notify_liste(werte: list[str] | str) -> list[str]:
+    """Auswahl → notify-Dienste, Präfix wird ergänzt statt zu verwerfen.
+
+    Bis v1.7.0 war das ein freies Textfeld und ein Eintrag OHNE `notify.`
+    wurde **stillschweigend verworfen** — eine von drei stillen Ursachen
+    dafür, dass Pushes „noch nie funktioniert“ haben (Beta-Rückmeldung).
+    Ein `mobile_app_handy` ist unmissverständlich gemeint; wir ergänzen das
+    Präfix, statt den Eintrag wortlos fallen zu lassen. Strings werden
+    weiterhin akzeptiert, damit alte Optionen und Tests unverändert laufen.
+    """
+    roh = werte.split(",") if isinstance(werte, str) else list(werte or [])
+    aus: list[str] = []
+    for t in roh:
+        t = str(t).strip()
+        if not t:
+            continue
+        if not t.startswith("notify."):
+            t = f"notify.{t.removeprefix('notify')}".replace("notify..", "notify.")
+        if t not in aus:
+            aus.append(t)
+    return aus
 
 
 class GartenConfigFlow(ConfigFlow, domain=DOMAIN):
@@ -253,17 +267,34 @@ class GartenOptionsFlow(OptionsFlowWithReload):
         if user_input is not None:
             return self._speichern(
                 {
-                    CONF_NOTIFY: _notify_liste(user_input.get("notify_text", "")),
+                    CONF_NOTIFY: _notify_liste(user_input.get(CONF_NOTIFY, [])),
                     CONF_PUSH_KRITISCH: user_input[CONF_PUSH_KRITISCH],
                     CONF_DASHBOARD_PFAD: user_input.get(CONF_DASHBOARD_PFAD, "").strip(),
                 }
             )
+        # Auswahlliste aus den TATSÄCHLICH registrierten notify-Diensten
+        # (seit v1.8.0). Vorher ein freies Textfeld — Tippfehler und ein
+        # fehlendes `notify.`-Präfix führten zu stillem Nichtstun. Bereits
+        # gespeicherte Dienste kommen mit in die Liste, damit ein gerade
+        # nicht geladener Dienst beim Speichern nicht verschwindet;
+        # custom_value lässt weiterhin Handeingabe zu.
+        vorhanden = {
+            f"notify.{name}"
+            for name in self.hass.services.async_services().get("notify", {})
+        }
+        auswahl = sorted(vorhanden | set(o.get(CONF_NOTIFY, [])))
         schema = vol.Schema(
             {
                 vol.Optional(
-                    "notify_text",
-                    description={"suggested_value": ", ".join(o.get(CONF_NOTIFY, []))},
-                ): selector.TextSelector(),
+                    CONF_NOTIFY, default=o.get(CONF_NOTIFY, [])
+                ): selector.SelectSelector(
+                    selector.SelectSelectorConfig(
+                        options=auswahl,
+                        multiple=True,
+                        custom_value=True,
+                        mode=selector.SelectSelectorMode.DROPDOWN,
+                    )
+                ),
                 vol.Required(
                     CONF_PUSH_KRITISCH, default=o.get(CONF_PUSH_KRITISCH, True)
                 ): selector.BooleanSelector(),

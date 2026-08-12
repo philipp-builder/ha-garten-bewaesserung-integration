@@ -50,7 +50,11 @@ eingestellten Zeit automatisch aus. Regen — gemessen oder vorhergesagt — set
   Not-Aus-Button für „alles sofort zu".
 - **Benachrichtigungen** — Tagesplan-Push vor dem Lauf; Alarme für Wasserleck,
   fehlende Wasserversorgung und schwache Batterien; täglicher Report, wenn ein
-  Kreis trotz Automatik kritisch trocken bleibt.
+  Kreis trotz Automatik kritisch trocken bleibt. **Überprüfbar:** die Dienste
+  werden aus den auf deinem System registrierten notify-Diensten ausgewählt
+  (keine Tippfehler möglich), ein Knopf schickt eine Test-Benachrichtigung und
+  meldet das Ergebnis als Notiz *in* Home Assistant, und ein nicht mehr
+  existierender Dienst erzeugt eine Reparatur-Karte. Siehe FAQ 22.
 - **Wasser-Bilanz** — mit einem Flow-Sensor je Kreis: Liter pro Sitzung, Tag und
   Monat plus Monatskosten aus dem hinterlegten Wassertarif.
 - **Modi** — Heute überspringen (Auto-Reset um Mitternacht), Urlaubsmodus,

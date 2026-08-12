@@ -174,6 +174,7 @@ def main():
         "button.garten_not_aus",
         "button.garten_sofort_start",
         "button.garten_plan_neu_berechnen",
+        "button.garten_test_benachrichtigung",
         "number.garten_standard_dauer_auto_aus",
         "number.garten_regen_veto_beobachtet",
         "number.garten_regen_veto_vorhersage",
@@ -897,6 +898,43 @@ def main():
         "Repair-Karte nach gueltiger Sitzung nicht geloescht"
     )
     print("Repairs: Karte nach Wechsel auf kumulativen Zaehler + gueltiger Sitzung geloescht")
+
+    # ===== v1.8.0: Benachrichtigungen ueberpruefbar machen =================
+    # Bis v1.7.0 gab es drei stille Fehlerpfade (leer, fehlendes notify.-
+    # Praefix, Tippfehler) - "hat noch nie funktioniert" war von aussen nicht
+    # diagnostizierbar (Beta-Rueckmeldung).
+    def notify_setzen(dienste):
+        f = req("/api/config/config_entries/options/flow", {"handler": entry_id2})
+        f = req(f"/api/config/config_entries/options/flow/{f['flow_id']}",
+                {"next_step_id": "benachrichtigungen"})
+        antwort = {k["name"]: k["default"] for k in f.get("data_schema", []) if "default" in k}
+        antwort["notify_dienste"] = dienste
+        f = req(f"/api/config/config_entries/options/flow/{f['flow_id']}", antwort)
+        assert f.get("type") == "create_entry", f
+        time.sleep(8)
+
+    # (a) Dienst existiert nicht -> Reparatur-Karte
+    notify_setzen(["notify.gibt_es_nicht"])
+    req("/api/services/button/press", {"entity_id": "button.garten_test_benachrichtigung"})
+    ende5 = time.time() + 40
+    while time.time() < ende5 and "notify_fehlt_gibt_es_nicht" not in repairs_registry():
+        time.sleep(4)
+    assert "notify_fehlt_gibt_es_nicht" in repairs_registry(), (
+        "Repair-Karte fuer den fehlenden Notify-Dienst fehlt")
+    print("Notify: nicht existierender Dienst erscheint als Reparatur-Karte")
+
+    # (b) Praefix fehlt -> wird ergaenzt statt verworfen (war stiller Datenverlust)
+    notify_setzen(["persistent_notification"])
+    req("/api/services/button/press", {"entity_id": "button.garten_test_benachrichtigung"})
+    time.sleep(6)
+    ende6 = time.time() + 40
+    while time.time() < ende6 and "notify_fehlt_gibt_es_nicht" in repairs_registry():
+        time.sleep(4)
+    assert "notify_fehlt_gibt_es_nicht" not in repairs_registry(), (
+        "verwaiste Notify-Repair-Karte wurde nicht aufgeraeumt")
+    assert "notify_fehlt_persistent_notification" not in repairs_registry(), (
+        "gueltiger Dienst haette keine Karte erzeugen duerfen")
+    print("Notify: fehlendes Praefix ergaenzt, gueltiger Dienst ohne Karte, alte Karte weg")
 
     # ===== v1.5.0: Intervall-Bewaesserung (cycle & soak) =====
     # Rasen Zwei auf 3 Bloecke a 1 min mit 1 min Pause; ein Lauf ueber 3 min

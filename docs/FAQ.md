@@ -870,3 +870,55 @@ sieht das aus wie ein Defekt. Deshalb nennt derselbe Sensor im Attribut
 Ist ein Globalstrahlungs-Sensor konfiguriert, stehen sein aktueller Wert und
 die Schwelle zusätzlich als Attribute daneben — so ist die Peak-Sonnen-Sperre
 nachvollziehbar, ohne den Sensor selbst suchen zu müssen.
+
+## 22. Ich bekomme keine Benachrichtigungen
+
+Seit **v1.8.0** lässt sich das in zehn Sekunden klären, statt auf ein echtes
+Ereignis zu warten:
+
+**Drück den Knopf `button.garten_test_benachrichtigung`** („Test-Benachrichtigung",
+am Garten-Gerät). Er verschickt einen Test-Push **und** hinterlässt das Ergebnis
+als Notiz in Home Assistant selbst — bewusst nicht nur als Push, denn ein Push
+kann sich nicht selbst als kaputt melden.
+
+Die Notiz sagt dir eines von drei Dingen:
+
+| Notiz sagt | Bedeutung |
+|---|---|
+| „Kein Benachrichtigungsdienst eingetragen" | Der häufigste Fall. Weiter unten. |
+| `notify.xy → nicht registriert` | Der Dienst existiert auf diesem System nicht (Tippfehler oder Handy neu eingerichtet). Es erscheint zusätzlich eine Reparatur-Karte. |
+| `notify.xy → ok` | Home Assistant hat den Auftrag angenommen. Kommt trotzdem nichts an, liegt es an der Companion-App oder am Gerät — siehe unten. |
+
+### Dienst eintragen
+
+*Einstellungen → Geräte & Dienste → Garten-Bewässerung → **Konfigurieren** →
+Benachrichtigungen.* Das Feld ist eine Auswahlliste der Dienste, die auf deinem
+System registriert sind — meist `notify.mobile_app_<dein-handy>`. Mehrere sind
+erlaubt (z. B. beide Handys im Haushalt).
+
+**Leer bedeutet: bewusst keine Pushes.** Das ist eine gültige Einstellung und
+erzeugt deshalb keine Warnung — nur der Test-Knopf sagt es dir.
+
+> **Vor v1.8.0** war das ein freies Textfeld, und ein Eintrag ohne
+> `notify.`-Präfix wurde **stillschweigend verworfen**. Wer dort
+> `mobile_app_handy` stehen hatte, bekam nie etwas und konnte es nirgends
+> sehen. Seit v1.8.0 wird das Präfix ergänzt statt den Eintrag fallen zu
+> lassen.
+
+### Der Dienst heißt anders, als du denkst
+
+Der genaue Name steht unter *Entwicklerwerkzeuge → Aktionen*, wenn du dort
+„notify" eintippst. Er leitet sich vom **Gerätenamen in der Companion-App** ab,
+nicht von deinem Benutzernamen — und ändert sich, wenn das Handy neu
+eingerichtet wird. Genau dafür gibt es die Reparatur-Karte.
+
+### Test sagt „ok", es kommt trotzdem nichts an
+
+Dann hat Home Assistant den Auftrag abgesetzt und das Problem liegt dahinter:
+
+- Companion-App → Einstellungen → Benachrichtigungen: sind sie erlaubt?
+- Handy-Systemeinstellungen: Benachrichtigungen für die App erlaubt, kein
+  Fokus-/Nicht-stören-Modus aktiv?
+- Bei iOS: Die Alarme werden als **zeitkritisch** gesendet, wenn du das im
+  selben Dialog aktiviert hast — das erfordert die entsprechende Berechtigung
+  in der App.

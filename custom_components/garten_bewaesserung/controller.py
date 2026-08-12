@@ -143,11 +143,24 @@ class GartenController:
             k[CONF_KREIS_ID] for k in self._kreise() if k.get(CONF_FLOW_SENSOR)
         }
         reg = ir.async_get(self.hass)
+        # Auch verwaiste Notify-Repairs: sobald ein Dienst nicht mehr
+        # konfiguriert ist (korrigiert oder entfernt), ist seine Karte
+        # erledigt — sonst bliebe sie dauerhaft stehen, weil sie nur beim
+        # nächsten Sendeversuch gelöscht würde und der nie kommt.
+        notify_gueltig = {
+            d.split(".", 1)[1]
+            for d in (self.entry.options.get(CONF_NOTIFY) or [])
+            if d.startswith("notify.")
+        }
         for domaene, issue_id in list(reg.issues):
+            if domaene != DOMAIN:
+                continue
             if (
-                domaene == DOMAIN
-                and issue_id.startswith("raten_sensor_")
+                issue_id.startswith("raten_sensor_")
                 and issue_id.removeprefix("raten_sensor_") not in gueltig
+            ) or (
+                issue_id.startswith("notify_fehlt_")
+                and issue_id.removeprefix("notify_fehlt_") not in notify_gueltig
             ):
                 ir.async_delete_issue(self.hass, DOMAIN, issue_id)
         self._unsubs.append(
@@ -1607,10 +1620,22 @@ class GartenController:
     def _alarm_kritisch(self) -> bool:
         return bool(self.entry.options.get(CONF_PUSH_KRITISCH, True))
 
-    async def _sende_push(self, titel: str, nachricht: str, kritisch: bool) -> None:
+    async def _sende_push(
+        self, titel: str, nachricht: str, kritisch: bool
+    ) -> dict[str, str]:
+        """Push an alle konfigurierten Dienste; gibt je Dienst das Ergebnis.
+
+        Der Rückgabewert existiert für den Test-Knopf: „funktioniert es?“ war
+        bis v1.8.0 nur durch Warten auf ein echtes Ereignis zu beantworten.
+        Ein nicht (mehr) registrierter Dienst erzeugt zusätzlich eine
+        Reparatur-Karte — der Fall ist eindeutig eine Fehlkonfiguration
+        (Handy-Wechsel, Tippfehler), im Gegensatz zur leeren Liste, die eine
+        legitime Entscheidung ist und deshalb schweigt.
+        """
         dienste = self.entry.options.get(CONF_NOTIFY) or []
+        ergebnis: dict[str, str] = {}
         if not dienste:
-            return
+            return ergebnis
         payload: dict[str, Any] = {}
         if kritisch:
             payload["push"] = {"interruption-level": "time-sensitive"}
@@ -1619,13 +1644,86 @@ class GartenController:
             payload["clickAction"] = pfad
         for dienst in dienste:
             if not dienst.startswith("notify."):
+                ergebnis[dienst] = "kein notify.-Dienst"
+                continue
+            name = dienst.split(".", 1)[1]
+            issue_id = f"notify_fehlt_{name}"
+            if not self.hass.services.has_service("notify", name):
+                ergebnis[dienst] = "nicht registriert"
+                _LOGGER.warning(
+                    "Benachrichtigungsdienst %s existiert nicht — kein Push "
+                    "verschickt. Unter Entwicklerwerkzeuge → Aktionen prüfen, "
+                    "wie der Dienst wirklich heißt.",
+                    dienst,
+                )
+                ir.async_create_issue(
+                    self.hass,
+                    DOMAIN,
+                    issue_id,
+                    is_fixable=False,
+                    is_persistent=True,
+                    severity=ir.IssueSeverity.WARNING,
+                    learn_more_url=(
+                        "https://github.com/philipp-builder/"
+                        "ha-garten-bewaesserung-integration/blob/main/docs/FAQ.md"
+                    ),
+                    translation_key="notify_dienst_fehlt",
+                    translation_placeholders={"dienst": dienst},
+                )
                 continue
             try:
                 await self.hass.services.async_call(
                     "notify",
-                    dienst.split(".", 1)[1],
+                    name,
                     {"title": titel, "message": nachricht, "data": payload},
                     blocking=False,
                 )
+                ergebnis[dienst] = "ok"
+                ir.async_delete_issue(self.hass, DOMAIN, issue_id)
             except Exception as exc:
+                ergebnis[dienst] = f"Fehler: {exc}"
                 _LOGGER.error("Push über %s fehlgeschlagen: %s", dienst, exc)
+        return ergebnis
+
+    async def test_benachrichtigung(self) -> None:
+        """Test-Push + Ergebnis als persistente Notiz in der Oberfläche.
+
+        Bewusst NICHT nur ein Push: Wenn Pushes nicht ankommen, kann das
+        Ergebnis nicht per Push gemeldet werden. Die Notiz erscheint in HA
+        selbst und sagt auch dann etwas, wenn gar kein Dienst eingetragen
+        ist — der häufigste Fall hinter „hat noch nie funktioniert“.
+        """
+        dienste = self.entry.options.get(CONF_NOTIFY) or []
+        if not dienste:
+            text = (
+                "**Kein Benachrichtigungsdienst eingetragen** — deshalb "
+                "verschickt die Bewässerung keine Pushes.\n\n"
+                "Einstellungen → Geräte & Dienste → Garten-Bewässerung → "
+                "Konfigurieren → Benachrichtigungen, und dort den Dienst "
+                "deines Handys auswählen (z. B. `notify.mobile_app_…`)."
+            )
+        else:
+            ergebnis = await self._sende_push(
+                "Garten-Bewässerung",
+                "Test-Benachrichtigung — wenn du das liest, funktionieren Pushes.",
+                kritisch=False,
+            )
+            zeilen = [f"- `{d}` → {r}" for d, r in ergebnis.items()]
+            ok = sum(1 for r in ergebnis.values() if r == "ok")
+            text = (
+                f"Test an {len(ergebnis)} Dienst(e), davon {ok} angenommen:\n\n"
+                + "\n".join(zeilen)
+                + "\n\n„Angenommen“ heißt: Home Assistant hat den Auftrag "
+                "entgegengenommen. Kommt trotzdem nichts an, liegt es an der "
+                "Companion-App (Benachrichtigungen erlaubt?) oder am Gerät."
+            )
+        await self.hass.services.async_call(
+            "persistent_notification",
+            "create",
+            {
+                "title": "Garten-Bewässerung: Benachrichtigungstest",
+                "message": text,
+                "notification_id": f"{DOMAIN}_notify_test",
+            },
+            blocking=False,
+        )

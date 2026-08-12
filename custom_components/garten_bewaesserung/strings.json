@@ -43,11 +43,14 @@
       },
       "benachrichtigungen": {
         "title": "Notifications",
-        "description": "Comma-separated notify services, e.g. `notify.mobile_app_phone1, notify.mobile_app_phone2`. Leave empty for no push messages.",
+        "description": "Choose the services that receive the daily plan, alarms and reports. Custom entries are allowed in case a service is not loaded right now.",
         "data": {
-          "notify_text": "Notify services (comma-separated)",
           "push_kritisch_alarme": "Send safety alerts as time-sensitive (iOS)",
-          "dashboard_pfad": "Dashboard path for push deep-links (optional)"
+          "dashboard_pfad": "Dashboard path for push deep-links (optional)",
+          "notify_dienste": "Notification services"
+        },
+        "data_description": {
+          "notify_dienste": "Pick from the notify services registered on this system — usually `notify.mobile_app_<your-phone>`. Empty = no pushes, on purpose. After saving, press the “Test notification” button: it reports the outcome as a notice inside Home Assistant, even when nothing is configured."
         }
       },
       "tuning": {
@@ -267,6 +270,10 @@
     "raten_sensor": {
       "title": "Water meter sensor for “{kreis}” is a flow RATE",
       "description": "The configured water meter sensor `{sensor}` reports a flow rate ({einheit}) instead of a cumulative meter reading. Session liters cannot be measured this way — 0 L is recorded per session.\n\nFix: select a cumulative water meter sensor, or create an Integral helper on top of your rate sensor (Settings → Devices & services → Helpers → Integral) and select that helper as the water meter sensor. See FAQ question 17 for the step-by-step recipe."
+    },
+    "notify_dienst_fehlt": {
+      "title": "Notification service “{dienst}” does not exist",
+      "description": "Irrigation is configured to notify via `{dienst}`, but that service does not exist on this system — so **no push is sent**.\n\nUsual causes: a typo, or the phone was set up again and the Companion app service is now named differently. Find the correct name under Developer tools → Actions (search for “notify”) and enter it under Configure → Notifications. The “Test notification” button verifies it immediately."
     }
   }
 }

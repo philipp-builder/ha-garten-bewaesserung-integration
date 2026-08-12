@@ -18,6 +18,15 @@ BUTTONS = [
     ("not_aus", "Not-Aus", "mdi:water-off", "not_aus"),
     ("sofort_start", "Sofort-Start", "mdi:play-circle-outline", "sofort_start"),
     ("plan_neu", "Plan neu berechnen", "mdi:refresh", "plan_neu"),
+    # Seit v1.8.0: „kommen Pushes an?“ war vorher nur durch Warten auf ein
+    # echtes Ereignis zu beantworten. Das Ergebnis landet zusätzlich als
+    # Notiz in HA — ein Push kann sich nicht selbst als kaputt melden.
+    (
+        "test_push",
+        "Test-Benachrichtigung",
+        "mdi:bell-ring-outline",
+        "test_benachrichtigung",
+    ),
 ]
 
 
