@@ -893,7 +893,7 @@ Die Notiz sagt dir eines von drei Dingen:
 
 *Einstellungen → Geräte & Dienste → Garten-Bewässerung → **Konfigurieren** →
 Benachrichtigungen.* Das Feld ist eine Auswahlliste der Dienste, die auf deinem
-System registriert sind — meist `notify.mobile_app_<dein-handy>`. Mehrere sind
+System registriert sind — meist `notify.mobile_app_deinhandy`. Mehrere sind
 erlaubt (z. B. beide Handys im Haushalt).
 
 **Leer bedeutet: bewusst keine Pushes.** Das ist eine gültige Einstellung und

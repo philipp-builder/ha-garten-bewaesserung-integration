@@ -50,7 +50,7 @@
           "notify_dienste": "Benachrichtigungsdienste"
         },
         "data_description": {
-          "notify_dienste": "Auswahl der auf diesem System registrierten notify-Dienste — meist `notify.mobile_app_<dein-handy>`. Leer = bewusst keine Pushes. Nach dem Speichern den Knopf „Test-Benachrichtigung“ drücken: er meldet das Ergebnis als Notiz in Home Assistant, auch wenn gar nichts eingetragen ist."
+          "notify_dienste": "Auswahl der auf diesem System registrierten notify-Dienste — meist `notify.mobile_app_deinhandy`. Leer = bewusst keine Pushes. Nach dem Speichern den Knopf „Test-Benachrichtigung“ drücken: er meldet das Ergebnis als Notiz in Home Assistant, auch wenn gar nichts eingetragen ist."
         }
       },
       "tuning": {

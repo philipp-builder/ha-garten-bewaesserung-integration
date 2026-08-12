@@ -50,7 +50,7 @@
           "notify_dienste": "Notification services"
         },
         "data_description": {
-          "notify_dienste": "Pick from the notify services registered on this system — usually `notify.mobile_app_<your-phone>`. Empty = no pushes, on purpose. After saving, press the “Test notification” button: it reports the outcome as a notice inside Home Assistant, even when nothing is configured."
+          "notify_dienste": "Pick from the notify services registered on this system — usually `notify.mobile_app_yourphone`. Empty = no pushes, on purpose. After saving, press the “Test notification” button: it reports the outcome as a notice inside Home Assistant, even when nothing is configured."
         }
       },
       "tuning": {
