@@ -27,3 +27,9 @@ jobs:
       # score.py ist bewusst HA-frei — die Paritätstests laufen ohne
       # jegliche Abhängigkeiten (kein pip install nötig).
       - run: python3 tests/test_score.py
+      - run: python3 tests/test_pause.py
+      - name: Pause cancellation race in the HA runtime
+        run: |
+          docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
+            -v "$PWD:/work:ro" --entrypoint python \
+            ghcr.io/home-assistant/home-assistant:2026.9.2 /work/tests/test_pause_race.py

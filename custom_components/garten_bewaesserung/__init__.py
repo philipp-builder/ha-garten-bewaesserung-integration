@@ -131,9 +131,35 @@ def _services_registrieren(hass: HomeAssistant) -> None:
     async def _dosis_geben(call: ServiceCall) -> None:
         await _alle("dosis_geben", kid=call.data["kreis"])
 
+    async def _pause_setzen(call: ServiceCall) -> None:
+        items = hass.data.get(DOMAIN, {})
+        entry_id = call.data.get("entry_id")
+        if entry_id is None and len(items) == 1:
+            entry_id = next(iter(items))
+        if entry_id not in items:
+            raise vol.Invalid("Bei mehreren Gärten entry_id angeben")
+        end = call.data.get("ende")
+        values = {"active": call.data["aktiv"]}
+        if "grund" in call.data:
+            values["reason"] = call.data["grund"]
+        if "ablauf" in call.data:
+            values["action"] = call.data["ablauf"]
+        if end is not None:
+            values.update(until=end.isoformat(), timed=True)
+        elif call.data["aktiv"]:
+            values.update(until=None, timed=False)
+        await items[entry_id]["controller"].pause_aendern(**values)
+
     hass.services.async_register(DOMAIN, "jetzt_bewaessern", _jetzt_bewaessern)
     hass.services.async_register(DOMAIN, "not_aus", _not_aus)
     hass.services.async_register(DOMAIN, "plan_neu_berechnen", _plan_neu)
+    hass.services.async_register(DOMAIN, "pause_setzen", _pause_setzen, schema=vol.Schema({
+        vol.Optional("entry_id"): cv.string,
+        vol.Required("aktiv"): cv.boolean,
+        vol.Optional("grund"): vol.In(("Urlaub", "Winterpause", "Sonstiges")),
+        vol.Optional("ablauf"): vol.In(("Automatisch fortsetzen", "Nur erinnern")),
+        vol.Optional("ende"): cv.datetime,
+    }))
     hass.services.async_register(
         DOMAIN,
         "dosis_geben",

@@ -1,4 +1,24 @@
 jetzt_bewaessern:
+pause_setzen:
+  fields:
+    entry_id:
+      selector:
+        text:
+    aktiv:
+      required: true
+      selector:
+        boolean:
+    grund:
+      selector:
+        select:
+          options: [Urlaub, Winterpause, Sonstiges]
+    ablauf:
+      selector:
+        select:
+          options: [Automatisch fortsetzen, Nur erinnern]
+    ende:
+      selector:
+        datetime:
 not_aus:
 plan_neu_berechnen:
 dosis_geben:

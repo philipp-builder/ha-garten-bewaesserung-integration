@@ -86,6 +86,7 @@ from .const import (
     VOLUMEN_SETTLE_S,
 )
 from .daten import GartenDaten
+from .pause import Pause
 from .score import (
     NIE_BEWAESSERT_TAGE,
     ScoreEingabe,
@@ -132,11 +133,20 @@ class GartenController:
         self._wetter_retry_unsub = None  # one-shot Kurz-Retry bei Wetter n/v
         self._volumen_settle: dict[str, Any] = {}  # kid -> Settle-Timer-unsub
         self._zyklus_aktiv: set[str] = set()  # Kreise in einer Blockpause
+        self.pause = Pause()
+        self.pause_ready = False
+        self._pause_unsub = None
+        self._pause_lock = asyncio.Lock()
+        self._pause_generation = 0
 
     # ------------------------------------------------------------ Lebenszyklus
 
     async def start(self) -> None:
         await self._store_laden()
+        self.pause_ready = True
+        self.daten.broadcast()
+        await self._pause_expired(dt_util.now())
+        self._arm_pause()
         # Verwaiste Raten-Sensor-Repairs löschen (Kreis entfernt oder
         # Flow-Sensor aus der Konfiguration genommen).
         gueltig = {
@@ -236,6 +246,9 @@ class GartenController:
     @callback
     def stop(self) -> None:
         self._gestoppt = True  # F5: keine Ghost-Timer aus in-flight-Tasks
+        if self._pause_unsub:
+            self._pause_unsub()
+            self._pause_unsub = None
         self._zyklus_aktiv.clear()
         for unsub in self._unsubs:
             unsub()
@@ -291,6 +304,8 @@ class GartenController:
         return sicher_float(self._zustand(self._eid(domain, schluessel, kid)), fallback)
 
     def _an(self, schluessel: str, kid: str | None = None) -> bool:
+        if schluessel == "urlaubsmodus" and self.pause_ready:
+            return self.pause.active
         return self._zustand(self._eid("switch", schluessel, kid)) == "on"
 
     def _kreise(self) -> list[dict[str, Any]]:
@@ -421,7 +436,7 @@ class GartenController:
                 params,
             )
             laufzeit.score = ergebnis.score
-            laufzeit.status = ergebnis.status
+            laufzeit.status = "⏸ " + self.pause.label() if self.pause.active else ergebnis.status
             laufzeit.faktoren = ergebnis.faktoren
             await self._setze_dauer(kid, ergebnis.dauer)
             details_kreise.append(
@@ -582,7 +597,7 @@ class GartenController:
         """B3: Lauf starten — Vetos gelten für Plan UND Manuell-Start."""
         if self._gestoppt:
             return
-        if self._an("heute_ueberspringen") or self._an("urlaubsmodus"):
+        if not self.pause_ready or self._an("heute_ueberspringen") or self._an("urlaubsmodus"):
             _LOGGER.info("Bewässerungslauf (%s) übersprungen: Skip/Urlaub aktiv", quelle)
             return
         if self._lauf_task and not self._lauf_task.done():
@@ -815,6 +830,8 @@ class GartenController:
 
     async def _ventil_befehl(self, ventil: str, dienst: str) -> None:
         """switch.turn_on/off mit continue_on_error-Semantik (B3-Härtung)."""
+        if dienst == "turn_on" and (not self.pause_ready or self.pause.active):
+            return  # Last safety gate: also covers already queued tasks.
         try:
             await self.hass.services.async_call(
                 "switch", dienst, {"entity_id": ventil}, blocking=True
@@ -1015,6 +1032,7 @@ class GartenController:
         await self._store.async_save(
             {
                 "lauf_aktiv": self.daten.hub.lauf_aktiv,
+                "pause": self.pause.to_dict(),
                 "dosen": {kid: self.daten.kreis(kid).dosen_heute for kid in kids},
                 "liter_heute": {kid: self.daten.kreis(kid).liter_heute for kid in kids},
                 "liter_monat": {kid: self.daten.kreis(kid).liter_monat for kid in kids},
@@ -1036,6 +1054,7 @@ class GartenController:
         """Zähler über Neustarts retten: Dosen/Liter des heutigen Tages bzw.
         Monats wiederherstellen (Restore-Sensoren decken nur Zeitstempel ab)."""
         g = await self._store.async_load() or {}
+        self.pause = Pause.restore(g.get("pause"), legacy=self._an("urlaubsmodus"))
         self._war_lauf_aktiv = bool(g.get("lauf_aktiv"))
         jetzt = dt_util.now()
         if g.get("datum") == jetzt.date().isoformat():
@@ -1190,6 +1209,7 @@ class GartenController:
         batterie_min = float(t["batterie_min"])
         glitch = float(t["glitch_grenze"])
         pruefungen: list[tuple[bool, str]] = [
+            (self.pause_ready and not self.pause.active, "Bewässerung pausiert"),
             (self._an("topf_steuerung"), "Topf-Frequenzbewässerung ist aus"),  # ①
             (self._an("aktiv", kid), "Kreis ist pausiert"),
             (soil is not None, "kein Bodensensor konfiguriert"),  # ②
@@ -1256,7 +1276,12 @@ class GartenController:
         laufzeit.dosen_heute += 1
         self._letzte_dose[kid] = dt_util.utcnow()
         self.daten.broadcast()
+        generation = self._pause_generation
         await self._store_sichern()
+        # A pause may arrive while Store writes are awaiting disk. Do not
+        # enqueue a stale dose, even if the user has already resumed again.
+        if self.pause.active or generation != self._pause_generation:
+            return
         self._dose_tasks[kid] = self.entry.async_create_background_task(
             self.hass,
             self._dose_ausfuehren(kreis, dose_min, soil, high),
@@ -1534,6 +1559,59 @@ class GartenController:
 
     # -------------------------------------------------------------- Aktionen
 
+    async def pause_aendern(self, **values) -> None:
+        """Persist the veto before awaiting cancellation/valve closure."""
+        async with self._pause_lock:
+            if not self.pause_ready:
+                raise ValueError("Pausensteuerung startet noch")
+            was_active = self.pause.active
+            self.pause = self.pause.changed(dt_util.now(), **values)
+            if self.pause.active and not was_active:
+                self._pause_generation += 1
+            await self._store_sichern()
+            self.daten.broadcast()
+            self._arm_pause()
+            if self.pause.active and not was_active:
+                await self.not_aus(pause_stop=True)
+            # Never call _topf_runde here: resume is not an immediate dose.
+            await self._recompute_alle()
+            self._arme_tagestimer()
+
+    @callback
+    def _arm_pause(self) -> None:
+        if self._pause_unsub:
+            self._pause_unsub()
+            self._pause_unsub = None
+        p = self.pause
+        if not self._gestoppt and p.active and p.timed and not p.reminded:
+            self._pause_unsub = async_track_point_in_time(
+                self.hass, self._pause_expired, dt_util.parse_datetime(p.until)
+            )
+
+    async def _pause_expired(self, _now) -> None:
+        async with self._pause_lock:
+            if self._gestoppt:
+                return
+            result = self.pause.expire(dt_util.now())
+            if not result:
+                return
+            self._pause_unsub = None
+            await self._store_sichern()
+            self.daten.broadcast()
+            self._arme_tagestimer()  # always the next future slot, no catch-up
+            message = (
+                "Pause beendet. Es gilt wieder der normale Zeitplan; kein Nachhol-Lauf."
+                if result == "resumed" else
+                "Pausenende erreicht. Bewässerung bleibt gesperrt: Wasseranschluss "
+                "und Schläuche prüfen und anschließend manuell freigeben."
+            )
+            # Persistent notification remains visible even without mobile push.
+            await self.hass.services.async_call("persistent_notification", "create", {
+                "notification_id": f"{DOMAIN}_{self.entry.entry_id}_pause",
+                "title": "Bewässerungspause", "message": message,
+            }, blocking=True)
+            await self._sende_push("⏸ Bewässerungspause", message, kritisch=False)
+
     async def plan_neu(self) -> None:
         await self._recompute_alle()
         self._topf_runde()
@@ -1541,7 +1619,7 @@ class GartenController:
     async def sofort_start(self) -> None:
         await self.starte_lauf(quelle="Manuell")
 
-    async def not_aus(self) -> None:
+    async def not_aus(self, pause_stop: bool = False) -> None:
         """B11: Lauf abbrechen, Sofort-Sweep an alle, dann je Ventil
         retry-nachfassen, Erfolg/Warnung pushen."""
         self.daten.hub.lauf_aktiv = False  # Executor überspringt Rest-Slots
@@ -1562,9 +1640,15 @@ class GartenController:
         for task in self._dose_tasks.values():
             if not task.done():
                 task.cancel()
+        # Join cancellation cleanup before permitting a later resume.
+        pending = [t for t in [self._lauf_task, *self._parallel_tasks,
+                              *self._dose_tasks.values()]
+                   if t is not None and t is not asyncio.current_task()]
         ventile = self._alle_ventile()
         for ventil in ventile:  # 2a) Sofort-Sweep: erster Befehl an ALLE sofort
             await self._ventil_befehl(ventil, "turn_off")
+        if pending:
+            await asyncio.gather(*pending, return_exceptions=True)
         for ventil in ventile:  # 2b) retry-gehärtet nachfassen
             await self._retry_close(ventil)
         # Alles, was nicht 'off' ist (auch unerreichbar), zählt als offen (B11).
@@ -1578,7 +1662,7 @@ class GartenController:
             )
         else:
             nachricht = f"Alle {len(ventile)} Ventile melden „aus“."
-        await self._sende_push("🛑 Not-Aus Bewässerung", nachricht, kritisch=self._alarm_kritisch())
+        await self._sende_push("⏸ Bewässerung pausiert" if pause_stop else "🛑 Not-Aus Bewässerung", nachricht, kritisch=self._alarm_kritisch() if noch_offen or not pause_stop else False)
         self.daten.broadcast()
         await self._store_sichern()
 
@@ -1589,6 +1673,8 @@ class GartenController:
         kreis = next((k for k in self._kreise() if k[CONF_KREIS_ID] == kid), None)
         if (
             self._gestoppt
+            or not self.pause_ready
+            or self.pause.active
             or kreis is None
             or kreis.get(CONF_KREIS_TYP) != "topf"
             or (self._dose_tasks.get(kid) and not self._dose_tasks[kid].done())
@@ -1610,7 +1696,12 @@ class GartenController:
         laufzeit.dosen_heute += 1
         self._letzte_dose[kid] = dt_util.utcnow()
         self.daten.broadcast()
+        generation = self._pause_generation
         await self._store_sichern()
+        # A pause may arrive while Store writes are awaiting disk. Do not
+        # enqueue a stale dose, even if the user has already resumed again.
+        if self.pause.active or generation != self._pause_generation:
+            return
         self._dose_tasks[kid] = self.entry.async_create_background_task(
             self.hass, self._dose_ausfuehren(kreis, dose_min), f"{DOMAIN}_dose_{kid}"
         )

@@ -118,6 +118,7 @@ FALLBACK_TMAX = 20.0
 # Alle Hub-Entity-Schlüssel (unique_id = "<entry>_<schluessel>") — Grundlage
 # für das Registry-Aufräumen beim Setup (verwaiste Kreis-Entities erkennen).
 HUB_SCHLUESSEL = {
+    "pause_befristet", "pause_grund", "pause_ablauf", "pause_ende", "pause_status", "test_push",
     "bewaesserungszeit", "heute_ueberspringen", "urlaubsmodus",
     "aggressiv_modus", "topf_steuerung", "not_aus", "sofort_start",
     "plan_neu", "naechster_lauf", "letzter_lauf_bericht", "plan_heute",
@@ -145,4 +146,4 @@ EVENT_LAUF_GESTARTET = f"{DOMAIN}_lauf_gestartet"
 EVENT_LAUF_BEENDET = f"{DOMAIN}_lauf_beendet"
 EVENT_NOTAUS = f"{DOMAIN}_notaus"
 
-PLATTFORMEN = ["sensor", "number", "switch", "button", "time", "calendar"]
+PLATTFORMEN = ["sensor", "number", "switch", "button", "time", "calendar", "select", "datetime"]

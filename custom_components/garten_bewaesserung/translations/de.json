@@ -264,6 +264,32 @@
           "description": "Kreis-ID des Topf-Kreises (z. B. tomaten)."
         }
       }
+    },
+    "pause_setzen": {
+      "name": "Bewässerungspause setzen",
+      "description": "Pausiert alle Kreise bis auf Widerruf oder bis zum Enddatum. Winterpause erinnert standardmäßig und bleibt gesperrt. Fortsetzen startet keinen Nachhol-Lauf.",
+      "fields": {
+        "entry_id": {
+          "name": "Garten-Eintrag",
+          "description": "Bei mehreren Gärten erforderlich: Config-Entry-ID des gewünschten Gartens."
+        },
+        "aktiv": {
+          "name": "Pause aktiv",
+          "description": "Ausschalten gibt den normalen zukünftigen Zeitplan frei."
+        },
+        "grund": {
+          "name": "Pausengrund",
+          "description": "Winterpause wählt ohne explizite Ablaufaktion Nur erinnern."
+        },
+        "ablauf": {
+          "name": "Nach Pausenende",
+          "description": "Automatisch fortsetzen oder gesperrt bleiben und erinnern."
+        },
+        "ende": {
+          "name": "Pausenende",
+          "description": "Optionaler Zeitpunkt mit Zeitzone. Ohne Enddatum gilt die Pause bis auf Widerruf."
+        }
+      }
     }
   },
   "issues": {

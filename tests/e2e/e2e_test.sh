@@ -8,8 +8,22 @@
 #      Not-Aus, Neustart-Recovery, Topf-Dosen und Volumen-Tracking mit
 #      exakten Erwartungswerten durch.
 set -euo pipefail
-TD=/tmp/int-test-config
-rm -rf "$TD"; mkdir -p "$TD/custom_components"
+if docker container inspect int-test >/dev/null 2>&1; then
+  echo "int-test exists; refusing to replace another test run" >&2
+  exit 1
+fi
+TD=$(mktemp -d /tmp/garten-integration-test.XXXXXX)
+mkdir -p "$TD/custom_components"
+CREATED=0
+cleanup() {
+  if [ "$CREATED" = 1 ]; then
+    docker logs int-test 2>&1 | grep -A 12 -iE 'garten.*(error|failed)|Error.*garten|Traceback' | tail -60 || true
+    docker rm -f int-test >/dev/null
+  fi
+  # Only this run's mktemp directory, never a shared path.
+  rm -rf -- "$TD"
+}
+trap cleanup EXIT
 cp -r /tmp/integration-upload/custom_components/garten_bewaesserung "$TD/custom_components/"
 
 cat > "$TD/configuration.yaml" <<'EOF'
@@ -82,14 +96,12 @@ template:
                {'datetime': (now()+timedelta(days=2)).isoformat(), 'temperature': 24, 'templow': 14, 'precipitation': 1.2, 'condition': 'rainy'} ] }}
 EOF
 
-docker rm -f int-test >/dev/null 2>&1 || true
 docker run -d --name int-test -p 127.0.0.1:8124:8123 -v "$TD":/config \
-  ghcr.io/home-assistant/home-assistant:2026.6.3 >/dev/null
+  ghcr.io/home-assistant/home-assistant:2026.9.2 >/dev/null
+CREATED=1
 echo "HA bootet…"
-python3 /tmp/int_test_driver.py
+python3 -u /tmp/int_test_driver.py "$@"
 RC=$?
 echo "--- relevante Fehler-Logs ---"
 docker logs int-test 2>&1 | grep -iE "error|exception|traceback" | grep -iE "garten|config_flow|flow" | head -15 || echo "(keine)"
-docker rm -f int-test >/dev/null
-rm -rf "$TD"
 exit $RC

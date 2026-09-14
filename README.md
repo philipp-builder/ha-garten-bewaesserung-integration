@@ -8,6 +8,30 @@
 
 # Garten-Bewässerung — Home-Assistant-Integration
 
+## Urlaub und Winterpause
+
+Am Gerät **Garten** gibt es **Bewässerung pausieren**, **Pausengrund**,
+**Pausenende**, **Pause mit Enddatum**, **Nach Pausenende** und **Pausenstatus**.
+Ohne Enddatum gilt die Pause bis auf Widerruf. Für eine befristete Pause zuerst
+das zukünftige Enddatum einstellen, dann „Pause mit Enddatum“ aktivieren.
+Winterpause wählt standardmäßig **Nur erinnern**: Wasseranschluss und Schläuche
+prüfen, danach manuell freigeben. „Automatisch fortsetzen“ ist ausdrücklich wählbar.
+
+Die Pause wird gespeichert und übersteht Neustarts. Ein bereits laufender
+Durchgang wird abgebrochen und alle Ventile werden mit Wiederholversuchen
+geschlossen. Auch manuelle Sofortstarts und Topf-Dosen bleiben gesperrt.
+Das Pausenende erzeugt eine HA-Mitteilung und die konfigurierten Pushes.
+Freigabe startet keinen sofortigen Nachhol-Lauf; normale zukünftige Termine
+und Topf-Prüfungen gelten wieder. Ein abgelaufenes Enddatum wird auch beim
+Neustart verarbeitet. Fehlerhafte gespeicherte Pausendaten bleiben sicher gesperrt.
+
+Bestehende Urlaubsmodus-Entity-IDs bleiben erhalten; ein eingeschalteter alter
+Urlaubsmodus wird als unbefristete Pause übernommen. Neuinstallationen verwenden
+den Anzeigenamen „Bewässerung pausieren“. Die Aktion
+`garten_bewaesserung.pause_setzen` erlaubt dieselbe Einstellung atomar;
+bei mehreren Gärten ist `entry_id` erforderlich. `ende` erwartet einen
+ISO-Zeitpunkt mit Zeitzone. Ohne `ende` aktiviert die Aktion eine unbefristete Pause.
+
 **Score-basierte Gartenbewässerung: Setup per Wizard, beliebig viele Kreise,
 erklärbare Entscheidungen, mehrschichtiges Sicherheitsnetz gegen hängende Ventile.**
 

@@ -24,7 +24,12 @@ def req(path, data=None, method=None, auth=True, raw=False):
         if raw:
             headers["Content-Type"] = "application/x-www-form-urlencoded"
     r = urllib.request.Request(url, data=body, headers=headers, method=method)
-    with urllib.request.urlopen(r, timeout=30) as resp:
+    try:
+        response = urllib.request.urlopen(r, timeout=30)
+    except urllib.error.HTTPError as exc:
+        print("Test API error:", path, exc.code, exc.read().decode()[:500])
+        raise
+    with response as resp:
         txt = resp.read().decode()
         return json.loads(txt) if txt else {}
 
@@ -168,7 +173,12 @@ def main():
     erwartet = [
         "time.garten_bewasserungszeit",
         "switch.garten_heute_uberspringen",
-        "switch.garten_urlaubsmodus",
+        "switch.garten_bewasserung_pausieren",
+        "switch.garten_pause_mit_enddatum",
+        "select.garten_pausengrund",
+        "select.garten_nach_pausenende",
+        "datetime.garten_pausenende",
+        "sensor.garten_pausenstatus",
         "switch.garten_boost_modus",
         "switch.garten_topf_frequenzbewasserung",
         "button.garten_not_aus",
@@ -216,6 +226,49 @@ def main():
     # zünden (Boden 38 liegt dauerhaft unter dem Sollband) — der dedizierte
     # Topf-Test unten schaltet ihn wieder ein.
     req("/api/services/switch/turn_off", {"entity_id": "switch.garten_topf_frequenzbewasserung"})
+
+    # Pause: real services and persisted state, exclusively template valves.
+    from datetime import datetime, timedelta, timezone
+    import subprocess
+    pause_switch = "switch.garten_bewasserung_pausieren"
+    def live_state(eid):
+        return req("/api/states/" + eid)["state"]
+    def pause_call(**values):
+        req("/api/services/garten_bewaesserung/pause_setzen", values)
+    def all_closed():
+        return all(live_state(f"switch.testventil_{i}") == "off" for i in range(1, 5))
+
+    pause_call(aktiv=True, grund="Winterpause")
+    assert all_closed(), "Pause did not close running valves"
+    assert live_state("select.garten_nach_pausenende") == "Nur erinnern"
+    req("/api/services/garten_bewaesserung/jetzt_bewaessern", {})
+    req("/api/services/garten_bewaesserung/dosis_geben", {"kreis": "tomaten"})
+    time.sleep(2)
+    assert all_closed(), "Paused manual/service entry point opened a valve"
+    subprocess.run(["docker", "restart", "int-test"], check=True, capture_output=True)
+    warte_auf_ha()
+    time.sleep(12)
+    assert live_state(pause_switch) == "on", "Pause lost on restart"
+    assert all_closed()
+    for action, expected in [("Nur erinnern", "on"), ("Automatisch fortsetzen", "off")]:
+        pause_call(aktiv=True, grund="Urlaub", ablauf=action,
+                   ende=(datetime.now(timezone.utc) + timedelta(seconds=12)).isoformat())
+        time.sleep(15)
+        assert live_state(pause_switch) == expected, (action, live_state(pause_switch))
+        assert all_closed(), "Expiry caused immediate catch-up watering"
+    pause_call(aktiv=False)
+    print("Pause E2E PASS: manual/dose veto, restart, reminder, auto expiry, no catch-up")
+    if '--pause-only' in sys.argv:
+        req('/api/services/number/set_value', {'entity_id': 'number.garten_rasen_dauer_heute', 'value': 2})
+        req('/api/services/garten_bewaesserung/jetzt_bewaessern', {})
+        time.sleep(2)
+        assert not all_closed(), 'Need active simulated run for pause cancellation'
+        pause_call(aktiv=True, grund='Winterpause')
+        time.sleep(5)
+        assert all_closed(), 'Pause failed to cancel active simulated run'
+        assert live_state('sensor.garten_rasen_status').startswith('⏸ Winterpause')
+        print('ALL PAUSE-ONLY TESTS PASS — active-run cancellation and reason display')
+        return
 
     # ---- Engine: Plan neu berechnen und Score-Parität prüfen ----
     req("/api/services/button/press", {"entity_id": "button.garten_plan_neu_berechnen"})
@@ -1068,6 +1121,15 @@ def main():
     )
     assert abs(float(rl["state"]) - 500) < 5, rl["state"]
     print(f"Mehr-Ventil-Sitzung korrekt als EINE Gabe verbucht: {sitzung} L")
+
+    req("/api/services/number/set_value", {"entity_id": "number.garten_rasen_dauer_heute", "value": 2})
+    req("/api/services/garten_bewaesserung/jetzt_bewaessern", {})
+    time.sleep(2)
+    assert not all_closed(), "Pause cancellation needs an active simulated run"
+    pause_call(aktiv=True, grund="Winterpause")
+    time.sleep(5)
+    assert all_closed(), "Paused run reopened a valve"
+    print("Active-run pause cancellation PASS")
 
     print("\nALLE ASSERTIONS PASS — Flows, Entities, Score-Engine (B1), Executor (B3), Not-Aus (B11), Skip-Veto, Neustart-Recovery (B5-B), Stempel (B9), Topf-Dose (B6) + Gates, Volumen/Kosten, Typwechsel (v1.0.1), Kalender + Energy-Zaehler + Repairs (v1.4.0), Intervall-Bewaesserung (v1.5.0), Nachtruhe + Batterie-Gate (v1.6.0), Dosen-Sichtbarkeit: Sperrgrund + Zeiten + Kalender (v1.7.0), Notify: Repair-Karte + Praefix-Ergaenzung (v1.8.0) OK")
 

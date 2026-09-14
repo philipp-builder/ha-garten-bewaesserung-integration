@@ -15,7 +15,9 @@ from .entity import GartenEntity
 HUB_SWITCHES = [
     # (schluessel, name, default_an, icon)
     ("heute_ueberspringen", "Heute überspringen", False, "mdi:skip-next-circle-outline"),
-    ("urlaubsmodus", "Urlaubsmodus", False, "mdi:airplane"),
+    # Stable unique_id/entity_id keeps existing automations working.
+    ("urlaubsmodus", "Bewässerung pausieren", False, "mdi:pause-circle"),
+    ("pause_befristet", "Pause mit Enddatum", False, "mdi:calendar-end"),
     ("aggressiv_modus", "Boost-Modus", False, "mdi:fire"),
     ("topf_steuerung", "Topf-Frequenzbewässerung", True, "mdi:flower-outline"),
 ]
@@ -42,6 +44,21 @@ class GartenSwitch(GartenEntity, SwitchEntity, RestoreEntity):
         self._attr_name = name
         self._attr_icon = icon
         self._attr_is_on = default_an
+        self._schluessel = schluessel
+
+    @property
+    def is_on(self):
+        c = self.hass.data[DOMAIN][self._entry.entry_id]["controller"]
+        if c.pause_ready and self._schluessel in ("urlaubsmodus", "pause_befristet"):
+            return c.pause.active if self._schluessel == "urlaubsmodus" else c.pause.timed
+        return self._attr_is_on
+
+    @property
+    def extra_state_attributes(self):
+        if self._schluessel == "urlaubsmodus":
+            c = self.hass.data[DOMAIN][self._entry.entry_id]["controller"]
+            return {**c.pause.to_dict(), "status": c.pause.label()}
+        return None
 
     async def async_added_to_hass(self) -> None:
         await super().async_added_to_hass()
@@ -49,9 +66,17 @@ class GartenSwitch(GartenEntity, SwitchEntity, RestoreEntity):
             self._attr_is_on = alt.state == "on"
 
     async def async_turn_on(self, **kwargs: Any) -> None:
+        if self._schluessel in ("urlaubsmodus", "pause_befristet"):
+            c = self.hass.data[DOMAIN][self._entry.entry_id]["controller"]
+            await c.pause_aendern(**{"active" if self._schluessel == "urlaubsmodus" else "timed": True})
+            return
         self._attr_is_on = True
         self.async_write_ha_state()
 
     async def async_turn_off(self, **kwargs: Any) -> None:
+        if self._schluessel in ("urlaubsmodus", "pause_befristet"):
+            c = self.hass.data[DOMAIN][self._entry.entry_id]["controller"]
+            await c.pause_aendern(**{"active" if self._schluessel == "urlaubsmodus" else "timed": False})
+            return
         self._attr_is_on = False
         self.async_write_ha_state()

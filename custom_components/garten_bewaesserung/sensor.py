@@ -38,6 +38,7 @@ async def async_setup_entry(
         NaechsterLaufSensor(entry, daten, "naechster_lauf"),
         BerichtSensor(entry, daten, "letzter_lauf_bericht"),
         PlanHeuteSensor(entry, daten, "plan_heute"),
+        PauseStatusSensor(entry, daten, "pause_status"),
     ]
     for kreis in entry.options.get(CONF_KREISE, []):
         entities += [
@@ -57,6 +58,19 @@ async def async_setup_entry(
                 KostenMonatSensor(entry, daten, "kosten_monat", kreis),
             ]
     async_add_entities(entities)
+
+
+class PauseStatusSensor(GartenEntity, SensorEntity):
+    _attr_name = "Pausenstatus"
+    _attr_icon = "mdi:pause-circle-outline"
+
+    @property
+    def native_value(self):
+        return self.hass.data[DOMAIN][self._entry.entry_id]["controller"].pause.label()
+
+    @property
+    def extra_state_attributes(self):
+        return self.hass.data[DOMAIN][self._entry.entry_id]["controller"].pause.to_dict()
 
 
 class ScoreSensor(GartenEntity, SensorEntity):
