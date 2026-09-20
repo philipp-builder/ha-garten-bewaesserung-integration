@@ -21,6 +21,9 @@ Die Pause wird gespeichert und übersteht Neustarts. Ein bereits laufender
 Durchgang wird abgebrochen und alle Ventile werden mit Wiederholversuchen
 geschlossen. Auch manuelle Sofortstarts und Topf-Dosen bleiben gesperrt.
 Das Pausenende erzeugt eine HA-Mitteilung und die konfigurierten Pushes.
+Während einer aktiven Pause entfallen die täglichen Garten-Plan-Ankündigungen
+(seit v1.9.1). Sicherheitsalarme, Test-Pushes und Pausenende-Erinnerungen bleiben
+aktiv. Nur den Pausengrund auszuwählen aktiviert noch keine Pause.
 Freigabe startet keinen sofortigen Nachhol-Lauf; normale zukünftige Termine
 und Topf-Prüfungen gelten wieder. Ein abgelaufenes Enddatum wird auch beim
 Neustart verarbeitet. Fehlerhafte gespeicherte Pausendaten bleiben sicher gesperrt.

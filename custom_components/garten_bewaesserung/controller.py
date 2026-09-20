@@ -545,8 +545,16 @@ class GartenController:
     async def _push_feuern(self, _jetzt: datetime) -> None:
         self._push_unsub = None
         try:
-            # Frisch rechnen statt B2s :05/:35-Versatz — kein Race möglich.
+            if self._gestoppt or not self.pause_ready or self.pause.active:
+                return
+            generation = self._pause_generation
+            # Frisch rechnen statt B2s :05/:35-Versatz.
             await self._recompute_alle()
+            # Wetterabruf gibt die Kontrolle ab: Pause/Stop kann inzwischen
+            # aktiviert worden sein, auch mit sofortiger erneuter Freigabe.
+            if (self._gestoppt or not self.pause_ready or self.pause.active
+                    or generation != self._pause_generation):
+                return
             if self._an("heute_ueberspringen"):
                 _LOGGER.debug("Tagesplan-Push unterdrückt: heute überspringen aktiv")
                 return

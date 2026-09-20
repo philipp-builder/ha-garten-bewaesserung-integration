@@ -28,8 +28,10 @@ jobs:
       # jegliche Abhängigkeiten (kein pip install nötig).
       - run: python3 tests/test_score.py
       - run: python3 tests/test_pause.py
+      - run: python3 tests/test_plan_notifications.py
       - name: Pause cancellation race in the HA runtime
         run: |
           docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
-            -v "$PWD:/work:ro" --entrypoint python \
-            ghcr.io/home-assistant/home-assistant:2026.9.2 /work/tests/test_pause_race.py
+            -v "$PWD:/work:ro" --entrypoint sh \
+            ghcr.io/home-assistant/home-assistant:2026.9.2 \
+            -c 'python /work/tests/test_pause_race.py && python /work/tests/test_plan_notifications.py --ha-runtime'
