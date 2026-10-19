@@ -9,7 +9,7 @@
 - Soil-device battery alerts suppressed only with proven identity and all configured consumers stored; valves/unknown device roles retain alerts. No registry disabling/Recorder changes to upstream entities.
 - monitoring_expected/source_entities/status/fresh_after attributes support external health integration; no blanket suppression, and invalid policy remains a fault. This does not change a separate private YAML installation.
 ## Tests / publication
-- Local stdlib: 19 score +12 pause +9 plan-notification +9 soil-policy +20 soil-controller tests. Same controller assertions run with full HA imports in CI, alongside existing pause race and 13 native season entity checks.
+- Local stdlib: 19 score +12 pause +9 plan-notification +9 soil-policy +21 soil-controller tests. Same controller assertions run with full HA imports in CI, alongside existing pause race, 13 native season entity checks and real HA startup/unchanged-report/shutdown checks.
 - Workflow also runs hassfest and HACS validation. Publish v1.10.0 only after exact-commit CI succeeds; never infer a passing AST unit suite proves HA setup.
 - README and docs/SENSOR_SEASON.md document controls, behavior change, monitoring/freshness limits and safe release procedure.
 - HACS default PR9343 merged October18; the subsequent generated public catalog was still delayed at the October19 investigation. Recheck catalog rather than assume a reinstall/HA restart fixes upstream generation.
