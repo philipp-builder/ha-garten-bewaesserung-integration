@@ -28,6 +28,7 @@ from homeassistant.helpers.event import (
     async_call_later,
     async_track_point_in_time,
     async_track_state_change_event,
+    async_track_state_report_event,
     async_track_time_change,
 )
 from homeassistant.helpers.storage import Store
@@ -228,12 +229,10 @@ class GartenController(SoilController):
                     self.hass, topf_sensoren, self._soil_event
                 )
             )
-            # Filtered immediate listener is supported since HA 2024.4;
-            # unchanged reports must count too, without polling the hardware.
-            self._unsubs.append(self.hass.bus.async_listen(
-                "state_reported", self._soil_event,
-                event_filter=lambda data: data["entity_id"] in topf_sensoren,
-                run_immediately=True,
+            # Supported keyed helper (also in minimum HA 2025.8): unchanged
+            # reports count too, without polling the hardware.
+            self._unsubs.append(async_track_state_report_event(
+                self.hass, topf_sensoren, self._soil_event,
             ))
         # F1: Ein Options-Reload verwirft die Timer bereits offener Ventile —
         # hier werden Watchdog + Auto-Aus-Backstop für alles, was gerade
