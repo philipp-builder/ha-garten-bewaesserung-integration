@@ -287,6 +287,15 @@ class SoilControllerTests(unittest.IsolatedAsyncioTestCase):
         unsubscribe.assert_called_once()
         self.assertNotIn("pot", self.c._topf_debounce)
 
+    async def test_garden_sensor_pause_does_not_stop_sensorless_weather_zone(self):
+        self.zones[0]["bodensensoren"] = []
+        self.state("switch.lawn", "on")
+        before = self.c._soil_generation["lawn"]
+        await self.c.soil_change(mode=soil.STORED)
+        self.assertEqual(self.c._soil_generation["lawn"], before)
+        self.c._ventile_schliessen.assert_not_awaited()
+        self.assertTrue(self.c.soil_allowed(self.zones[0]))
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -50,6 +50,8 @@ class SoilController:
     def _soil_sync(self, force=()):
         changed = set()
         for k in self._kreise():
+            if not k.get(CONF_BODENSENSOREN):
+                continue  # sensorless weather zones have no sensor season to stop
             kid = k[CONF_KREIS_ID]
             parked = self._soil_is_parked(kid)
             if kid in force or self._soil_parked.get(kid) != parked:
