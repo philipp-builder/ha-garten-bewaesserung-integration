@@ -22,6 +22,7 @@ import soil
 import pause
 import score
 import const
+sys.path.remove(str(SOURCE))  # never shadow stdlib calendar with our HA platform
 
 HA_RUNTIME = "--ha-runtime" in sys.argv
 if HA_RUNTIME:
