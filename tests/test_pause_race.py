@@ -16,6 +16,8 @@ async def run():
         c.pause_ready = True
         c.pause = Pause()
         c._pause_generation = 0
+        c._soil_generation = {}
+        c.soil_allowed = lambda kreis: True
         c._dose_tasks = {}
         c._letzte_dose = {}
         c._kreise = lambda: [{'id': 'tomaten', 'typ': 'topf', 'ventile': ['switch.fake']}]

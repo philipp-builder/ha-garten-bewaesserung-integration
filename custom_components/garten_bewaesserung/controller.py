@@ -87,6 +87,7 @@ from .const import (
 )
 from .daten import GartenDaten
 from .pause import Pause
+from .soil_controller import SoilController
 from .score import (
     NIE_BEWAESSERT_TAGE,
     ScoreEingabe,
@@ -107,7 +108,7 @@ UNGUELTIG = ("unknown", "unavailable", "", None)
 NICHT_ERREICHBAR = ("unavailable", "unknown", "none", None)
 
 
-class GartenController:
+class GartenController(SoilController):
     """Pro Config-Entry: Scheduler + Executor + Watchdog + Sitzung + Not-Aus."""
 
     def __init__(self, hass: HomeAssistant, entry: ConfigEntry, daten: GartenDaten) -> None:
@@ -138,6 +139,7 @@ class GartenController:
         self._pause_unsub = None
         self._pause_lock = asyncio.Lock()
         self._pause_generation = 0
+        self._soil_init()
 
     # ------------------------------------------------------------ Lebenszyklus
 
@@ -147,6 +149,7 @@ class GartenController:
         self.daten.broadcast()
         await self._pause_expired(dt_util.now())
         self._arm_pause()
+        await self._soil_expired(dt_util.now())
         # Verwaiste Raten-Sensor-Repairs löschen (Kreis entfernt oder
         # Flow-Sensor aus der Konfiguration genommen).
         gueltig = {
@@ -217,15 +220,21 @@ class GartenController:
             {
                 s
                 for k in self._kreise()
-                if k.get(CONF_KREIS_TYP) == "topf"
                 for s in k.get(CONF_BODENSENSOREN) or []
             }
         ):
             self._unsubs.append(
                 async_track_state_change_event(
-                    self.hass, topf_sensoren, self._topf_boden_ereignis
+                    self.hass, topf_sensoren, self._soil_event
                 )
             )
+            # Filtered immediate listener is supported since HA 2024.4;
+            # unchanged reports must count too, without polling the hardware.
+            self._unsubs.append(self.hass.bus.async_listen(
+                "state_reported", self._soil_event,
+                event_filter=lambda data: data["entity_id"] in topf_sensoren,
+                run_immediately=True,
+            ))
         # F1: Ein Options-Reload verwirft die Timer bereits offener Ventile —
         # hier werden Watchdog + Auto-Aus-Backstop für alles, was gerade
         # "on" meldet, sofort neu armiert (die Uhr startet dabei neu; besser
@@ -246,6 +255,9 @@ class GartenController:
     @callback
     def stop(self) -> None:
         self._gestoppt = True  # F5: keine Ghost-Timer aus in-flight-Tasks
+        if self._soil_unsub:
+            self._soil_unsub()
+            self._soil_unsub = None
         if self._pause_unsub:
             self._pause_unsub()
             self._pause_unsub = None
@@ -378,22 +390,8 @@ class GartenController:
             kid = kreis[CONF_KREIS_ID]
             laufzeit = self.daten.kreis(kid)
 
-            sensoren = kreis.get(CONF_BODENSENSOREN) or []
-            boden = (
-                min(sicher_float(self._zustand(s), 50.0) for s in sensoren)
-                if sensoren
-                else None
-            )
-            # Anzeige-Wert (Infofeld + Plan-Zeile): nur ECHTE Messwerte —
-            # ein toter Sensor soll als unbekannt erscheinen, nicht als
-            # scheinbar gemessene 50 % (der Score behält den 50er-Fallback).
-            messwerte = []
-            for s2 in sensoren:
-                try:
-                    messwerte.append(float(self._zustand(s2)))
-                except (TypeError, ValueError):
-                    continue
-            anzeige_boden = min(messwerte) if messwerte else None
+            boden, sensor_status = self.soil_reading(kreis)
+            anzeige_boden = boden
             uebersicht.append((kreis[CONF_KREIS_NAME], anzeige_boden))
             laufzeit.boden = anzeige_boden
 
@@ -406,6 +404,15 @@ class GartenController:
                     {"name": kreis[CONF_KREIS_NAME], "boden": boden,
                      "score": 0, "dauer": 0, "deaktiviert": True}
                 )
+                continue
+
+            if not self.soil_allowed(kreis):
+                laufzeit.score = None
+                laufzeit.status = "⏸ Bodensensoren: " + sensor_status.replace("_", " ")
+                laufzeit.faktoren = self.soil_attributes(kreis)
+                await self._setze_dauer(kid, 0)
+                details_kreise.append({"name": kreis[CONF_KREIS_NAME], "boden": None,
+                                       "score": None, "dauer": 0, "sensor_status": sensor_status})
                 continue
 
             if laufzeit.zuletzt_bewaessert is not None:
@@ -615,7 +622,9 @@ class GartenController:
         # Dauer-SNAPSHOT jetzt (B3): Kreise sortiert; deaktivierte Kreise
         # stehen ohnehin auf Dauer 0 und werden im Lauf übersprungen.
         plan = [
-            (kreis, int(self._zahl("number", "dauer_heute", kreis[CONF_KREIS_ID], 0)))
+            ({**kreis, "_soil_generation": self._soil_generation.get(kreis[CONF_KREIS_ID], 0)},
+             int(self._zahl("number", "dauer_heute", kreis[CONF_KREIS_ID], 0))
+             if self.soil_allowed(kreis) else 0)
             for kreis in sorted(
                 self._kreise(), key=lambda k: (k.get(CONF_GRUPPE, 99), k[CONF_KREIS_ID])
             )
@@ -728,6 +737,7 @@ class GartenController:
             return
         kid = kreis[CONF_KREIS_ID]
         bloecke, pause_min = self._bloecke(kreis, dauer_min)
+        generation = kreis.get("_soil_generation", self._soil_generation.get(kid, 0))
         if len(bloecke) > 1:
             _LOGGER.info(
                 "Kreis %s: %d min in %d Blöcken à %.1f min mit %.0f min Pause",
@@ -751,7 +761,9 @@ class GartenController:
                     )
                     continue
                 for i, block in enumerate(bloecke):
-                    if not self.daten.hub.lauf_aktiv:
+                    if (not self.daten.hub.lauf_aktiv or not self.soil_allowed(kreis)
+                            or generation != self._soil_generation.get(kid, 0)):
+                        kreis["_soil_skipped"] = True
                         break
                     await self._ventil_befehl(ventil, "turn_on")
                     await asyncio.sleep(block * 60)
@@ -794,7 +806,9 @@ class GartenController:
         self.daten.hub.lauf_aktiv = False
 
         gegossen = [
-            f"{k.get(CONF_KREIS_NAME, k[CONF_KREIS_ID])} {d} min" for k, d in plan if d > 0
+            f"{k.get(CONF_KREIS_NAME, k[CONF_KREIS_ID])} {d} min (geplant)"
+            + (" — durch Sensorsperre unterbrochen/übersprungen" if k.get("_soil_skipped") else "")
+            for k, d in plan if d > 0
         ]
         bericht = (
             f"{dt_util.now().strftime('%d.%m. %H:%M')} ({quelle}): "
@@ -840,10 +854,23 @@ class GartenController:
         """switch.turn_on/off mit continue_on_error-Semantik (B3-Härtung)."""
         if dienst == "turn_on" and (not self.pause_ready or self.pause.active):
             return  # Last safety gate: also covers already queued tasks.
+        if dienst == "turn_on" and any(
+            not self.soil_allowed(k) for k in self._kreise()
+            if ventil in k.get(CONF_VENTILE, [])
+        ):
+            return
+        generations = dict(self._soil_generation) if dienst == "turn_on" else {}
         try:
             await self.hass.services.async_call(
                 "switch", dienst, {"entity_id": ventil}, blocking=True
             )
+            if dienst == "turn_on" and (self.pause.active or any(
+                not self.soil_allowed(k)
+                or generations.get(k[CONF_KREIS_ID]) != self._soil_generation.get(k[CONF_KREIS_ID])
+                for k in self._kreise() if ventil in k.get(CONF_VENTILE, [])
+            )):
+                # The open command itself may have been in flight at pause time.
+                await self._soil_close_valves([ventil])
         except Exception as exc:
             _LOGGER.warning("Ventil-Befehl %s auf %s fehlgeschlagen: %s", dienst, ventil, exc)
 
@@ -1041,6 +1068,7 @@ class GartenController:
             {
                 "lauf_aktiv": self.daten.hub.lauf_aktiv,
                 "pause": self.pause.to_dict(),
+                "soil": self._soil_save(),
                 "dosen": {kid: self.daten.kreis(kid).dosen_heute for kid in kids},
                 "liter_heute": {kid: self.daten.kreis(kid).liter_heute for kid in kids},
                 "liter_monat": {kid: self.daten.kreis(kid).liter_monat for kid in kids},
@@ -1063,6 +1091,7 @@ class GartenController:
         Monats wiederherstellen (Restore-Sensoren decken nur Zeitstempel ab)."""
         g = await self._store.async_load() or {}
         self.pause = Pause.restore(g.get("pause"), legacy=self._an("urlaubsmodus"))
+        self._soil_load(g.get("soil", {}))
         self._war_lauf_aktiv = bool(g.get("lauf_aktiv"))
         jetzt = dt_util.now()
         if g.get("datum") == jetzt.date().isoformat():
@@ -1166,12 +1195,8 @@ class GartenController:
             self.daten.broadcast()
 
     def _topf_boden(self, kreis: dict[str, Any]) -> float | None:
-        """Minimum über die Sensoren; nicht-numerisch ⇒ -1 (B6-float(-1)-
-        Semantik: blockiert über die Glitch-Grenze — nie blind dosieren)."""
-        sensoren = kreis.get(CONF_BODENSENSOREN) or []
-        if not sensoren:
-            return None
-        return min(sicher_float(self._zustand(s), -1.0) for s in sensoren)
+        """Same eligibility boundary as lawn plans and the morning report."""
+        return self.soil_reading(kreis)[0]
 
     async def _topf_pruefen(self, kid: str) -> None:
         """Die 9 B6-Gates; bei Erfolg: Zähler ZUERST, dann Dosis-Task."""
@@ -1220,7 +1245,7 @@ class GartenController:
             (self.pause_ready and not self.pause.active, "Bewässerung pausiert"),
             (self._an("topf_steuerung"), "Topf-Frequenzbewässerung ist aus"),  # ①
             (self._an("aktiv", kid), "Kreis ist pausiert"),
-            (soil is not None, "kein Bodensensor konfiguriert"),  # ②
+            (soil is not None, "Bodensensoren: " + self.soil_reading(kreis)[1]),  # ②
             (
                 soil is None or soil > glitch,
                 f"Bodenwert {soil} unplausibel (≤ {glitch:.0f}) — "
@@ -1285,14 +1310,17 @@ class GartenController:
         self._letzte_dose[kid] = dt_util.utcnow()
         self.daten.broadcast()
         generation = self._pause_generation
+        soil_generation = self._soil_generation.get(kid, 0)
         await self._store_sichern()
         # A pause may arrive while Store writes are awaiting disk. Do not
         # enqueue a stale dose, even if the user has already resumed again.
-        if self.pause.active or generation != self._pause_generation:
+        if (self.pause.active or generation != self._pause_generation
+                or soil_generation != self._soil_generation.get(kid, 0)
+                or not self.soil_allowed(kreis)):
             return
         self._dose_tasks[kid] = self.entry.async_create_background_task(
             self.hass,
-            self._dose_ausfuehren(kreis, dose_min, soil, high),
+            self._dose_ausfuehren({**kreis, "_soil_generation": soil_generation}, dose_min, soil, high),
             f"{DOMAIN}_dose_{kid}",
         )
 
@@ -1305,6 +1333,10 @@ class GartenController:
     ) -> None:
         ventile = kreis.get(CONF_VENTILE, [])
         kid = kreis[CONF_KREIS_ID]
+        if (not self.soil_allowed(kreis)
+                or kreis.get("_soil_generation", self._soil_generation.get(kid, 0))
+                != self._soil_generation.get(kid, 0)):
+            return
         start = dt_util.now()
         _LOGGER.info("Topf-Dose %s: %.1f min auf %s", kid, dose_min, ventile)
         abgebrochen = False
@@ -1440,6 +1472,8 @@ class GartenController:
     async def _batterie_pruefen(self, sensor: str, _jetzt: datetime | None = None) -> None:
         """B10: < Schwelle seit 30 min; global max. 1 Push pro 24 h."""
         self._batterie_debounce.pop(sensor, None)
+        if self._soil_battery_suppressed(sensor):
+            return
         zustand = self.hass.states.get(sensor)
         wert = sicher_float(zustand.state if zustand else None, 100.0)
         if wert >= BATTERIE_SCHWELLE:
@@ -1465,19 +1499,16 @@ class GartenController:
         """08:00: Kreise melden, deren Boden trotz Automatik kritisch trocken
         ist (unter der halben Veto-Schwelle) — gedämpft, wenn in den letzten
         24 h bewässert wurde. Ein gebündelter Push für alle Betroffenen."""
+        if self._gestoppt or not self.pause_ready or self.pause.active:
+            return
         betroffen: list[str] = []
         for kreis in self._kreise():
             kid = kreis[CONF_KREIS_ID]
             if not self._an("aktiv", kid):
                 continue
-            werte = [
-                sicher_float(self._zustand(s), -1.0)
-                for s in kreis.get(CONF_BODENSENSOREN) or []
-            ]
-            werte = [w for w in werte if w >= 0]
-            if not werte:
+            soil, _status = self.soil_reading(kreis)
+            if soil is None:
                 continue
-            soil = min(werte)
             kritisch = self._zahl("number", "veto_schwelle", kid, 70.0) / 2
             if soil >= kritisch:
                 continue
@@ -1576,7 +1607,9 @@ class GartenController:
             self.pause = self.pause.changed(dt_util.now(), **values)
             if self.pause.active and not was_active:
                 self._pause_generation += 1
+            soil_changed = self._soil_sync()
             await self._store_sichern()
+            await self._soil_close(soil_changed)
             self.daten.broadcast()
             self._arm_pause()
             if self.pause.active and not was_active:
@@ -1604,6 +1637,7 @@ class GartenController:
             if not result:
                 return
             self._pause_unsub = None
+            self._soil_sync()
             await self._store_sichern()
             self.daten.broadcast()
             self._arme_tagestimer()  # always the next future slot, no catch-up
@@ -1685,6 +1719,7 @@ class GartenController:
             or self.pause.active
             or kreis is None
             or kreis.get(CONF_KREIS_TYP) != "topf"
+            or not self.soil_allowed(kreis)
             or (self._dose_tasks.get(kid) and not self._dose_tasks[kid].done())
             or any(self._zustand(v) == "on" for v in kreis.get(CONF_VENTILE, []))
         ):
@@ -1705,13 +1740,16 @@ class GartenController:
         self._letzte_dose[kid] = dt_util.utcnow()
         self.daten.broadcast()
         generation = self._pause_generation
+        soil_generation = self._soil_generation.get(kid, 0)
         await self._store_sichern()
         # A pause may arrive while Store writes are awaiting disk. Do not
         # enqueue a stale dose, even if the user has already resumed again.
-        if self.pause.active or generation != self._pause_generation:
+        if (self.pause.active or generation != self._pause_generation
+                or soil_generation != self._soil_generation.get(kid, 0)
+                or not self.soil_allowed(kreis)):
             return
         self._dose_tasks[kid] = self.entry.async_create_background_task(
-            self.hass, self._dose_ausfuehren(kreis, dose_min), f"{DOMAIN}_dose_{kid}"
+            self.hass, self._dose_ausfuehren({**kreis, "_soil_generation": soil_generation}, dose_min), f"{DOMAIN}_dose_{kid}"
         )
 
     # ----------------------------------------------------------------- Push

@@ -29,9 +29,11 @@ jobs:
       - run: python3 tests/test_score.py
       - run: python3 tests/test_pause.py
       - run: python3 tests/test_plan_notifications.py
+      - run: python3 tests/test_soil.py
+      - run: python3 tests/test_soil_controller.py
       - name: Pause cancellation race in the HA runtime
         run: |
           docker run --rm --network none --cap-drop ALL --security-opt no-new-privileges \
             -v "$PWD:/work:ro" --entrypoint sh \
             ghcr.io/home-assistant/home-assistant:2026.9.2 \
-            -c 'python /work/tests/test_pause_race.py && python /work/tests/test_plan_notifications.py --ha-runtime'
+            -c 'python /work/tests/test_pause_race.py && python /work/tests/test_plan_notifications.py --ha-runtime && python /work/tests/test_soil_controller.py --ha-runtime && python /work/tests/test_soil_entities.py'

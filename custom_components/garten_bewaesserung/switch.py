@@ -11,6 +11,7 @@ from homeassistant.helpers.restore_state import RestoreEntity
 
 from .const import CONF_KREISE, DOMAIN
 from .entity import GartenEntity
+from .soil_entity import SoilEntity, soil_scopes
 
 HUB_SWITCHES = [
     # (schluessel, name, default_an, icon)
@@ -36,6 +37,23 @@ async def async_setup_entry(
         for kreis in entry.options.get(CONF_KREISE, [])
     ]
     async_add_entities(entities)
+    async_add_entities([SoilTimed(entry, daten, "boden_sensorpause_befristet", k)
+                        for k in soil_scopes(entry)])
+
+
+class SoilTimed(SoilEntity, SwitchEntity):
+    _attr_name = "Bodensensor-Pause mit Enddatum"
+    _attr_icon = "mdi:calendar-end"
+
+    @property
+    def is_on(self):
+        return self.policy.timed
+
+    async def async_turn_on(self, **kwargs):
+        await self.change(timed=True)
+
+    async def async_turn_off(self, **kwargs):
+        await self.change(timed=False)
 
 
 class GartenSwitch(GartenEntity, SwitchEntity, RestoreEntity):

@@ -28,6 +28,7 @@ from .const import (
     DOMAIN,
 )
 from .entity import GartenEntity
+from .soil_entity import SoilEntity, soil_scopes
 
 
 async def async_setup_entry(
@@ -58,6 +59,30 @@ async def async_setup_entry(
                 KostenMonatSensor(entry, daten, "kosten_monat", kreis),
             ]
     async_add_entities(entities)
+    async_add_entities([SoilStatus(entry, daten, "boden_sensorstatus", k) for k in soil_scopes(entry)])
+
+
+class SoilStatus(SoilEntity, SensorEntity):
+    _attr_name = "Bodensensor-Status"
+    _attr_icon = "mdi:sprout"
+
+    @property
+    def native_value(self):
+        if self._kreis:
+            return {"aktiv": "Aktiv", "eingelagert": "Eingelagert",
+                    "wartet_auf_messwert": "Wartet auf neue gültige Messung",
+                    "fehler": "Konfigurationsfehler", "ohne_sensor": "Ohne Bodensensor"
+                    }[self.controller.soil_reading(self._kreis)[1]]
+        return "fehler" if self.policy.invalid else self.policy.mode
+
+    @property
+    def extra_state_attributes(self):
+        if self._kreis:
+            return {**self.policy.to_dict(), **self.controller.soil_attributes(self._kreis)}
+        return {**self.policy.to_dict(), "kreise": {
+            k["id"]: self.controller.soil_attributes(k)
+            for k in self.controller._kreise() if k.get(CONF_BODENSENSOREN)
+        }}
 
 
 class PauseStatusSensor(GartenEntity, SensorEntity):
@@ -99,7 +124,11 @@ class BodenfeuchteSensor(GartenEntity, SensorEntity):
 
     @property
     def native_value(self):
-        return self.kreis_laufzeit.boden
+        return self.hass.data[DOMAIN][self._entry.entry_id]["controller"].soil_reading(self._kreis)[0]
+
+    @property
+    def extra_state_attributes(self):
+        return self.hass.data[DOMAIN][self._entry.entry_id]["controller"].soil_attributes(self._kreis)
 
 
 class StatusSensor(GartenEntity, SensorEntity):

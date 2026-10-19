@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Garten-Bewässerung einrichten",
+        "title": "Garten-Bewässerung — Score Irrigation einrichten",
         "description": "Wähle die Wetter-Entity für Vorhersagen (Temperatur-Faktor und Regen-Veto). Alles Weitere — Kreise, Benachrichtigungen, Tuning — konfigurierst du danach über den Konfigurieren-Dialog der Integration.",
         "data": {
           "wetter": "Wetter-Entity"
@@ -16,7 +16,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Garten-Bewässerung",
+        "title": "Garten-Bewässerung — Score Irrigation",
         "menu_options": {
           "globale_einstellungen": "Globale Einstellungen (Wetter, Zeitplan, Sicherheit)",
           "benachrichtigungen": "Benachrichtigungen",

@@ -153,7 +153,7 @@ class GartenConfigFlow(ConfigFlow, domain=DOMAIN):
                 CONF_KREISE: [],
             }
             return self.async_create_entry(
-                title="Garten-Bewässerung", data={}, options=options
+                title="Garten-Bewässerung — Score Irrigation", data={}, options=options
             )
 
         return self.async_show_form(

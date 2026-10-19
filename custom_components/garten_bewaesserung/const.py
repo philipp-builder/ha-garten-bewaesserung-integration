@@ -118,6 +118,7 @@ FALLBACK_TMAX = 20.0
 # Alle Hub-Entity-Schlüssel (unique_id = "<entry>_<schluessel>") — Grundlage
 # für das Registry-Aufräumen beim Setup (verwaiste Kreis-Entities erkennen).
 HUB_SCHLUESSEL = {
+    "boden_sensorbetrieb", "boden_sensorpause_ende", "boden_sensorpause_befristet", "boden_sensorstatus",
     "pause_befristet", "pause_grund", "pause_ablauf", "pause_ende", "pause_status", "test_push",
     "bewaesserungszeit", "heute_ueberspringen", "urlaubsmodus",
     "aggressiv_modus", "topf_steuerung", "not_aus", "sofort_start",
@@ -132,7 +133,8 @@ HUB_SCHLUESSEL = {
 # wenn die Bedingung wegfällt (Typwechsel Topf→Rasen bzw. Flow-Sensor entfernt).
 TOPF_KREIS_SCHLUESSEL = {CONF_ZIEL_UNTEN, CONF_ZIEL_OBEN, CONF_K_FAKTOR, "dosen_heute"}
 FLOW_KREIS_SCHLUESSEL = {"liter_heute", "liter_monat", "liter_gesamt", "kosten_monat"}
-BODEN_KREIS_SCHLUESSEL = {"bodenfeuchte"}  # nur mit konfigurierten Bodensensoren
+BODEN_KREIS_SCHLUESSEL = {"bodenfeuchte", "boden_sensorbetrieb", "boden_sensorpause_ende",
+                         "boden_sensorpause_befristet", "boden_sensorstatus", "boden_ohne_messwert"}
 
 # Lauf-Historie (Kalender): so viele abgeschlossene Läufe behalten
 # Kalender-Historie. Seit v1.7.0 landen auch Topf-Dosen hier — bei zwei

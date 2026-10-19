@@ -2,7 +2,7 @@
   "config": {
     "step": {
       "user": {
-        "title": "Set up Garden Irrigation",
+        "title": "Set up Garten-Bewässerung — Score Irrigation",
         "description": "Select the weather entity used for forecasts (temperature factor and rain veto). Everything else — circuits, notifications, tuning — is configured afterwards via the integration's Configure dialog.",
         "data": {
           "wetter": "Weather entity"
@@ -16,7 +16,7 @@
   "options": {
     "step": {
       "init": {
-        "title": "Garden Irrigation",
+        "title": "Garten-Bewässerung — Score Irrigation",
         "menu_options": {
           "globale_einstellungen": "Global settings (weather, schedule, safety)",
           "benachrichtigungen": "Notifications",

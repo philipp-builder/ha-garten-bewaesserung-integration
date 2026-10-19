@@ -43,6 +43,7 @@ class PlanNotifications(unittest.IsolatedAsyncioTestCase):
         c.pause_ready = True
         c.pause = SimpleNamespace(active=active, reason=reason, expire=lambda now: None)
         c._pause_generation = 0
+        c._soil_sync = Mock()
         c._pause_lock = asyncio.Lock()
         c._push_unsub = None
         c._an = lambda key: False

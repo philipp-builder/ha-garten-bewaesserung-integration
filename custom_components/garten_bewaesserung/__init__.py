@@ -80,6 +80,8 @@ def _registry_aufraeumen(hass: HomeAssistant, entry: ConfigEntry) -> None:
         kid = k[CONF_KREIS_ID]
         if k.get(CONF_KREIS_TYP) != "topf":
             unerwartet |= {f"{kid}_{s}" for s in TOPF_KREIS_SCHLUESSEL}
+        else:
+            unerwartet.add(f"{kid}_boden_ohne_messwert")
         if not k.get(CONF_FLOW_SENSOR):
             unerwartet |= {f"{kid}_{s}" for s in FLOW_KREIS_SCHLUESSEL}
         if not k.get(CONF_BODENSENSOREN):

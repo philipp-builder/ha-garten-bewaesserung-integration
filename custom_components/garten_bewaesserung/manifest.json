@@ -1,6 +1,6 @@
 {
   "domain": "garten_bewaesserung",
-  "name": "Garten-Bewässerung",
+  "name": "Garten-Bewässerung — Score Irrigation",
   "codeowners": [
     "@philipp-builder"
   ],
@@ -10,5 +10,5 @@
   "iot_class": "calculated",
   "issue_tracker": "https://github.com/philipp-builder/ha-garten-bewaesserung-integration/issues",
   "requirements": [],
-  "version": "1.9.1"
+  "version": "1.10.0"
 }
