@@ -27,6 +27,7 @@ jobs:
       # score.py ist bewusst HA-frei — die Paritätstests laufen ohne
       # jegliche Abhängigkeiten (kein pip install nötig).
       - run: python3 tests/test_score.py
+      - run: python3 tests/test_listing.py
       - run: python3 tests/test_pause.py
       - run: python3 tests/test_plan_notifications.py
       - run: python3 tests/test_soil.py

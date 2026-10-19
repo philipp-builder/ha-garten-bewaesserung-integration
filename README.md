@@ -1,196 +1,147 @@
-<!--
-  README.md — HACS-Integration `garten_bewaesserung`
-  Score-basierte Gartenbewässerung für Home Assistant.
-  Lizenz: MIT · Stand: 2026-07
--->
-
-<img src="assets/icon.svg" align="right" width="110" alt="Logo: Wassertropfen mit Setzling">
+<img src="https://raw.githubusercontent.com/philipp-builder/ha-garten-bewaesserung-integration/main/assets/icon.png" width="96" height="96" alt="Score Irrigation: Wassertropfen mit Setzling">
 
 # Garten-Bewässerung — Score Irrigation
 
-Garden irrigation for Home Assistant: soil moisture, weather-based lawn sprinklers,
-drip watering and multi-zone control — with independent winter sensor storage.
+**Bewässere Rasen, Beete und Töpfe nach Bedarf — mit deinen vorhandenen Home-Assistant-Geräten.**
 
-## Bodensensoren im Winter (ab v1.10.0)
+Score Irrigation verbindet Bodenfeuchte und Wettervorhersage mit deinen
+Bewässerungsventilen. Rasen erhält eine berechnete Laufzeit zum gewählten Termin;
+Töpfe bekommen kleine, sensorgesteuerte Dosen. Du siehst jederzeit, **warum ein
+Kreis bewässert wird — oder warum nicht**.
 
-**Sensorpause und Bewässerungspause sind getrennt.** Am Gerät **Garten** und an
-jedem Kreis mit Bodensensoren stehen native HA-Steuerelemente bereit:
+Einrichtung per Oberfläche · mehrere Kreise · native HA-Steuerelemente · MIT / Open Source
 
-| Einstellung | Wirkung |
+*Garden irrigation for Home Assistant: soil moisture, weather-based lawn watering
+and drip irrigation, with explainable decisions and independent winter pauses.*
+[English overview](https://philipp-builder.github.io/ha-garten-bewaesserung-integration/)
+
+**Loslegen:** In HACS nach **„Score Irrigation“** suchen und herunterladen.
+Voraussetzungen und die ersten Schritte stehen direkt unten.
+
+## Passt das zu deinem Garten?
+
+- **Rasen und Beete:** Bodenfeuchte, Temperaturvorhersage und Zeit seit der letzten
+  Bewässerung bestimmen den Score und die Laufzeit. Regen-Vetos können einen Lauf
+  aussetzen. Rasen ist auch bewusst ohne Bodensensor konfigurierbar.
+- **Töpfe und Tropfbewässerung:** Kleine Dosen halten die gemessene Bodenfeuchte
+  in einem einstellbaren Sollband — mit Tageslimit, Mindestabstand und Nachtruhe.
+- **Mehrere Kreise:** Ventile nacheinander oder in konfigurierten Gruppen parallel
+  betreiben. Startzeit, Dauergrenzen und Pausen direkt in HA einstellen.
+- **Nachvollziehbar statt Blackbox:** Status mit Begründung, Tagesplan und Kalender.
+  Optional Wasserverbrauch und Kosten aus einem echten Wasserzähler.
+- **Saisonwechsel ohne Fehlalarme:** Bewässerung und Bodensensoren unabhängig
+  pausieren, auch je Kreis und mit Enddatum. Sicherheitsalarme bleiben aktiv.
+
+Die Berechnung läuft in Home Assistant, ohne zusätzlichen Dienst oder Account.
+Ob Wetter und Geräte eine Cloud benötigen, hängt von **deren** Integration ab.
+Es ist eine regelbasierte Steuerung, kein selbstlernendes KI-Modell und kein
+Versprechen einer bestimmten Wasserersparnis.
+
+## Was du brauchst
+
+| Voraussetzung | Unterstützt / zu beachten |
 |---|---|
-| Bodensensor-Betrieb: Automatisch (Winterpause) | Garten-Standard: folgt einer **aktiven** Bewässerungs-Winterpause. Urlaub allein lagert keine Sensoren ein. |
-| Aktiv | Sensoren unabhängig von der Bewässerungspause nutzen; Bewässerung bleibt während ihrer eigenen Pause gesperrt. |
-| Eingelagert | Bodenwerte nicht für Planung, Dosen oder Trockenmeldungen verwenden. |
-| Garten übernehmen | Standard je Kreis; alternativ für diesen Kreis separat auswählen. |
-| Bodensensor-Pausenende + Pause mit Enddatum | Bei „Eingelagert“ zuerst Enddatum setzen, dann Befristung aktivieren. Am Ende wird der Sensorbetrieb aktiv, aber erst nach einer neuen gültigen Meldung nutzbar. |
-| Bewässerung ohne Bodenmesswert | Rasen mit konfiguriertem Sensor: standardmäßig **Sperren**. Optional ausdrücklich **Nur Wetter (Rasen)**; für Töpfe nicht verfügbar. |
+| Home Assistant + HACS | HA ab 2025.8.0; Installation über HACS |
+| Wetter | Eine `weather.*`-Entität mit nutzbarer Vorhersage; standardmäßig tägliche Vorhersage |
+| Ventile | Bereits in HA steuerbare `switch.*`-Entitäten. `valve.*` benötigt einen Template-Switch; [Anleitung in der FAQ](https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/FAQ.md). Kein direkter Ersatz für eine herstellerspezifische Geräteintegration. |
+| Bodenfeuchte | Sensorwerte in Prozent (0–100). Für Rasen optional, für Topf-Dosen erforderlich. Konfigurierte Sensoren müssen nach Start/Freigabe neu und gültig melden. |
+| Optional | Regenmessung, Globalstrahlung, kumulativer Wasserzähler, Leck-/Versorgungs-/Batteriesensoren, HA-Benachrichtigungsdienste |
 
-Der **Bodensensor-Status** zeigt Einlagerung, Warten auf eine neue gültige Messung
-oder einen Konfigurationsfehler. Nach Neustart oder Änderung der Sensorsteuerung
-werden alte Werte nicht sofort wieder freigegeben. Alle konfigurierten Sensoren
-müssen gültige Werte von 0–100 % melden; deaktivierte, wiederhergestellte,
-unbekannte, unplausible oder über 24 Stunden alte Meldungen gelten nicht.
-Auch eine neue Meldung mit unverändertem Wert zählt. Das ist eine neue
-**HA-Meldung**, kein unabhängig bewiesener Funkkontakt/Messzeitpunkt des Geräts.
+Die Bedienung und Statusmeldungen sind überwiegend **Deutsch**; Setup-Dialoge
+gibt es auch auf Englisch. Es werden keine eigenen Dashboard-Karten benötigt.
+Ventile, Druck und Durchfluss müssen zu deiner Anlage passen; Software kann ein
+mechanisch defektes Ventil oder einen ausgefallenen Funkaktor nicht sicher schließen.
 
-**Verhaltensänderung:** Der bisherige fiktive 50-%-Ersatzwert bei ausgefallenen
-Rasen-Bodensensoren entfällt. Bewusst ohne Bodensensor konfigurierte Rasen-Kreise
-bleiben wettergesteuert. Töpfe dosieren nie aufgrund eingelagerter/fehlender Werte.
-Die Steuerungsänderung schließt betroffene offene Ventile, verwirft betroffene
-wartende Dosen/alte Pläne und startet keinen Nachhol-Lauf. Nicht betroffene Kreise
-behalten ihre Einstellungen. Tatsächlich gemessene Wassermengen bleiben erhalten.
+## Installation und erster Kreis
 
-Während **jeder aktiven Bewässerungspause** entfallen nun auch die täglichen
-08-Uhr-Trockenmeldungen. Sensor-Batteriewarnungen entfallen nur, wenn die
-HA-Gerätezuordnung eindeutig ausschließlich eingelagerte Bodensensoren betrifft;
-Ventilbatterien, Leck-, Versorgungs- und Schließfehler bleiben überwacht.
+1. **HACS öffnen**, nach **„Score Irrigation“** oder **„Garten-Bewässerung“**
+   suchen → **Herunterladen**. Die Integration ist im HACS-Standardkatalog.
+2. **Home Assistant neu starten**, nachdem der Download abgeschlossen ist.
+3. **Einstellungen → Geräte & Dienste → Integration hinzufügen** →
+   **Garten-Bewässerung — Score Irrigation**. Wetter-Entität auswählen.
+4. In den **Optionen** der Integration **Kreis hinzufügen**: Rasen/Beet oder
+   Topf/Tropf wählen, Ventile und passende Sensoren zuordnen.
+5. **Startzeit, Dauergrenzen und Ausführung prüfen**, bevor du die Anlage
+   unbeaufsichtigt betreibst. Bei parallelen Kreisen reicht der Wasserdruck
+   möglicherweise nicht für alle Ventile.
+6. Native Status-, Zeit- und Schalter-Entities über den HA-Dashboard-Editor
+   hinzufügen. Einen ersten kurzen Lauf **beaufsichtigen**, Schließen der Ventile
+   kontrollieren und den Benachrichtigungs-Test verwenden, falls Pushes konfiguriert sind.
 
-Die Integration deaktiviert **keine fremden ZHA-/Zigbee-Entities** und schreibt
-keine erfundenen Messwerte. Andere Dashboards/Health-Checker müssen eine absichtliche
-Einlagerung selbst berücksichtigen: pro Kreis stehen `monitoring_expected`,
-`source_entities`, `status` und `fresh_after` als Attribute bereit. Bei gemeinsam
-genutzten Quellen nur ausblenden, wenn **alle** Verbraucher eingelagert sind;
-fehlende/fehlerhafte Statusdaten niemals als gesunde Pause behandeln.
-Details und Grenzen: [Sensor-Saison](docs/SENSOR_SEASON.md).
+Noch kein Suchtreffer? Den HACS-Katalog aktualisieren. Als Alternative lässt sich
+`https://github.com/philipp-builder/ha-garten-bewaesserung-integration`
+unter **Benutzerdefinierte Repositories**, Kategorie **Integration**, hinzufügen.
 
-## Urlaub und Winterpause
+[Ausführliche Einrichtung & Entity-Referenz](https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/INSTALLATION.md)
+· [FAQ & Hardware-Rezepte](https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/FAQ.md)
 
-Am Gerät **Garten** gibt es **Bewässerung pausieren**, **Pausengrund**,
-**Pausenende**, **Pause mit Enddatum**, **Nach Pausenende** und **Pausenstatus**.
-Ohne Enddatum gilt die Pause bis auf Widerruf. Für eine befristete Pause zuerst
-das zukünftige Enddatum einstellen, dann „Pause mit Enddatum“ aktivieren.
-Winterpause wählt standardmäßig **Nur erinnern**: Wasseranschluss und Schläuche
-prüfen, danach manuell freigeben. „Automatisch fortsetzen“ ist ausdrücklich wählbar.
+## So entscheidet die Bewässerung
 
-Die Pause wird gespeichert und übersteht Neustarts. Ein bereits laufender
-Durchgang wird abgebrochen und alle Ventile werden mit Wiederholversuchen
-geschlossen. Auch manuelle Sofortstarts und Topf-Dosen bleiben gesperrt.
-Das Pausenende erzeugt eine HA-Mitteilung und die konfigurierten Pushes.
-Während einer aktiven Pause entfallen die täglichen Garten-Plan-Ankündigungen
-(seit v1.9.1). Sicherheitsalarme, Test-Pushes und Pausenende-Erinnerungen bleiben
-aktiv. Nur den Pausengrund auszuwählen aktiviert noch keine Pause.
-Freigabe startet keinen sofortigen Nachhol-Lauf; normale zukünftige Termine
-und Topf-Prüfungen gelten wieder. Ein abgelaufenes Enddatum wird auch beim
-Neustart verarbeitet. Fehlerhafte gespeicherte Pausendaten bleiben sicher gesperrt.
+Für Rasen berechnet die Integration alle 30 Minuten einen **Score von 0 bis 100**
+aus Boden-Trockenheit, Temperaturvorhersage und Tagen seit der letzten Bewässerung.
+Daraus entsteht eine Laufzeit innerhalb deiner Grenzen. Regen, Pausen und weitere
+Sperren werden zusätzlich geprüft: Ein hoher Score allein erzwingt keinen Lauf.
 
-Bestehende Urlaubsmodus-Entity-IDs bleiben erhalten; ein eingeschalteter alter
-Urlaubsmodus wird als unbefristete Pause übernommen. Neuinstallationen verwenden
-den Anzeigenamen „Bewässerung pausieren“. Die Aktion
-`garten_bewaesserung.pause_setzen` erlaubt dieselbe Einstellung atomar;
-bei mehreren Gärten ist `entry_id` erforderlich. `ende` erwartet einen
-ISO-Zeitpunkt mit Zeitzone. Ohne `ende` aktiviert die Aktion eine unbefristete Pause.
+Ein Status kann beispielsweise erklären: **„Score 76 → 16 min“** und die verwendeten
+Boden- und Wetterwerte zeigen. Das ist ein Beispiel, keine Empfehlung für jede Anlage.
 
-**Score-basierte Gartenbewässerung: Setup per Wizard, beliebig viele Kreise,
-erklärbare Entscheidungen, mehrschichtiges Sicherheitsnetz gegen hängende Ventile.**
+Optional ersetzt **Referenzverdunstung ET₀ nach Hargreaves** den Temperaturfaktor.
+Topf-Kreise nutzen dagegen ein Feuchte-Sollband und kurze Dosen. Kalender,
+Dosen-Zähler und Statusattribute zeigen, was geplant ist und warum eine Dosis wartet.
 
-> 🌐 Landing Page: [Deutsch](https://philipp-builder.github.io/ha-garten-bewaesserung-integration/de/) · [English](https://philipp-builder.github.io/ha-garten-bewaesserung-integration/)
+## Im Alltag
 
-Die Integration berechnet für jeden Bewässerungskreis alle 30 Minuten einen
-**Score (0–100)** aus Bodenfeuchte, Temperatur-Vorhersage und „Tagen seit letzter
-Bewässerung", leitet daraus die heutige Bewässerungsdauer ab und führt sie zur
-eingestellten Zeit automatisch aus. Regen — gemessen oder vorhergesagt — setzt aus.
-
-- **Home Assistant:** ≥ 2025.8
-- **Sprache:** Deutsch (Entities + Dialoge; Setup-Dialoge auch Englisch)
-- **Abhängigkeiten:** keine (keine Cloud, `requirements: []`)
-- **Lizenz:** [MIT](LICENSE)
-
-## Funktionen
-
-- **Score statt Zeitplan** — gewichtete Formel aus Boden-Trockenheit,
-  Vorhersage-Tmax und Durst-Tagen; Vetos für gemessenen und vorhergesagten Regen.
-  Jeder Kreis hat einen **Status-Sensor mit Klartext-Begründung**
-  („Score 72 → 16 min (Boden 42 %, Tmax 29 °C, nie bewässert)") und allen
-  Score-Faktoren als Attributen.
-- **Beliebig viele Kreise, komplett per UI** — anlegen, bearbeiten, löschen im
-  Options-Dialog. Je Kreis 1–n Ventile, 0–n Bodenfeuchte-Sensoren, Ausführung
-  sequenziell, parallel ab Laufbeginn oder an eine Ketten-Position gekoppelt
-  (Tropfkreis startet z. B. erst mit dem zweiten Sprenger), eigene Dauer-Grenzen
-  und Veto-Schwelle.
-- **Topf-Frequenzbewässerung** — Topf-Kreise erhalten tagsüber kleine Dosen, die
-  die Bodenfeuchte in einem Soll-Band halten; Dosisgröße aus einer einstellbaren
-  Dosis-Antwort-Konstante, abgesichert durch elf Gates (u. a. Peak-Sonnen-Sperre,
-  Nachtruhe, Tageslimit, Mindestabstand, Regen-Veto, Sensorbatterie).
-  **Nachvollziehbar:** jede Dose landet als Termin im Bewässerungskalender, die
-  heutigen Uhrzeiten stehen am Dosen-Zähler — und wenn gerade *nicht* dosiert
-  wird, nennt das Attribut `warum_gerade_nicht` den Grund im Klartext
-  („pralle Sonne (780 ≥ 600) — wird aufgeschoben"). Siehe FAQ 21.
-- **Sicherheitsnetz** — jeder Schließbefehl mit Wiederhol-Versuchen; Safety-Sweep
-  nach jedem Lauf; Auto-Aus-Backstop für von Hand geöffnete Ventile; Watchdog
-  schließt jedes Ventil, das länger als die Notaus-Zeit offen ist; nach einem
-  HA-Neustart werden verwaiste offene Ventile sofort zwangsgeschlossen;
-  Not-Aus-Button für „alles sofort zu".
-- **Benachrichtigungen** — Tagesplan-Push vor dem Lauf; Alarme für Wasserleck,
-  fehlende Wasserversorgung und schwache Batterien; täglicher Report, wenn ein
-  Kreis trotz Automatik kritisch trocken bleibt. **Überprüfbar:** die Dienste
-  werden aus den auf deinem System registrierten notify-Diensten ausgewählt
-  (keine Tippfehler möglich), ein Knopf schickt eine Test-Benachrichtigung und
-  meldet das Ergebnis als Notiz *in* Home Assistant, und ein nicht mehr
-  existierender Dienst erzeugt eine Reparatur-Karte. Siehe FAQ 22.
-- **Wasser-Bilanz** — mit einem Flow-Sensor je Kreis: Liter pro Sitzung, Tag und
-  Monat plus Monatskosten aus dem hinterlegten Wassertarif.
-- **Modi** — Heute überspringen (Auto-Reset um Mitternacht), Urlaubsmodus,
-  Boost-Modus (Score 100), Kreise einzeln pausierbar.
-- **Plan-Übersicht** — `sensor.garten_plan_heute` fasst den Tagesplan in einer
-  Zeile zusammen (Tmax 3 Tage, Regen gemessen + Vorhersage, Bodenfeuchte aller
-  Kreise, Berechnungszeitpunkt); die Rohwerte liegen als Attribute bei.
-- **Verdunstung statt nur Temperatur (optional)** — der Temperatur-Faktor kann
-  auf **ET₀ nach Hargreaves** umgestellt werden: Referenz-Verdunstung aus
-  Sonnenstand (Breitengrad + Kalendertag) und Tmax/Tmin der Vorhersage, ohne
-  zusätzliche Sensoren. Fällt bei fehlenden Daten automatisch auf Tmax zurück —
-  besonders für Rasenkreise ohne Bodensensor interessant — und pro Kreis
-  übersteuerbar (z. B. nur der Rasen auf ET₀). Der Tuning-Dialog ist dafür in
-  Sektionen mit Erklärtext unter jedem Feld gegliedert.
-
-## Installation
-
-1. In HACS nach **„Garten-Bewässerung“** oder **„Score Irrigation“** suchen.
-   Seit 18.10.2026 ist die Integration in HACS Default aufgenommen. Solange der
-   Katalog noch nicht aktualisiert ist: ⋮ → **Benutzerdefinierte Repositories** →
-   `https://github.com/philipp-builder/ha-garten-bewaesserung-integration`, Typ **Integration**.
-2. **„Garten-Bewässerung — Score Irrigation“** öffnen → **„Herunterladen"**
-   klicken (das Hinzufügen des Repositories allein installiert noch nichts).
-3. Sobald HACS „Neustart erforderlich" anzeigt: Home Assistant neu starten.
-4. Einstellungen → Geräte & Dienste → **Integration hinzufügen** →
-   „Garten-Bewässerung" → Wetter-Entität wählen (beliebige `weather.*` mit Vorhersage).
-
-## Konfiguration
-
-Alles Weitere über das Zahnrad am Integrations-Eintrag:
-
-| Menüpunkt | Inhalt |
+| Du möchtest … | Dafür gibt es … |
 |---|---|
-| Globale Einstellungen | Wetter-Entität · optional eigener Regen-24h-Sensor (mm) · optional Globalstrahlungs-Sensor (Peak-Sonnen-Sperre) |
-| Benachrichtigungen | notify-Dienste · kritische Pushes · Dashboard-Deep-Link |
-| Tuning | Score-Gewichte und -Parameter, Regen-Schwellen, Topf-Parameter, Wassertarif |
-| Kreis hinzufügen/bearbeiten/entfernen | Name, Typ (Rasen/Beet oder Topf/Tropf), Ventile, Sensoren, Reihenfolge, Dauer-Grenzen, Sollband + k, optionale Flow-/Leck-/Versorgungs-/Batterie-Sensoren |
+| Den Garten steuern | Native Zeit-, Zahlen-, Schalter- und Button-Entities; kein YAML für das normale Setup |
+| Heute aussetzen | „Heute überspringen“ mit automatischer Rücksetzung am nächsten Tag |
+| Urlaub oder Winterpause | Gespeicherte Bewässerungspause, optionales Enddatum und wählbare Freigabe/Erinnerung |
+| Sensoren früher einlagern oder später zurückbringen | Eigenen Bodensensor-Betrieb für Garten und einzelne Kreise, unabhängig von der Bewässerungspause |
+| Sehen, was passiert | Tagesplan, begründeter Kreisstatus und Bewässerungskalender |
+| Meldungen erhalten | Plan-Pushes, Trockenberichte, Sicherheitsmeldungen und Test-Benachrichtigung nach Konfiguration |
+| Verbrauch verfolgen | Mit kumulativem Wasserzähler: Liter, Monatskosten und Wasser-Statistiken fürs HA-Energie-Dashboard |
 
-Startzeit, Dauer-Grenzen, Schwellen und Modi sind zusätzlich als Entities
-(`time`, `number`, `switch`) direkt im Dashboard verstellbar.
+**Pausen sind keine bloße Benachrichtigungs-Stummschaltung:** Eine aktive
+Bewässerungspause sperrt auch Sofortstarts und Topf-Dosen. Im Winter gilt
+standardmäßig „Nur erinnern“ statt unbeaufsichtigtem Wiederanlauf.
+Eingelagerte Bodensensoren liefern keine erfundenen Ersatzwerte. Fehlende
+konfigurierte Bodenwerte sperren standardmäßig; nur für Rasen ist ausdrücklich
+gewählter Wetterbetrieb möglich.
 
-**Vollständige Entity-Referenz:**
-[docs/INSTALLATION.md](docs/INSTALLATION.md) ·
-Architektur: [docs/ARCHITECTURE.md](docs/ARCHITECTURE.md) ·
-Rezepte & Troubleshooting (Regen-24h-Sensor, Template-Switch für
-`valve.`-Entities u. v. m.): [FAQ](docs/FAQ.md).
+[Urlaub, Winterpause und Sensor-Einlagerung einrichten](https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/PAUSES.md)
 
-## Services & Events
+## Sicherheit und Grenzen
 
-| Service | Wirkung |
-|---|---|
-| `garten_bewaesserung.jetzt_bewaessern` | geplanten Lauf sofort starten (Skip/Urlaub gelten weiter) |
-| `garten_bewaesserung.not_aus` | Lauf abbrechen, alle Ventile schließen |
-| `garten_bewaesserung.plan_neu_berechnen` | Score/Dauer aller Kreise sofort neu berechnen |
-| `garten_bewaesserung.dosis_geben` | sofortige Topf-Dose (Feld `kreis`) |
+Schließversuche mit Wiederholungen, Laufzeit-Watchdog, Neustart-Prüfung offener
+Ventile und ein Not-Aus ergänzen die normalen Laufzeitgrenzen. Leck- und
+Versorgungsalarme benötigen die entsprechenden Sensoren und konfigurierte
+Benachrichtigungen. Pausen unterdrücken Routine-Plan-/Trockenmeldungen,
+**nicht** Sicherheitsalarme.
 
-Events für eigene Automationen: `garten_bewaesserung_lauf_gestartet`,
-`…_lauf_beendet`, `…_notaus`.
+Die Integration steuert die ihr zugeordneten Ventile. Weise ihr keine Schalter
+zu, die inzwischen für andere Zwecke verwendet werden. Fremde Sensor-Entities
+werden beim Einlagern weder deaktiviert noch aus anderen Health-Dashboards
+entfernt. Deren Überwachung muss die Sensorpause selbst berücksichtigen.
 
-## Entwicklung & Tests
+## Hilfe, Updates und Mitmachen
 
-Die Score-Formel liegt HA-frei in `custom_components/garten_bewaesserung/score.py`;
-`python3 tests/test_score.py` prüft sie ohne weitere Abhängigkeiten (läuft auch in
-der CI, zusammen mit hassfest- und HACS-Validierung). `tests/e2e/` enthält einen
-End-to-End-Test, der die Integration in einer ephemeren Home-Assistant-Instanz im
-Docker durchspielt — vom Config-Flow über Läufe und Not-Aus bis zur
-Neustart-Recovery.
+- **Einrichten und nachschlagen:** [Bedienung & Entities](https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/INSTALLATION.md),
+  [FAQ](https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/FAQ.md),
+  [Sensor-Saison im Detail](https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/SENSOR_SEASON.md).
+- **Änderungen vor einem Update prüfen:** [Release Notes](https://github.com/philipp-builder/ha-garten-bewaesserung-integration/releases).
+  Seit v1.10.0 erfordern konfigurierte Bodensensoren nach Neustart/Freigabe neue
+  gültige HA-Meldungen; der frühere fiktive 50-%-Ersatzwert entfällt.
+- **Fehler melden oder Verbesserung vorschlagen:** [GitHub Issues](https://github.com/philipp-builder/ha-garten-bewaesserung-integration/issues).
+  Bitte Version, erwartetes Verhalten und bereinigte Fehlermeldung angeben —
+  keine Zugangsdaten oder privaten Gerätedaten.
+- **Weiterentwickeln:** [Architektur](https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/docs/ARCHITECTURE.md).
+  CI prüft Score, Pausen, Sensor-Saison und synthetische Ventilabläufe,
+  einschließlich Tests in einer echten HA-Laufzeit, sowie HACS und hassfest.
+
+Aktionen für eigene Automationen: `jetzt_bewaessern`, `not_aus`,
+`plan_neu_berechnen`, `dosis_geben` und `pause_setzen` unter
+`garten_bewaesserung`. Pausen und Sicherheitsprüfungen gelten weiterhin.
+
+[MIT-Lizenz](https://github.com/philipp-builder/ha-garten-bewaesserung-integration/blob/main/LICENSE)
+· [Produktübersicht Deutsch](https://philipp-builder.github.io/ha-garten-bewaesserung-integration/de/)
+· [English overview](https://philipp-builder.github.io/ha-garten-bewaesserung-integration/)

@@ -1,16 +1,17 @@
 # Handoff — 2026-10-19
-## v1.10.0: independent soil-sensor season
-- Approved display name: Garten-Bewässerung — Score Irrigation. Domain/repository/existing entity and device IDs unchanged. No claim of exclusive trademark ownership.
-- Root cause of winter morning alerts: v1.9.1 guarded plan pushes only; _trocken_report did not check active pause. Now all active irrigation pauses suppress routine dry reports too; safety/test/expiry notifications remain.
-- Native global/per-zone select, date, timed switch and status. Default automatic follows ACTIVE irrigation Winterpause; zone default inherits garden. Active and Stored independent overrides, optional timezone-aware end date.
-- Additive soil Store key; corruption visibly blocks, migration defaults automatic/inherit. End date selects Active, no immediate catch-up; startup/resume requires fresh valid HA reports (same-value reports count). All sources 0..100/finite/enabled/non-restored and <=24h. HA report age is not proven physical sample time.
-- Central soil_reading/soil_allowed gates score, reports, auto/manual pots and final valve open. Missing configured lawn source no longer invents 50%; explicit per-lawn weather-only fallback available, never for pots. Intentionally sensorless lawns unchanged.
-- Per-zone generations fence queued work and rapid pause/resume. Affected open valves closed with retries; in-flight open rechecked; failed close still alarms. Other zones retain settings/generations. Actual water counts/history retained; no adaptive learning engine here.
-- Soil-device battery alerts suppressed only with proven identity and all configured consumers stored; valves/unknown device roles retain alerts. No registry disabling/Recorder changes to upstream entities.
-- monitoring_expected/source_entities/status/fresh_after attributes support external health integration; no blanket suppression, and invalid policy remains a fault. This does not change a separate private YAML installation.
-## Tests / publication
-- Local stdlib: 19 score +12 pause +9 plan-notification +9 soil-policy +21 soil-controller tests. Same controller assertions run with full HA imports in CI, alongside existing pause race, 13 native season entity checks and real HA startup/unchanged-report/shutdown checks.
-- Workflow also runs hassfest and HACS validation. Publish v1.10.0 only after exact-commit CI succeeds; never infer a passing AST unit suite proves HA setup.
-- README and docs/SENSOR_SEASON.md document controls, behavior change, monitoring/freshness limits and safe release procedure.
-- HACS default PR9343 merged October18; the subsequent generated public catalog was still delayed at the October19 investigation. Recheck catalog rather than assume a reinstall/HA restart fixes upstream generation.
-- Public release != installed update. No production HA restart, watering, camera, mail or server deployment is part of this source release.
+## v1.10.1: newcomer-first HACS description
+- README now leads with purpose, supported hardware/limits, installation and the first circuit; operation/safety/support follow. No unproven water-saving, learning or cloud-independence claims.
+- Detailed existing winter controls preserved in docs/PAUSES.md; release/migration notes are below the introduction. INSTALLATION.md agrees with standard-catalog installation and current notification selection.
+- Description uses absolute public PNG/repository links. Existing component brand/icon.png (256) and icon@2x.png (512) are correct and byte-identical to assets; not newly added or a missing-package fix.
+- Public HACS repositories.json now contains philipp-builder/ha-garten-bewaesserung-integration. Earlier October19 catalog-delay findings are superseded.
+- HACS issue5402 maintainer says store-icon fix ships with Marketplace in HA2026.11. Legacy HACS may still show its placeholder; no household HACS patch or early HA upgrade. This is separate from the README image.
+- HACS reads version-specific README (installed version if installed, latest otherwise); v1.10.1 is a documentation-only patch, manifest version change only inside runtime component. Never rewrite v1.10.0.
+- Four listing checks plus70existing local tests pass. CI also validates full HA runtime, hassfest and HACS. Publish only after exact-commit green, then verify release/tag/remote parity.
+- Private authenticated HACS page could not be opened with the web tool; do not claim a live browser/readback check. Public source/catalog and asset packaging were checked.
+## v1.10.0 behavior retained
+- Approved name Garten-Bewässerung — Score Irrigation; domain/repo/entity/device IDs unchanged. v1.10.0 released from9bcad60, CI39222491958 passed.
+- All active irrigation pauses suppress routine plan/dry reports, not safety/test/expiry notices. Reason selection alone is not an active pause.
+- Independent persisted global/per-zone soil season/end dates. Automatic follows ACTIVE winter only; fresh valid HA reports after startup/resume, unchanged-value reports count. HA report time is not proven physical measurement time.
+- No imaginary50% soil; explicit lawn-only weather opt-in, pots never blind. Per-zone generations fence stale work/in-flight opens; close retries/alarms remain. Exact health metadata, no upstream registry disabling or adaptive learning.
+- Details: docs/SENSOR_SEASON.md and docs/PAUSES.md. Public integration does not change the separate Stäfa YAML setup.
+- No production deployment/restart, valve commands, notifications or credential access in this listing task. Source release != installed household update.

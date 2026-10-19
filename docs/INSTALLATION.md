@@ -12,26 +12,31 @@ und punktgenauen Timern.
 
 - **Home Assistant:** ≥ 2025.8.0
 - **Sprache:** Deutsch (bewusst — wie das Kit; die Setup-Dialoge gibt es auch auf Englisch)
-- **Abhängigkeiten:** keine (`requirements: []`, keine Cloud)
+- **Zusätzliche Python-Abhängigkeiten:** keine (`requirements: []`). Die Berechnung läuft lokal; Wetter-/Geräteintegrationen können eigene Cloud-Dienste benötigen.
 
 ## Installation (HACS)
 
-1. HACS → ⋮ → **Benutzerdefinierte Repositories** → URL
-   `https://github.com/philipp-builder/ha-garten-bewaesserung-integration`, Typ **Integration** → hinzufügen.
-2. In HACS nach **„Garten-Bewässerung"** suchen → öffnen → **„Herunterladen"** klicken.
-   Das Hinzufügen des Repositories allein installiert noch nichts — und wer vor dem
-   Download neu startet, findet das Custom-Repository danach nicht mehr in HACS
-   (HACS entfernt beim Start alle nicht heruntergeladenen Custom-Repositories).
-3. Sobald HACS „Neustart erforderlich" meldet: Home Assistant neu starten.
-4. Einstellungen → Geräte & Dienste → **Integration hinzufügen** → „Garten-Bewässerung".
-5. Im Wizard die **Wetter-Entität** wählen (beliebige `weather.*` mit Vorhersage) — fertig.
+1. In HACS nach **„Score Irrigation“** oder **„Garten-Bewässerung“** suchen.
+   Die Integration ist im Standardkatalog. Nur falls der Katalog noch nicht aktualisiert ist:
+   ⋮ → **Benutzerdefinierte Repositories** →
+   `https://github.com/philipp-builder/ha-garten-bewaesserung-integration`, Typ **Integration**.
+2. **Garten-Bewässerung — Score Irrigation** öffnen → **Herunterladen**.
+   Das Hinzufügen eines Repositories allein installiert noch nichts.
+3. Sobald HACS „Neustart erforderlich“ meldet: Home Assistant neu starten.
+4. Einstellungen → Geräte & Dienste → **Integration hinzufügen** → „Garten-Bewässerung“.
+5. Im Wizard die **Wetter-Entität** wählen (`weather.*` mit nutzbarer Vorhersage,
+   standardmäßig täglich). Danach in den Optionen einen Kreis mit Ventilen und
+   passenden Sensoren anlegen, Startzeit/Dauergrenzen prüfen und den ersten Lauf beaufsichtigen.
+
+[Urlaub, Winterpause und Sensor-Einlagerung](PAUSES.md) haben eigene native
+Steuerelemente; eine ausgewählte Pausenart allein aktiviert noch keine Pause.
 
 Alles Weitere passiert im **Options-Dialog** der Integration (Zahnrad am Hub-Eintrag):
 
 | Menüpunkt | Inhalt |
 |---|---|
 | Globale Einstellungen | Wetter-Entität · optional eigener **Regen-24h-Sensor** (mm, beobachtet) · optional **Globalstrahlungs-Sensor** (Peak-Sonnen-Sperre) |
-| Benachrichtigungen | notify-Dienste (Komma-Liste) · kritische Pushes · Dashboard-Deep-Link |
+| Benachrichtigungen | registrierte notify-Dienste auswählen · kritische Pushes · Dashboard-Deep-Link |
 | Tuning | in einklappbaren Sektionen mit Erklärtext unter jedem Feld: Score-Gewichte & Schwellen · Temperatur & Verdunstung (Quelle **Tmax oder ET₀ nach Hargreaves** — Sonnenstand aus Breitengrad + Tmax/Tmin der Vorhersage, keine Extra-Sensoren; besonders für Rasen interessant) · Regen & Sonne · Topf-Parameter · Wasserkosten. Der aktuelle ET₀-Wert steht vorab in den Attributen von `sensor.garten_plan_heute` |
 | Kreis hinzufügen / bearbeiten / entfernen | Name, Typ (Rasen/Beet oder Topf/Tropf — auch nachträglich änderbar; typ-spezifische Entities wie Sollband/Dosen erscheinen bzw. verschwinden dabei automatisch), **1–n Ventile**, 0–n Bodensensoren, Reihenfolge, Ausführung (sequenziell · parallel ab Laufbeginn · **parallel ab Reihenfolge-Position** — koppelt z. B. einen Tropfkreis an den zweiten Sprenger der Kette), Dauer-Grenzen, **Temperatur-Quelle je Kreis** (wie global / Tmax / ET₀), Sollband + k (Topf), optional Wasserzähler- (kumulativ, m³/L — FAQ 17!) /Leck-/Versorgungs-/Batterie-Sensoren |
 
@@ -42,7 +47,7 @@ erscheinen sofort.
 
 - **:00/:30** — Score & Tagesdauer je Kreis neu berechnen (Formel = Kit-B1, inkl.
   aller Vetos und Fallbacks). Der **Status-Sensor** erklärt jede Entscheidung im Klartext.
-- **Bewässerungszeit − 30 min** — Tagesplan-Push (unterdrückt bei „Heute überspringen").
+- **Bewässerungszeit − 30 min** — Tagesplan-Push (unterdrückt bei „Heute überspringen“ und aktiver Bewässerungspause).
 - **Bewässerungszeit** — Lauf: Kreise in Gruppen-Reihenfolge, `parallel`-Kreise
   gleichzeitig; pro Ventil öffnen → Dauer → Retry-Schließen; Safety-Sweep am Ende;
   Dauer-Snapshot beim Start.
@@ -53,6 +58,7 @@ erscheinen sofort.
   Ventile sofort zwangsgeschlossen; Not-Aus-Button bricht alles ab.
 - **08:00** — Trocken-Report: Kreise, deren Boden trotz Automatik kritisch trocken ist
   (unter der **halben Veto-Schwelle**, gedämpft wenn in den letzten 24 h bewässert wurde).
+  Während aktiver Bewässerungspausen unterdrückt; eingelagerte/ungültige Bodenwerte lösen keinen Trockenbericht aus.
 - **Alarme** — Leck (sofort), Wasserversorgung weg (≥ 1 min, nur wenn das Ventil per HA
   geöffnet wurde), Batterie < 20 % (max. 1 Push/Tag).
 

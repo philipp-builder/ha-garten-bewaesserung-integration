@@ -24,3 +24,12 @@ Keep credentials, private device data and deployment inventories out of it.
 - Preserve domain, repository and existing entity/device unique IDs when changing
   branding. The approved display name is Garten-Bewässerung — Score Irrigation.
 - Publishing a HACS release is not proof it is installed in anyone's HA.
+- Keep the HACS README newcomer-first: purpose, fit/requirements, installation,
+  then operation/limits/support. Release-specific detail belongs in linked guides
+  and release notes, not above the product introduction. No unsupported savings,
+  learning or safety guarantees; local controller does not make upstream devices local.
+- Use absolute public PNG URLs and repository links in the HACS description.
+  Preserve brand/icon.png (256px) and icon@2x.png (512px) inside the component.
+  Legacy HACS has an upstream store-icon limitation; do not patch household HACS.
+  HACS reads version-specific documentation, so publish a docs-only patch release
+  when needed, without changing watering behavior or rewriting existing tags.
